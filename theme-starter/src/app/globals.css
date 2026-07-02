@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #0f0f0f;
+    --surface: #202020;
+    --accent: #5dd62c;
+    --accent-hover: #337418;
+    --ink: #f8f8f8;
+    --muted: rgba(248, 248, 248, 0.65);
+    --hairline: rgba(255, 255, 255, 0.08);
+  }
+
+  * {
+    border-color: var(--hairline);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Improve focus visibility for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: rgba(93, 214, 44, 0.3);
+    color: var(--ink);
+  }
+}
+
+@layer components {
+  .container-page {
+    width: min(1160px, calc(100% - 32px));
+    margin-inline: auto;
+  }
+
+  /* Soft radial green glow used behind hero / accents */
+  .glow-accent {
+    background: radial-gradient(
+      60% 60% at 50% 40%,
+      rgba(93, 214, 44, 0.18) 0%,
+      rgba(93, 214, 44, 0) 70%
+    );
+  }
+
+  .surface-card {
+    background-color: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 28px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  }
+}
+
+@layer utilities {
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
