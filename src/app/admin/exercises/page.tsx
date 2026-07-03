@@ -13,7 +13,7 @@ export default async function AdminExercisesPage() {
   const { data: exercises } = await db
     .from("exercises")
     .select(
-      "id, name_ar, name_en, name_fr, primary_muscle, secondary_muscles, equipment, movement_pattern, difficulty, contraindicated_for, video_url, thumbnail_url, instructions, created_at",
+      "id, name_ar, name_en, name_fr, primary_muscle, secondary_muscles, equipment, movement_pattern, difficulty, contraindicated_for, substitution_group, video_url, thumbnail_url, instructions, created_at",
     )
     .order("primary_muscle", { ascending: true })
     .order("name_en", { ascending: true });

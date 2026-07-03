@@ -187,6 +187,10 @@ export type Database = {
           allergies: string[] | null;
           dietary_restriction: string | null;
           disliked_foods: string[] | null;
+          ramadan_mode: boolean;
+          cooking_skill: string | null;
+          favorite_foods: string[] | null;
+          diet_intensity: string;
           created_at: string | null;
         };
         Insert: {
@@ -205,6 +209,10 @@ export type Database = {
           allergies?: string[] | null;
           dietary_restriction?: string | null;
           disliked_foods?: string[] | null;
+          ramadan_mode?: boolean;
+          cooking_skill?: string | null;
+          favorite_foods?: string[] | null;
+          diet_intensity?: string;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["diet_profiles"]["Insert"]>;
@@ -446,6 +454,9 @@ export type Database = {
           experience: string;
           injuries: string[] | null;
           goal: string;
+          favorite_exercises: string[] | null;
+          weak_muscles: string[] | null;
+          consistency_self_rating: number | null;
           created_at: string | null;
         };
         Insert: {
@@ -459,6 +470,9 @@ export type Database = {
           experience: string;
           injuries?: string[] | null;
           goal: string;
+          favorite_exercises?: string[] | null;
+          weak_muscles?: string[] | null;
+          consistency_self_rating?: number | null;
           created_at?: string | null;
         };
         Update: Partial<
@@ -478,6 +492,7 @@ export type Database = {
           movement_pattern: string | null;
           difficulty: string | null;
           contraindicated_for: string[] | null;
+          substitution_group: string | null;
           video_url: string | null;
           thumbnail_url: string | null;
           instructions: string | null;
@@ -494,6 +509,7 @@ export type Database = {
           movement_pattern?: string | null;
           difficulty?: string | null;
           contraindicated_for?: string[] | null;
+          substitution_group?: string | null;
           video_url?: string | null;
           thumbnail_url?: string | null;
           instructions?: string | null;
@@ -756,6 +772,26 @@ export type Database = {
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["qa_cards"]["Insert"]>;
+        Relationships: [];
+      };
+      qa_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          question_text: string;
+          status: string;
+          promoted_qa_card_id: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          question_text: string;
+          status?: string;
+          promoted_qa_card_id?: string | null;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["qa_requests"]["Insert"]>;
         Relationships: [];
       };
     };

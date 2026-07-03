@@ -36,7 +36,7 @@ export default async function RootLayout({
         {children}
         <LanguageSwitcher
           locale={locale}
-          className="fixed bottom-4 end-4 z-50 shadow-lg"
+          className="fixed bottom-24 end-4 z-50 shadow-lg"
         />
       </body>
     </html>
