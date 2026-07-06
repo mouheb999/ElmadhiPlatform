@@ -6,6 +6,7 @@ import { MealCard, type EditorItem } from "@/components/diet/meal-card";
 import { WarningBanner } from "@/components/shared/warning-banner";
 import { validateMealPlan } from "@/lib/algorithms/validation";
 import { saveMealPlanItemEdit, removeMealPlanItem, addMealPlanItem, markMealPlanModified } from "@/app/actions/diet";
+import { logFood, logPlanMeal, type MealSlot } from "@/app/actions/meal-logs";
 import type { FoodResult } from "@/components/diet/food-search";
 import { pick, type Locale } from "@/lib/i18n";
 
@@ -27,6 +28,8 @@ export function PlanEditor({
   initialMeals: EditorMeal[];
 }) {
   const [meals, setMeals] = useState(initialMeals);
+  const [logStatuses, setLogStatuses] = useState<Record<string, "pending" | "done">>({});
+  const [itemLogStatuses, setItemLogStatuses] = useState<Record<string, "pending" | "done">>({});
   const [, startTransition] = useTransition();
   const tempIdCounter = useRef(0);
 
@@ -114,6 +117,42 @@ export function PlanEditor({
     });
   }
 
+  function planTypeToSlot(mealType: string): MealSlot {
+    if (mealType === "breakfast" || mealType === "lunch" || mealType === "dinner") return mealType;
+    return "snack";
+  }
+
+  function handleLogItem(mealType: string, item: EditorItem) {
+    setItemLogStatuses((prev) => ({ ...prev, [item.id]: "pending" }));
+    startTransition(async () => {
+      const result = await logFood({
+        slot: planTypeToSlot(mealType),
+        foodId: item.foodId,
+        quantityG: item.quantityG,
+        entryMethod: "plan",
+      });
+      setItemLogStatuses((prev) => {
+        const next = { ...prev };
+        if (result.ok) next[item.id] = "done";
+        else delete next[item.id];
+        return next;
+      });
+    });
+  }
+
+  function handleLogMeal(mealId: string) {
+    setLogStatuses((prev) => ({ ...prev, [mealId]: "pending" }));
+    startTransition(async () => {
+      const result = await logPlanMeal(mealId);
+      setLogStatuses((prev) => {
+        const next = { ...prev };
+        if (result.ok) next[mealId] = "done";
+        else delete next[mealId];
+        return next;
+      });
+    });
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <MacroRing
@@ -143,6 +182,10 @@ export function PlanEditor({
             onQuantityChange={(itemId, qty) => handleQuantityChange(meal.id, itemId, qty)}
             onRemove={(itemId) => handleRemove(meal.id, itemId)}
             onAdd={(food) => handleAdd(meal.id, food)}
+            onLogMeal={() => handleLogMeal(meal.id)}
+            logStatus={logStatuses[meal.id] ?? "idle"}
+            onLogItem={(item) => handleLogItem(meal.mealType, item)}
+            itemLogStatuses={itemLogStatuses}
           />
         ))}
       </div>

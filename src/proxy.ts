@@ -7,6 +7,7 @@ const PROTECTED_PREFIXES = [
   "/diet",
   "/workout",
   "/qa",
+  "/review",
   "/settings",
 ];
 

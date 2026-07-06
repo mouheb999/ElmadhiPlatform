@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
-import { pick, type Locale } from "@/lib/i18n";
+import { CheckCircle2, ChevronDown, ChevronUp, NotebookPen, Plus, Trash2 } from "lucide-react";
+import { pick, t, type Locale } from "@/lib/i18n";
 import { FoodSearch, type FoodResult } from "@/components/diet/food-search";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,10 @@ export function MealCard({
   onQuantityChange,
   onRemove,
   onAdd,
+  onLogMeal,
+  logStatus = "idle",
+  onLogItem,
+  itemLogStatuses,
   defaultOpen = false,
 }: {
   locale: Locale;
@@ -42,6 +46,12 @@ export function MealCard({
   onQuantityChange: (itemId: string, quantityG: number) => void;
   onRemove: (itemId: string) => void;
   onAdd: (food: FoodResult) => void;
+  /** Bridge to the food diary: log this planned meal as eaten today. */
+  onLogMeal?: () => void;
+  logStatus?: "idle" | "pending" | "done";
+  /** Bridge to the food diary: log a single planned food as eaten today. */
+  onLogItem?: (item: EditorItem) => void;
+  itemLogStatuses?: Record<string, "pending" | "done">;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -75,11 +85,56 @@ export function MealCard({
                 className={cn("h-10 w-20 text-center text-sm")}
               />
               <span className="w-6 text-xs text-muted">g</span>
+              {onLogItem && (
+                <button
+                  type="button"
+                  onClick={() => onLogItem(item)}
+                  disabled={!!itemLogStatuses?.[item.id]}
+                  aria-label={t(locale, "plan.log_item")}
+                  title={t(locale, "plan.log_item")}
+                  className={cn(
+                    "text-muted transition-colors hover:text-accent disabled:pointer-events-none",
+                    itemLogStatuses?.[item.id] === "done" && "text-accent",
+                  )}
+                >
+                  {itemLogStatuses?.[item.id] === "done" ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <NotebookPen className="h-4 w-4" />
+                  )}
+                </button>
+              )}
               <button type="button" onClick={() => onRemove(item.id)} aria-label="Remove" className="text-muted hover:text-ink">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           ))}
+
+          {onLogMeal && items.length > 0 && (
+            <button
+              type="button"
+              onClick={onLogMeal}
+              disabled={logStatus !== "idle"}
+              className={cn(
+                "flex items-center justify-center gap-1.5 rounded-xl border py-2 text-sm font-semibold transition-colors",
+                logStatus === "done"
+                  ? "border-accent/40 bg-accent/10 text-accent"
+                  : "border-hairline text-accent hover:bg-white/5 disabled:opacity-60",
+              )}
+            >
+              {logStatus === "done" ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  {t(locale, "plan.meal_logged")}
+                </>
+              ) : (
+                <>
+                  <NotebookPen className="h-4 w-4" />
+                  {t(locale, "plan.log_meal")}
+                </>
+              )}
+            </button>
+          )}
 
           {adding ? (
             <FoodSearch

@@ -782,6 +782,44 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["meal_logs"]["Insert"]>;
         Relationships: [];
       };
+      plan_adaptations: {
+        Row: {
+          id: string;
+          user_id: string;
+          kind: string;
+          reason_key: string;
+          payload: Json;
+          applied_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: string;
+          reason_key: string;
+          payload?: Json;
+          applied_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["plan_adaptations"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      food_favorites: {
+        Row: {
+          user_id: string;
+          food_id: string;
+          created_at: string | null;
+        };
+        Insert: {
+          user_id: string;
+          food_id: string;
+          created_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["food_favorites"]["Insert"]
+        >;
+        Relationships: [];
+      };
       events: {
         Row: {
           id: string;

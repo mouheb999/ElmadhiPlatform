@@ -6,7 +6,7 @@ import { t } from "@/lib/i18n";
 import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
 import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/components/dashboard/today-workout";
 import { MealsTile, type MealsTileMeal } from "@/components/dashboard/meals-tile";
-import { NutritionTile } from "@/components/dashboard/nutrition-tile";
+import { NutritionLiveTile } from "@/components/dashboard/nutrition-live-tile";
 import { QaSpark, type QaSparkCard } from "@/components/dashboard/qa-spark";
 
 export const dynamic = "force-dynamic";
@@ -89,8 +89,8 @@ export default async function DashboardPage() {
       .is("answered_seen_at", null),
   ]);
 
-  // ---- Nutrition: targets + today's plan meals ----
-  const [{ data: macros }, { data: mealPlan }] = await Promise.all([
+  // ---- Nutrition: targets + today's plan meals + today's logged intake ----
+  const [{ data: macros }, { data: mealPlan }, { data: todayLogs }] = await Promise.all([
     dietProfile
       ? supabase
           .from("macro_targets")
@@ -106,7 +106,22 @@ export default async function DashboardPage() {
       .eq("user_id", user!.id)
       .eq("is_active", true)
       .maybeSingle(),
+    supabase
+      .from("meal_logs")
+      .select("calories, protein_g, carbs_g, fat_g")
+      .eq("user_id", user!.id)
+      .eq("log_date", today),
   ]);
+
+  const consumed = (todayLogs ?? []).reduce(
+    (acc, log) => ({
+      calories: acc.calories + log.calories,
+      proteinG: acc.proteinG + log.protein_g,
+      carbsG: acc.carbsG + log.carbs_g,
+      fatG: acc.fatG + log.fat_g,
+    }),
+    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+  );
 
   type MealRow = {
     id: string;
@@ -251,9 +266,12 @@ export default async function DashboardPage() {
               </span>
             )}
             {weekTarget > 0 && (
-              <span className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold tabular-nums">
+              <Link
+                href="/review"
+                className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold tabular-nums transition-colors hover:border-accent/50 hover:text-accent"
+              >
                 {t(locale, "today.week_label")}: {weekDone}/{weekTarget} {t(locale, "today.sessions_label")}
-              </span>
+              </Link>
             )}
           </div>
         )}
@@ -275,7 +293,7 @@ export default async function DashboardPage() {
       <TodayWorkout locale={locale} state={workoutState} day={todayDay} />
 
       <div className="grid grid-cols-2 gap-3">
-        <NutritionTile locale={locale} target={nutritionTarget} />
+        <NutritionLiveTile locale={locale} target={nutritionTarget} consumed={consumed} />
         <MealsTile locale={locale} meals={meals} />
       </div>
 

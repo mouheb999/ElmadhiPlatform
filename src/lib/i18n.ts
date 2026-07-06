@@ -419,6 +419,181 @@ const STRINGS = {
   },
   "today.exercises": { en: "exercises", tn: "تمارين" },
 
+  // ---- food diary ----
+  "diary.title": { en: "Food diary", tn: "دفتر الماكلة" },
+  "diary.subtitle": { en: "What you actually ate today.", tn: "اللي كليتو بالحق اليوم." },
+  "diary.today_target": { en: "Today", tn: "اليوم" },
+  "diary.no_target": {
+    en: "Set up your diet first to get daily targets.",
+    tn: "اعمل نظامك الغذائي الأول باش تاخو أهداف يومية.",
+  },
+  "diary.copy_yesterday": { en: "Copy last logged day", tn: "انسخ آخر نهار مسجّل" },
+  "diary.empty_slot": { en: "Nothing logged yet.", tn: "مازال ما تسجّل شيء." },
+  "diary.add_food": { en: "Add food", tn: "زيد ماكلة" },
+  "diary.tab_plan": { en: "My plan", tn: "برنامجي" },
+  "diary.tab_search": { en: "Search", tn: "لوّج" },
+  "diary.tab_recents": { en: "Recent", tn: "الأخيرة" },
+  "diary.tab_favorites": { en: "Favorites", tn: "المفضّلة" },
+  "diary.tab_quick": { en: "Quick", tn: "سريع" },
+  "diary.search_placeholder": { en: "Search foods…", tn: "لوّج على ماكلة…" },
+  "diary.no_recents": {
+    en: "Foods you log will show up here.",
+    tn: "الماكلة اللي تسجّلها باش تلقاها هوني.",
+  },
+  "diary.no_favorites": {
+    en: "Star foods you eat often and they'll live here.",
+    tn: "علّم بنجمة الماكلة اللي تاكلها ديما وباش تلقاها هوني.",
+  },
+  "diary.quantity": { en: "Quantity (grams)", tn: "الكمية (غرام)" },
+  "diary.log_cta": { en: "Log it", tn: "سجّلها" },
+  "diary.log_meal": { en: "Log the whole meal", tn: "سجّل الوجبة الكل" },
+  "plan.log_meal": { en: "Log this meal as eaten", tn: "سجّل الوجبة هاذي كليتها" },
+  "plan.meal_logged": { en: "Logged in your diary", tn: "تسجلت في دفتر الماكلة" },
+  "plan.log_item": { en: "Log this food as eaten", tn: "سجّل الماكلة هاذي كليتها" },
+  "diary.goal": { en: "Goal", tn: "الهدف" },
+  "diary.food_label": { en: "Food", tn: "الماكلة" },
+  "diary.remaining": { en: "Remaining", tn: "الباقي" },
+  "diary.totals": { en: "Totals", tn: "المجموع" },
+  "diary.back": { en: "Back", tn: "ارجع" },
+  "diary.close": { en: "Close", tn: "سكّر" },
+  "diary.quick_name": { en: "Name (optional)", tn: "الاسم (اختياري)" },
+  "diary.quick_calories": { en: "Calories", tn: "سعرات" },
+  "diary.quick_protein": { en: "Protein (g)", tn: "بروتين (غ)" },
+  "diary.quick_carbs": { en: "Carbs (g)", tn: "كربوهيدرات (غ)" },
+  "diary.quick_fat": { en: "Fat (g)", tn: "دهون (غ)" },
+
+  // ---- nutrition coach messages (rule-based) ----
+  "coach.log_reminder": {
+    en: "Nothing logged yet today — even a quick estimate keeps your coaching accurate.",
+    tn: "مازلت ما سجّلت شيء اليوم — حتى تقدير سريع يخلي المتابعة صحيحة.",
+  },
+  "coach.protein_behind": {
+    en: "Protein is behind today — add a protein-rich food to your next meal.",
+    tn: "البروتين ناقص اليوم — زيد حاجة فيها بروتين في الوجبة الجاية.",
+  },
+  "coach.protein_hit": {
+    en: "Protein target hit — that's how muscle is kept and built. 💪",
+    tn: "هدف البروتين تحقق — هكة يتبنى العضل. 💪",
+  },
+  "coach.calories_over": {
+    en: "You're over today's calories. One day won't hurt — get back on target tomorrow.",
+    tn: "فتّ سعرات اليوم. نهار واحد ما يضرش — ارجع للهدف غدوة.",
+  },
+  "coach.calories_low_evening": {
+    en: "Calories are very low today — under-eating slows progress too.",
+    tn: "السعرات قليلة برشة اليوم — الماكلة الناقصة زادة تعطّل التقدم.",
+  },
+  "coach.fat_high": {
+    en: "Fat is running high today — go leaner on the next meal.",
+    tn: "الدهون مرتفعة اليوم — خفّفها في الوجبة الجاية.",
+  },
+  "coach.great_day": {
+    en: "Great day: calories on target and protein locked in. 🎯",
+    tn: "نهار ممتاز: سعرات في الهدف وبروتين كامل. 🎯",
+  },
+  "coach.on_track": {
+    en: "On track so far — keep it going.",
+    tn: "ماشي مليح لتوّة — كمّل هكة.",
+  },
+
+  // ---- live nutrition tile ----
+  "tile.left": { en: "left", tn: "باقي" },
+  "tile.log_food": { en: "Log food", tn: "سجّل ماكلة" },
+
+  // ---- weekly review ----
+  "review.title": { en: "Weekly review", tn: "مراجعة الجمعة" },
+  "review.subtitle": { en: "Your last 7 days, through a coach's eyes.", tn: "آخر 7 أيام متاعك، بعين المدرب." },
+  "review.workouts": { en: "Workouts", tn: "التمارين" },
+  "review.nutrition_days": { en: "Days logged", tn: "أيام مسجّلة" },
+  "review.avg_protein": { en: "Avg protein", tn: "معدل البروتين" },
+  "review.avg_sleep": { en: "Avg sleep", tn: "معدل النوم" },
+  "review.weight_change": { en: "Weight change", tn: "تغير الوزن" },
+  "review.prs": { en: "New PRs", tn: "أرقام جديدة" },
+  "review.coach_title": { en: "Coach summary", tn: "كلمة المدرب" },
+  "review.recommended": { en: "Recommended for you", tn: "مقترح ليك" },
+  "review.sum_no_data": {
+    en: "Not enough data yet — log workouts, meals and check-ins this week and this review gets sharp.",
+    tn: "مازال ما فماش معطيات كافية — سجّل تمارينك وماكلتك هالجمعة والمراجعة تولي أدق.",
+  },
+  "review.sum_workouts_great": {
+    en: "Training consistency was excellent this week.",
+    tn: "التزامك بالتمرين كان ممتاز هالجمعة.",
+  },
+  "review.sum_workouts_ok": {
+    en: "You trained, but a session or two slipped. Protect your training days.",
+    tn: "تمرنت، أما فلتتلك حصة ولا زوز. حافظ على أيام التمرين.",
+  },
+  "review.sum_workouts_poor": {
+    en: "Training slipped this week — restart with the very next session, not next Monday.",
+    tn: "التمرين طاح هالجمعة — ابدا من الحصة الجاية، موش من الاثنين الجاي.",
+  },
+  "review.sum_prs": {
+    en: "You set new personal records this week — strength is moving.",
+    tn: "عملت أرقام قياسية جديدة هالجمعة — القوة تتقدم.",
+  },
+  "review.sum_nutrition_great": {
+    en: "Nutrition logging was consistent — your targets mean something now.",
+    tn: "تسجيل الماكلة كان منتظم — أهدافك ولات عندها معنى.",
+  },
+  "review.sum_nutrition_poor": {
+    en: "Little food logging this week — without data, coaching is guessing.",
+    tn: "تسجيل الماكلة قليل هالجمعة — بلا معطيات، التدريب يولي تخمين.",
+  },
+  "review.sum_protein_low": {
+    en: "Average protein ran low — build every meal around a protein source.",
+    tn: "معدل البروتين كان ناقص — ابني كل وجبة على مصدر بروتين.",
+  },
+  "review.sum_sleep_low": {
+    en: "Sleep averaged under 7 hours — recovery is limiting you more than training is.",
+    tn: "معدل النوم أقل من 7 سوايع — الراحة هي اللي محدّداك أكثر من التمرين.",
+  },
+  "review.sum_weight_cut_good": {
+    en: "Weight is trending down — the plan is working.",
+    tn: "الوزن طايح — البرنامج ناجح.",
+  },
+  "review.sum_weight_cut_stall": {
+    en: "Weight hasn't moved — if next week repeats this, we adjust calories.",
+    tn: "الوزن ما تحركش — كان الجمعة الجاية كيف كيف، نبدلو السعرات.",
+  },
+  "review.sum_weight_bulk_good": {
+    en: "Weight is climbing slowly — clean gaining pace.",
+    tn: "الوزن يزيد بشوية — نسق زيادة نظيف.",
+  },
+
+  // ---- adaptive coaching: diet adjustments (V2) ----
+  "adapt.card_title": { en: "Coach proposal", tn: "اقتراح المدرب" },
+  "adapt.cut_stall": {
+    en: "Your weight hasn't moved in two weeks on a cut — time to lower calories a notch.",
+    tn: "وزنك ما تحركش جمعتين وانت في تنشيف — وقت نطيحو السعرات شوية.",
+  },
+  "adapt.cut_too_fast": {
+    en: "You're losing weight too fast — we're adding calories back to protect your muscle.",
+    tn: "قاعد تنحف فيسع برشة — باش نرجعو شوية سعرات باش نحميو العضل.",
+  },
+  "adapt.bulk_stall": {
+    en: "Weight is flat while building — a small calorie increase keeps you growing.",
+    tn: "الوزن واقف وانت تبني — زيادة صغيرة في السعرات تخليك تكبر.",
+  },
+  "adapt.bulk_too_fast": {
+    en: "Gaining too fast — trimming calories to keep the gain clean.",
+    tn: "قاعد تزيد فيسع برشة — ننقصو السعرات باش تبقى الزيادة نظيفة.",
+  },
+  "adapt.trend_label": { en: "2-week trend", tn: "التغير في جمعتين" },
+  "adapt.protein_note": { en: "Protein stays the same", tn: "البروتين ما يتبدلش" },
+  "adapt.accept": { en: "Apply new targets", tn: "طبّق الأهداف الجديدة" },
+  "adapt.applied": { en: "New targets applied", tn: "الأهداف الجديدة تطبقت" },
+
+  // ---- adaptive coaching: exercise progression (V2) ----
+  "progress.suggested": { en: "Coach", tn: "المدرب" },
+  "progress.reason_up": {
+    en: "You beat the top of the rep range with reps in reserve — go up.",
+    tn: "فتّ أعلى نطاق العدّات ومازال عندك في الجعبة — اطلع في الوزن.",
+  },
+  "progress.reason_deload": {
+    en: "Three sessions stuck at this weight near failure — drop ~10% and rebuild.",
+    tn: "ثلاثة حصص واقف في نفس الوزن قريب للفشل — انقص ~10% وارجع ابني.",
+  },
+
   // ---- admin: Q&A triage ----
   "admin.nav_qa": { en: "Q&A", tn: "الأسئلة" },
   "admin.qa_title": { en: "User questions", tn: "أسئلة المستخدمين" },
