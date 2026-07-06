@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { cairo, tajawal } from "@/lib/fonts";
 import { getLocale } from "@/lib/i18n-server";
 import { dir } from "@/lib/i18n";
-import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,12 +31,9 @@ export default async function RootLayout({
       dir={dir(locale)}
       className={`${cairo.variable} ${tajawal.variable}`}
     >
+      {/* Language switching lives in Settings only. */}
       <body className="min-h-dvh bg-bg font-sans text-ink antialiased">
         {children}
-        <LanguageSwitcher
-          locale={locale}
-          className="fixed bottom-24 end-4 z-50 shadow-lg"
-        />
       </body>
     </html>
   );
