@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Timer, Trophy, X } from "lucide-react";
+import { Check, Timer, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,9 @@ export type SessionExercise = {
   lastWeightKg: number | null;
   lastReps: number | null;
   maxWeightKg: number | null;
+  /** Rules-engine progression suggestion (V2): prefilled + explained. */
+  suggestedWeightKg: number | null;
+  suggestionReasonKey: "progress.reason_up" | "progress.reason_deload" | null;
 };
 
 type SetEntry = { weight: string; reps: string; rir: string; done: boolean };
@@ -50,8 +53,9 @@ function draftStorageKey(dayId: string): string {
 function emptyEntries(exercises: SessionExercise[]): Record<string, SetEntry[]> {
   const entries: Record<string, SetEntry[]> = {};
   for (const ex of exercises) {
+    const prefill = ex.suggestedWeightKg ?? ex.lastWeightKg;
     entries[ex.rowId] = Array.from({ length: ex.targetSets }, () => ({
-      weight: ex.lastWeightKg !== null ? String(ex.lastWeightKg) : "",
+      weight: prefill !== null ? String(prefill) : "",
       reps: "",
       rir: "",
       done: false,
@@ -356,6 +360,19 @@ export function SessionClient({
                     </>
                   )}
                 </div>
+                {ex.suggestedWeightKg !== null && ex.suggestionReasonKey && (
+                  <div className="mt-1 flex items-start gap-1 text-xs font-semibold text-accent">
+                    {ex.suggestionReasonKey === "progress.reason_up" ? (
+                      <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <TrendingDown className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    )}
+                    <span>
+                      {t(locale, "progress.suggested")}: {ex.suggestedWeightKg} {t(locale, "session.kg")} —{" "}
+                      {t(locale, ex.suggestionReasonKey)}
+                    </span>
+                  </div>
+                )}
               </div>
               <button
                 type="button"

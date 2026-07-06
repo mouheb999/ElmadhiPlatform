@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
+import { suggestNextWeight, type HistorySet } from "@/lib/algorithms/progression";
 import { SessionClient, type SessionExercise } from "@/components/workout/session-client";
 
 export const dynamic = "force-dynamic";
@@ -56,12 +57,18 @@ export default async function WorkoutSessionPage({
 
   const exerciseIds = [...new Set(rows.map((r) => r.exercise_id))];
 
-  // History for prefill + PR detection: most recent first.
-  type HistorySetRow = { exercise_id: string; weight_kg: number | null; reps: number };
+  // History for prefill + PR detection + progression: most recent first.
+  type HistorySetRow = {
+    exercise_id: string;
+    session_id: string;
+    weight_kg: number | null;
+    reps: number;
+    rir: number | null;
+  };
   const { data: historyRaw } = exerciseIds.length
     ? await supabase
         .from("workout_sets")
-        .select("exercise_id, weight_kg, reps, created_at, workout_sessions!inner(user_id)")
+        .select("exercise_id, session_id, weight_kg, reps, rir, created_at, workout_sessions!inner(user_id)")
         .eq("workout_sessions.user_id", user.id)
         .in("exercise_id", exerciseIds)
         .order("created_at", { ascending: false })
@@ -71,6 +78,9 @@ export default async function WorkoutSessionPage({
 
   const lastByExercise = new Map<string, { weightKg: number | null; reps: number }>();
   const maxByExercise = new Map<string, number>();
+  // Per exercise: sets grouped by session, sessions in most-recent-first
+  // order (history is already sorted desc, so first-seen session = latest).
+  const sessionsByExercise = new Map<string, Map<string, HistorySet[]>>();
   for (const set of history) {
     if (!lastByExercise.has(set.exercise_id)) {
       lastByExercise.set(set.exercise_id, { weightKg: set.weight_kg, reps: set.reps });
@@ -79,6 +89,14 @@ export default async function WorkoutSessionPage({
       const max = maxByExercise.get(set.exercise_id) ?? 0;
       if (set.weight_kg > max) maxByExercise.set(set.exercise_id, set.weight_kg);
     }
+    let bySession = sessionsByExercise.get(set.exercise_id);
+    if (!bySession) {
+      bySession = new Map();
+      sessionsByExercise.set(set.exercise_id, bySession);
+    }
+    const sets = bySession.get(set.session_id) ?? [];
+    sets.push({ weightKg: set.weight_kg, reps: set.reps, rir: set.rir });
+    bySession.set(set.session_id, sets);
   }
 
   // Was this day already completed today? (Informational, re-training allowed.)
@@ -94,18 +112,24 @@ export default async function WorkoutSessionPage({
     .limit(1)
     .maybeSingle();
 
-  const exercises: SessionExercise[] = rows.map((r) => ({
-    rowId: r.id,
-    exerciseId: r.exercise_id,
-    nameEn: r.exercises!.name_en,
-    nameAr: r.exercises!.name_ar,
-    targetSets: r.sets,
-    repRange: r.rep_range,
-    restSeconds: r.rest_seconds ?? 90,
-    lastWeightKg: lastByExercise.get(r.exercise_id)?.weightKg ?? null,
-    lastReps: lastByExercise.get(r.exercise_id)?.reps ?? null,
-    maxWeightKg: maxByExercise.get(r.exercise_id) ?? null,
-  }));
+  const exercises: SessionExercise[] = rows.map((r) => {
+    const sessionGroups = [...(sessionsByExercise.get(r.exercise_id)?.values() ?? [])].slice(0, 3);
+    const suggestion = suggestNextWeight(r.rep_range, sessionGroups);
+    return {
+      rowId: r.id,
+      exerciseId: r.exercise_id,
+      nameEn: r.exercises!.name_en,
+      nameAr: r.exercises!.name_ar,
+      targetSets: r.sets,
+      repRange: r.rep_range,
+      restSeconds: r.rest_seconds ?? 90,
+      lastWeightKg: lastByExercise.get(r.exercise_id)?.weightKg ?? null,
+      lastReps: lastByExercise.get(r.exercise_id)?.reps ?? null,
+      maxWeightKg: maxByExercise.get(r.exercise_id) ?? null,
+      suggestedWeightKg: suggestion?.weightKg ?? null,
+      suggestionReasonKey: suggestion?.reasonKey ?? null,
+    };
+  });
 
   return (
     <SessionClient
