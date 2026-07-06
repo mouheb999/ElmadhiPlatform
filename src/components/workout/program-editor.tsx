@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
+import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { pick, type Locale } from "@/lib/i18n";
+import { pick, t, type Locale } from "@/lib/i18n";
 import { ExerciseCard, type EditorExercise, type ExerciseCandidate } from "@/components/workout/exercise-card";
 import { WarningBanner } from "@/components/shared/warning-banner";
 import { validateProgram } from "@/lib/algorithms/validation";
@@ -80,6 +82,16 @@ export function ProgramEditor({
           </button>
         ))}
       </div>
+
+      {days[activeDay] && (
+        <Link
+          href={`/workout/session/${days[activeDay].id}`}
+          className="flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-bold text-bg shadow-[0_10px_28px_rgba(93,214,44,0.25)] transition-transform hover:-translate-y-0.5"
+        >
+          <Play className="h-5 w-5" />
+          {t(locale, "workout.start_day")}
+        </Link>
+      )}
 
       <div className="flex flex-col gap-3">
         {days[activeDay]?.exercises.map((exercise) => (

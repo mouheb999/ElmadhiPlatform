@@ -676,6 +676,7 @@ export type Database = {
           started_at: string | null;
           completed_at: string | null;
           notes: string | null;
+          skipped_exercise_ids: string[];
         };
         Insert: {
           id?: string;
@@ -684,6 +685,7 @@ export type Database = {
           started_at?: string | null;
           completed_at?: string | null;
           notes?: string | null;
+          skipped_exercise_ids?: string[];
         };
         Update: Partial<
           Database["public"]["Tables"]["workout_sessions"]["Insert"]
@@ -699,7 +701,9 @@ export type Database = {
           weight_kg: number | null;
           reps: number;
           rpe: number | null;
+          rir: number | null;
           is_warmup: boolean | null;
+          user_program_exercise_id: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -710,10 +714,90 @@ export type Database = {
           weight_kg?: number | null;
           reps: number;
           rpe?: number | null;
+          rir?: number | null;
           is_warmup?: boolean | null;
+          user_program_exercise_id?: string | null;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["workout_sets"]["Insert"]>;
+        Relationships: [];
+      };
+      daily_checkins: {
+        Row: {
+          id: string;
+          user_id: string;
+          checkin_date: string;
+          weight_kg: number | null;
+          energy: number | null;
+          sleep_hours: number | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          checkin_date?: string;
+          weight_kg?: number | null;
+          energy?: number | null;
+          sleep_hours?: number | null;
+          created_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["daily_checkins"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      meal_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          logged_at: string;
+          log_date: string;
+          meal_slot: string | null;
+          food_id: string | null;
+          custom_name: string | null;
+          quantity_g: number | null;
+          calories: number;
+          protein_g: number;
+          carbs_g: number;
+          fat_g: number;
+          entry_method: string;
+          source_confidence: number | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          logged_at?: string;
+          log_date?: string;
+          meal_slot?: string | null;
+          food_id?: string | null;
+          custom_name?: string | null;
+          quantity_g?: number | null;
+          calories: number;
+          protein_g?: number;
+          carbs_g?: number;
+          fat_g?: number;
+          entry_method?: string;
+          source_confidence?: number | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_type: string;
+          payload: Json;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_type: string;
+          payload?: Json;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
         Relationships: [];
       };
       qa_categories: {
@@ -781,6 +865,7 @@ export type Database = {
           question_text: string;
           status: string;
           promoted_qa_card_id: string | null;
+          answered_seen_at: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -789,6 +874,7 @@ export type Database = {
           question_text: string;
           status?: string;
           promoted_qa_card_id?: string | null;
+          answered_seen_at?: string | null;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["qa_requests"]["Insert"]>;

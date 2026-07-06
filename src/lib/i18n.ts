@@ -349,6 +349,94 @@ const STRINGS = {
   "qa.ask_placeholder": { en: "Type your question…", tn: "أكتب سؤالك…" },
   "qa.ask_sent": { en: "Thanks — we'll review it soon.", tn: "شكراً — باش نراجعوه قريب." },
   "qa.empty": { en: "No questions in this category yet.", tn: "ما فماش أسئلة في هالقسم توّة." },
+  "qa.answered_banner": { en: "We answered your question", tn: "جاوبنا على سؤالك" },
+  "qa.answered_read": { en: "Read the answer", tn: "اقرا الإجابة" },
+
+  // ---- workout: start session ----
+  "workout.start_day": { en: "Start this workout", tn: "ابدا الحصّة" },
+
+  // ---- workout session mode ----
+  "session.already_done": {
+    en: "You already logged this workout today — training again still counts.",
+    tn: "ديجا سجّلت هالتمرين اليوم — كان تعاود، يتحسبلك زادة.",
+  },
+  "session.kg": { en: "kg", tn: "كغ" },
+  "session.reps": { en: "Reps", tn: "عدّات" },
+  "session.rir": { en: "RIR", tn: "RIR" },
+  "session.rest": { en: "rest", tn: "راحة" },
+  "session.resting": { en: "Rest", tn: "راحة" },
+  "session.skip_rest": { en: "Skip rest", tn: "فوّت الراحة" },
+  "session.skip_exercise": { en: "Skip", tn: "فوّت" },
+  "session.unskip_exercise": { en: "Undo", tn: "رجّع" },
+  "session.last_time": { en: "Last time", tn: "آخر مرّة" },
+  "session.add_set": { en: "Add set", tn: "زيد مجموعة" },
+  "session.progress_sets": { en: "sets", tn: "مجموعات" },
+  "session.notes_label": { en: "Session notes (optional)", tn: "ملاحظات على الحصّة (اختياري)" },
+  "session.finish": { en: "Finish workout", tn: "كمّل الحصّة" },
+  "session.saving": { en: "Saving…", tn: "قاعد يسجّل…" },
+  "session.save_error": {
+    en: "Couldn't save — your session is kept safely on this phone. Check your connection and try again.",
+    tn: "ما نجمناش نسجّلو — حصّتك محفوظة في تليفونك. ثبّت في الاتصال وعاود جرّب.",
+  },
+  "session.done_title": { en: "Workout complete!", tn: "الحصّة كملت!" },
+  "session.done_sub": {
+    en: "Logged and counted. See you next session.",
+    tn: "تسجّلت وتحسبت. نراوك في الحصّة الجاية.",
+  },
+  "session.stat_sets": { en: "Sets", tn: "مجموعات" },
+  "session.stat_volume": { en: "Volume (kg)", tn: "الحجم (كغ)" },
+  "session.stat_minutes": { en: "Minutes", tn: "دقايق" },
+  "session.pr_badge": { en: "New PR!", tn: "رقم جديد!" },
+  "session.pr_title": { en: "New personal records", tn: "أرقام قياسية جديدة" },
+  "session.back_home": { en: "Back to home", tn: "ارجع للوحة" },
+
+  // ---- today screen: check-in ----
+  "checkin.title": { en: "Morning check-in", tn: "تسجيل الصباح" },
+  "checkin.subtitle": { en: "15 seconds — it powers your coaching.", tn: "١٥ ثانية — بيها نتبّعو تقدّمك." },
+  "checkin.weight": { en: "Weight (kg)", tn: "الوزن (كغ)" },
+  "checkin.sleep": { en: "Sleep (hours)", tn: "النوم (سوايع)" },
+  "checkin.energy": { en: "Energy today", tn: "طاقتك اليوم" },
+  "checkin.save": { en: "Save check-in", tn: "سجّل" },
+  "checkin.saving": { en: "Saving…", tn: "قاعد يسجّل…" },
+  "checkin.done": { en: "Checked in for today", tn: "تسجيل اليوم كمل" },
+  "checkin.edit": { en: "Edit", tn: "بدّل" },
+
+  // ---- today screen ----
+  "today.workout_title": { en: "Today's workout", tn: "تمرين اليوم" },
+  "today.start_workout": { en: "Start workout", tn: "ابدا التمرين" },
+  "today.workout_done": { en: "Workout done today 💪", tn: "تمرين اليوم كمل 💪" },
+  "today.no_program": { en: "No program yet — build yours in 2 minutes.", tn: "مازال ما عندكش برنامج — اعملو في دقيقتين." },
+  "today.build_program": { en: "Build my program", tn: "اعمل برنامجي" },
+  "today.week_label": { en: "This week", tn: "هالجمعة" },
+  "today.sessions_label": { en: "workouts", tn: "حصص" },
+  "today.streak_label": { en: "day check-in streak", tn: "يوم تسجيل متتالي" },
+  "today.meals_title": { en: "Today's meals", tn: "ماكلة اليوم" },
+  "today.open_plan": { en: "Open plan", tn: "حلّ البرنامج" },
+  "today.qa_answered": { en: "Your question was answered!", tn: "سؤالك تجاوب!" },
+  "today.rest_day": {
+    en: "Rest day — recovery is where you grow.",
+    tn: "اليوم راحة — الجسم يكبر وقت الراحة.",
+  },
+  "today.exercises": { en: "exercises", tn: "تمارين" },
+
+  // ---- admin: Q&A triage ----
+  "admin.nav_qa": { en: "Q&A", tn: "الأسئلة" },
+  "admin.qa_title": { en: "User questions", tn: "أسئلة المستخدمين" },
+  "admin.qa_sub": {
+    en: "Answer a question to publish it in the Q&A library. The asker gets notified.",
+    tn: "جاوب على سؤال باش ينتشر في المكتبة. صاحب السؤال يتنبّه.",
+  },
+  "admin.qa_empty": { en: "No pending questions.", tn: "ما فماش أسئلة في الانتظار." },
+  "admin.qa_from": { en: "From", tn: "من" },
+  "admin.qa_category": { en: "Category", tn: "القسم" },
+  "admin.qa_question_en": { en: "Question (English)", tn: "السؤال (إنجليزي)" },
+  "admin.qa_question_ar": { en: "Question (Tunisian)", tn: "السؤال (تونسي)" },
+  "admin.qa_answer_short_en": { en: "Short answer (English)", tn: "إجابة قصيرة (إنجليزي)" },
+  "admin.qa_answer_short_ar": { en: "Short answer (Tunisian)", tn: "إجابة قصيرة (تونسي)" },
+  "admin.qa_answer_long_en": { en: "Full answer (English, Markdown)", tn: "إجابة كاملة (إنجليزي، Markdown)" },
+  "admin.qa_answer_long_ar": { en: "Full answer (Tunisian, Markdown)", tn: "إجابة كاملة (تونسي، Markdown)" },
+  "admin.qa_publish": { en: "Publish answer", tn: "انشر الإجابة" },
+  "admin.qa_dismiss": { en: "Dismiss", tn: "تجاهل" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

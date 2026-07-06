@@ -11,6 +11,7 @@ const TABS: Tab[] = [
   { href: "/admin", label: "admin.nav_payments" },
   { href: "/admin/foods", label: "admin.nav_foods" },
   { href: "/admin/exercises", label: "admin.nav_exercises" },
+  { href: "/admin/qa", label: "admin.nav_qa" },
 ];
 
 export function AdminNav({ locale }: { locale: Locale }) {
