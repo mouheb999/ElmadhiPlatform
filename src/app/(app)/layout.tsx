@@ -28,7 +28,7 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-bg/95 px-4 py-3 backdrop-blur">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-bg/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
         <Logo className="h-9 w-9" wordmarkClassName="text-base" />
         <button
           type="button"
