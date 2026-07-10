@@ -49,7 +49,18 @@ export function ProgramEditor({
           ? {
               ...d,
               exercises: d.exercises.map((e) =>
-                e.id === rowId ? { ...e, exerciseId: candidate.id, nameEn: candidate.nameEn, nameAr: candidate.nameAr, notes: null } : e,
+                e.id === rowId
+                  ? {
+                      ...e,
+                      exerciseId: candidate.id,
+                      nameEn: candidate.nameEn,
+                      nameAr: candidate.nameAr,
+                      notes: null,
+                      // Media belongs to the old exercise; cleared until reload.
+                      thumbnailUrl: null,
+                      videoUrl: null,
+                    }
+                  : e,
               ),
             }
           : d,

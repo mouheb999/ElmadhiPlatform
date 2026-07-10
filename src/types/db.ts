@@ -143,6 +143,8 @@ export type Database = {
           user_id: string;
           method_key: string;
           amount_tnd: number;
+          plan_tier: string | null;
+          plan_months: number | null;
           status: string;
           created_at: string | null;
           resolved_at: string | null;
@@ -153,6 +155,8 @@ export type Database = {
           user_id: string;
           method_key: string;
           amount_tnd: number;
+          plan_tier?: string | null;
+          plan_months?: number | null;
           status?: string;
           created_at?: string | null;
           resolved_at?: string | null;
@@ -163,6 +167,8 @@ export type Database = {
           user_id?: string;
           method_key?: string;
           amount_tnd?: number;
+          plan_tier?: string | null;
+          plan_months?: number | null;
           status?: string;
           created_at?: string | null;
           resolved_at?: string | null;
@@ -836,6 +842,28 @@ export type Database = {
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["events"]["Insert"]>;
+        Relationships: [];
+      };
+      subscription_plans: {
+        Row: {
+          id: string;
+          tier: string;
+          months: number;
+          price_tnd: number;
+          is_enabled: boolean;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          tier: string;
+          months: number;
+          price_tnd: number;
+          is_enabled?: boolean;
+          updated_at?: string | null;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["subscription_plans"]["Insert"]
+        >;
         Relationships: [];
       };
       qa_categories: {

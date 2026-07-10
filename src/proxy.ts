@@ -6,6 +6,7 @@ const PROTECTED_PREFIXES = [
   "/dashboard",
   "/diet",
   "/workout",
+  "/ai",
   "/qa",
   "/review",
   "/settings",
@@ -32,14 +33,19 @@ export async function proxy(request: NextRequest) {
 
   // Gate: only accounts an admin has activated can reach the app. Everyone
   // else is held on /checkout until their payment is confirmed. Admins always
-  // pass (so they can use the app while reviewing requests).
+  // pass (so they can use the app while reviewing requests). An active
+  // subscription whose term has ended counts as expired → back to /checkout
+  // to renew.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("payment_status, is_admin")
+    .select("payment_status, is_admin, plan_expires_at")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile?.is_admin && profile?.payment_status !== "active") {
+  const expired =
+    !!profile?.plan_expires_at && new Date(profile.plan_expires_at) < new Date();
+
+  if (!profile?.is_admin && (profile?.payment_status !== "active" || expired)) {
     const url = request.nextUrl.clone();
     url.pathname = "/checkout";
     return NextResponse.redirect(url);

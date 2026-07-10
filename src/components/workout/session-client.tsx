@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Check, Timer, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ExerciseMedia } from "@/components/workout/exercise-media";
 import { cn } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { completeSession, type SessionSetInput } from "@/app/actions/sessions";
@@ -23,6 +24,9 @@ export type SessionExercise = {
   /** Rules-engine progression suggestion (V2): prefilled + explained. */
   suggestedWeightKg: number | null;
   suggestionReasonKey: "progress.reason_up" | "progress.reason_deload" | null;
+  /** Admin CMS media: thumbnail + demo video (YouTube link). */
+  thumbnailUrl: string | null;
+  videoUrl: string | null;
 };
 
 type SetEntry = { weight: string; reps: string; rir: string; done: boolean };
@@ -348,8 +352,15 @@ export function SessionClient({
             )}
           >
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-bold">{pick(locale, ex.nameEn, ex.nameAr)}</div>
+              <div className="flex min-w-0 items-start gap-3">
+                <ExerciseMedia
+                  locale={locale}
+                  name={pick(locale, ex.nameEn, ex.nameAr)}
+                  thumbnailUrl={ex.thumbnailUrl}
+                  videoUrl={ex.videoUrl}
+                />
+                <div className="min-w-0">
+                  <div className="font-bold">{pick(locale, ex.nameEn, ex.nameAr)}</div>
                 <div className="text-xs text-muted">
                   {ex.targetSets} × {ex.repRange} · {ex.restSeconds}s {t(locale, "session.rest")}
                   {ex.lastWeightKg !== null && (
@@ -373,6 +384,7 @@ export function SessionClient({
                     </span>
                   </div>
                 )}
+                </div>
               </div>
               <button
                 type="button"

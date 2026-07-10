@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Dumbbell, Utensils, MessageCircleQuestion, User } from "lucide-react";
+import { Home, Dumbbell, Utensils, Sparkles, MessageCircleQuestion, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Locale, t } from "@/lib/i18n";
 
@@ -10,6 +10,7 @@ const TABS = [
   { href: "/dashboard", label: "nav.home", icon: Home },
   { href: "/workout", label: "nav.workouts", icon: Dumbbell },
   { href: "/diet", label: "nav.nutrition", icon: Utensils },
+  { href: "/ai", label: "nav.ai", icon: Sparkles },
   { href: "/qa", label: "nav.qa", icon: MessageCircleQuestion },
   { href: "/settings", label: "nav.profile", icon: User },
 ] as const;

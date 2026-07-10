@@ -4,15 +4,19 @@ import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
- * Records a manual payment request: the user picked a method and clicked
- * "I've paid". We log a pending payment_request; a DB trigger (migration 013)
- * flips the profile to `pending` so the checkout page shows the "under
- * review" state. Users have no UPDATE grant on payment columns, so the flip
- * cannot happen from the client. An admin later confirms the WhatsApp
- * screenshot and activates the account.
+ * Records a manual payment request: the user picked a plan + method and
+ * clicked "I've paid". We log a pending payment_request; a DB trigger
+ * (migration 013) flips the profile to `pending` so the checkout page shows
+ * the "under review" state. Users have no UPDATE grant on payment columns,
+ * so the flip cannot happen from the client. An admin later confirms the
+ * WhatsApp screenshot and activates the subscription.
+ *
+ * Price, tier, and duration are read server-side from the chosen plan —
+ * the client sends only the plan id, so amounts can't be tampered with.
  */
 export async function createPaymentRequest(
   methodKey: string,
+  planId: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
   const {
@@ -20,19 +24,20 @@ export async function createPaymentRequest(
   } = await supabase.auth.getUser();
   if (!user) return fail("Not signed in.");
 
-  // Pull the current price from settings so the logged amount is authoritative.
-  const { data: settings } = await supabase
-    .from("payment_settings")
-    .select("price_tnd")
-    .eq("id", 1)
+  const { data: plan } = await supabase
+    .from("subscription_plans")
+    .select("tier, months, price_tnd")
+    .eq("id", planId)
+    .eq("is_enabled", true)
     .maybeSingle();
-
-  const amount = settings?.price_tnd ?? 89;
+  if (!plan) return fail("Plan not found.");
 
   const { error: insertError } = await supabase.from("payment_requests").insert({
     user_id: user.id,
     method_key: methodKey,
-    amount_tnd: amount,
+    amount_tnd: plan.price_tnd,
+    plan_tier: plan.tier,
+    plan_months: plan.months,
   });
   if (insertError) return fail(insertError.message);
 

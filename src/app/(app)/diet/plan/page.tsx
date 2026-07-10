@@ -54,6 +54,7 @@ export default async function DietPlanPage() {
         protein_per_100g: number;
         carbs_per_100g: number;
         fat_per_100g: number;
+        image_url: string | null;
       } | null;
     }[];
   };
@@ -61,7 +62,7 @@ export default async function DietPlanPage() {
   const { data: mealRowsRaw, error: mealRowsError } = await supabase
     .from("meal_plan_meals")
     .select(
-      "id, meal_type, order_index, meal_plan_items(id, food_id, quantity_g, foods(name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
+      "id, meal_type, order_index, meal_plan_items(id, food_id, quantity_g, foods(name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
     )
     .eq("meal_plan_id", plan.id)
     .order("order_index", { ascending: true });
@@ -87,6 +88,7 @@ export default async function DietPlanPage() {
         proteinPer100g: item.foods!.protein_per_100g,
         carbsPer100g: item.foods!.carbs_per_100g,
         fatPer100g: item.foods!.fat_per_100g,
+        imageUrl: item.foods!.image_url,
       })),
   }));
 

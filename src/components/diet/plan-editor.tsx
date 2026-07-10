@@ -98,6 +98,7 @@ export function PlanEditor({
                   proteinPer100g: food.protein_per_100g,
                   carbsPer100g: food.carbs_per_100g,
                   fatPer100g: food.fat_per_100g,
+                  imageUrl: food.image_url,
                 },
               ],
             }

@@ -40,12 +40,42 @@ export function pick(
 /** Minimal dictionary covering the checkout + admin surfaces. */
 const STRINGS = {
   // ---- checkout ----
-  "checkout.title": { en: "Unlock your plan", tn: "فعّل اشتراكك" },
+  "checkout.title": { en: "Choose your plan", tn: "اختار العرض متاعك" },
   "checkout.subtitle": {
-    en: "One-time access to the Diet Maker, Workout Maker, and Q&A library.",
-    tn: "دخول دائم لصانع الريجيم، صانع التمرين، ومكتبة الأسئلة.",
+    en: "Your coach, your plan — pick what fits and start today.",
+    tn: "مدربك وبرنامجك — اختار اللي يناسبك وابدا اليوم.",
   },
   "checkout.lifetime": { en: "Lifetime access", tn: "دخول دائم" },
+  "checkout.renewal_banner": {
+    en: "Your subscription has ended — pick a plan to keep your coaching going.",
+    tn: "اشتراكك وفى — اختار عرض باش تكمل مع مدربك.",
+  },
+  "checkout.active_until": { en: "Active until", tn: "مفعّل حتى" },
+  "checkout.no_plans": {
+    en: "Plans are not configured yet. Please contact support.",
+    tn: "العروض مازالت ما تحطّتش. اتصل بالدعم.",
+  },
+
+  // ---- subscription plans ----
+  "plans.standard": { en: "Standard", tn: "ستاندرد" },
+  "plans.premium": { en: "Premium", tn: "بريميوم" },
+  "plans.most_popular": { en: "Most popular", tn: "الأكثر طلباً" },
+  "plans.best_value": { en: "Best value", tn: "أفضل سعر" },
+  "plans.from": { en: "from", tn: "ابتداءً من" },
+  "plans.per_month": { en: "/month", tn: "/شهر" },
+  "plans.month_1": { en: "1 month", tn: "شهر" },
+  "plans.months_3": { en: "3 months", tn: "3 أشهر" },
+  "plans.months_6": { en: "6 months", tn: "6 أشهر" },
+  "plans.save": { en: "Save", tn: "وفّر" },
+  "plans.billed_every": { en: "billed every", tn: "تخلّص كل" },
+  "plans.f_std_1": { en: "Diet & Workout Makers", tn: "صانع الريجيم والتمرين" },
+  "plans.f_std_2": { en: "Workout logging & food diary", tn: "تسجيل الحصص ودفتر الماكلة" },
+  "plans.f_std_3": { en: "Weekly review & adaptive coach", tn: "مراجعة الجمعة ومدرب يتأقلم" },
+  "plans.f_std_4": { en: "Q&A library", tn: "مكتبة الأسئلة" },
+  "plans.f_prem_all": { en: "Everything in Standard", tn: "كل شيء في ستاندرد" },
+  "plans.f_prem_1": { en: "AI calorie camera", tn: "كاميرا السعرات بالذكاء" },
+  "plans.f_prem_2": { en: "Priority WhatsApp support", tn: "دعم واتساب بالأولوية" },
+  "plans.f_prem_3": { en: "Early access to new features", tn: "الجديد يوصلك الأول" },
   "checkout.choose_method": {
     en: "Choose how you want to pay",
     tn: "اختار الطريقة اللي تحب تخلّص بيها",
@@ -96,6 +126,8 @@ const STRINGS = {
   "admin.reject": { en: "Reject", tn: "ارفض" },
   "admin.no_requests": { en: "No pending requests.", tn: "ما فماش طلبات معلّقة." },
   "admin.save": { en: "Save", tn: "احفظ" },
+  "admin.plans_title": { en: "Subscription plans", tn: "عروض الاشتراك" },
+  "admin.months_short": { en: "mo", tn: "شهر" },
   "admin.saved": { en: "Saved", tn: "تسجّل" },
 
   // ---- admin nav ----
@@ -224,6 +256,7 @@ const STRINGS = {
   "nav.home": { en: "Home", tn: "الرئيسية" },
   "nav.workouts": { en: "Workouts", tn: "التمارين" },
   "nav.nutrition": { en: "Nutrition", tn: "الأكل" },
+  "nav.ai": { en: "AI", tn: "ذكاء" },
   "nav.qa": { en: "Q&A", tn: "أسئلة" },
   "nav.profile": { en: "Profile", tn: "حسابي" },
 
@@ -593,6 +626,56 @@ const STRINGS = {
     en: "Three sessions stuck at this weight near failure — drop ~10% and rebuild.",
     tn: "ثلاثة حصص واقف في نفس الوزن قريب للفشل — انقص ~10% وارجع ابني.",
   },
+
+  // ---- exercise media ----
+  "media.watch_demo": { en: "Watch demo video", tn: "شوف فيديو التمرين" },
+  "media.close": { en: "Close", tn: "سكّر" },
+
+  // ---- AI calorie calculator ----
+  "ai.title": { en: "AI Calorie Calculator", tn: "حاسبة السعرات بالذكاء" },
+  "ai.subtitle": {
+    en: "Snap your plate — the AI estimates, you confirm.",
+    tn: "صوّر صحنك — الذكاء يقدّر، وانت تأكد.",
+  },
+  "ai.open_camera": { en: "Take a photo of your meal", tn: "صوّر ماكلتك" },
+  "ai.no_save_note": {
+    en: "The photo stays in the app — nothing is saved.",
+    tn: "التصويرة تقعد في التطبيق برك — ما تتسجل حتى وين.",
+  },
+  "ai.pick_instead": { en: "No camera? Pick a photo instead", tn: "ما فماش كاميرا؟ اختار تصويرة" },
+  "ai.capture": { en: "Capture", tn: "صوّر" },
+  "ai.retake": { en: "Retake", tn: "عاود صوّر" },
+  "ai.notes_ph": {
+    en: "Optional notes: portion size, what's inside…",
+    tn: "ملاحظات اختيارية: قداش الكمية، شنوة فيها…",
+  },
+  "ai.camera_error": {
+    en: "Camera unavailable — pick a photo instead.",
+    tn: "الكاميرا موش متوفرة — اختار تصويرة.",
+  },
+  "ai.estimate_cta": { en: "Estimate calories", tn: "قدّر السعرات" },
+  "ai.estimating": { en: "Estimating…", tn: "قاعد يقدّر…" },
+  "ai.results_title": { en: "Detected foods — edit anything", tn: "الماكلة المتعرّف عليها — بدّل اللي تحب" },
+  "ai.simulated_note": {
+    en: "Estimated from our food database (AI is not configured yet) — double-check the numbers.",
+    tn: "تقدير من قاعدة بيانات الماكلة (الذكاء مازال موش مفعّل) — عاود ثبّت في الأرقام.",
+  },
+  "ai.confidence": { en: "confidence", tn: "ثقة" },
+  "ai.grams": { en: "g", tn: "غ" },
+  "ai.total": { en: "Total", tn: "المجموع" },
+  "ai.slot_label": { en: "Log to", tn: "سجّل في" },
+  "ai.log_cta": { en: "Log to my diary", tn: "سجّلها في الدفتر" },
+  "ai.logging": { en: "Logging…", tn: "قاعد يسجّل…" },
+  "ai.logged_title": { en: "Logged!", tn: "تسجلت!" },
+  "ai.logged_sub": { en: "Added to today's diary.", tn: "تزادت في دفتر اليوم." },
+  "ai.open_diary": { en: "Open diary", tn: "حلّ الدفتر" },
+  "ai.again": { en: "Estimate another meal", tn: "قدّر ماكلة أخرى" },
+  "ai.premium_title": { en: "A Premium feature", tn: "ميزة بريميوم" },
+  "ai.premium_body": {
+    en: "The AI calorie camera is part of the Premium plan. Upgrade to snap your meals and log them in seconds.",
+    tn: "كاميرا السعرات بالذكاء من عرض بريميوم. طوّر اشتراكك باش تصوّر ماكلتك وتسجلها في ثواني.",
+  },
+  "ai.premium_cta": { en: "Upgrade to Premium", tn: "طوّر لبريميوم" },
 
   // ---- admin: Q&A triage ----
   "admin.nav_qa": { en: "Q&A", tn: "الأسئلة" },

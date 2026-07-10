@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Repeat } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ExerciseMedia } from "@/components/workout/exercise-media";
 import { pick, type Locale } from "@/lib/i18n";
 
 export type ExerciseCandidate = { id: string; nameEn: string | null; nameAr: string | null };
@@ -16,6 +17,8 @@ export type EditorExercise = {
   repRange: string;
   restSeconds: number;
   notes: string | null;
+  thumbnailUrl: string | null;
+  videoUrl: string | null;
   substitutes: ExerciseCandidate[];
 };
 
@@ -35,12 +38,21 @@ export function ExerciseCard({
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="font-bold">{pick(locale, exercise.nameEn, exercise.nameAr)}</div>
-          <div className="text-sm text-muted">
-            {exercise.sets} × {exercise.repRange} · {exercise.restSeconds}s {locale === "tn" ? "راحة" : "rest"}
+        <div className="flex min-w-0 items-center gap-3">
+          <ExerciseMedia
+            locale={locale}
+            name={pick(locale, exercise.nameEn, exercise.nameAr)}
+            thumbnailUrl={exercise.thumbnailUrl}
+            videoUrl={exercise.videoUrl}
+            size="sm"
+          />
+          <div className="min-w-0">
+            <div className="truncate font-bold">{pick(locale, exercise.nameEn, exercise.nameAr)}</div>
+            <div className="text-sm text-muted">
+              {exercise.sets} × {exercise.repRange} · {exercise.restSeconds}s {locale === "tn" ? "راحة" : "rest"}
+            </div>
+            {exercise.notes && <div className="mt-1 text-xs text-amber-300">{exercise.notes}</div>}
           </div>
-          {exercise.notes && <div className="mt-1 text-xs text-amber-300">{exercise.notes}</div>}
         </div>
         <div className="flex items-center gap-2">
           <Input

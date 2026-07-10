@@ -33,6 +33,7 @@ export type DiaryEntry = {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  imageUrl: string | null;
 };
 
 export type DiaryFood = {
@@ -43,7 +44,17 @@ export type DiaryFood = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  imageUrl: string | null;
 };
+
+/** Small food photo from the admin CMS; renders nothing when absent. */
+function FoodThumb({ src, size = "h-10 w-10" }: { src: string | null; size?: string }) {
+  if (!src) return null;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- admin-hosted content URL
+    <img src={src} alt="" className={`${size} shrink-0 rounded-lg border border-hairline object-cover`} />
+  );
+}
 
 export type DiaryPlanMeal = {
   id: string;
@@ -258,7 +269,8 @@ export function FoodDiary({
               <ul className="flex flex-col divide-y divide-hairline">
                 {slotEntries.map((entry) => (
                   <li key={entry.id} className="flex items-center justify-between gap-3 py-2">
-                    <div className="min-w-0">
+                    <FoodThumb src={entry.imageUrl} size="h-9 w-9" />
+                    <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">
                         {pick(locale, entry.nameEn, entry.nameAr) || "—"}
                       </div>
@@ -355,6 +367,7 @@ type ApiFood = {
   protein_per_100g: number;
   carbs_per_100g: number;
   fat_per_100g: number;
+  image_url: string | null;
 };
 
 function apiToDiaryFood(f: ApiFood): DiaryFood {
@@ -366,6 +379,7 @@ function apiToDiaryFood(f: ApiFood): DiaryFood {
     proteinPer100g: f.protein_per_100g,
     carbsPer100g: f.carbs_per_100g,
     fatPer100g: f.fat_per_100g,
+    imageUrl: f.image_url,
   };
 }
 
@@ -520,10 +534,13 @@ function AddFoodSheet({
 
         {selected ? (
           <div className="flex flex-col gap-4">
-            <div className="rounded-2xl border border-hairline bg-surface p-4">
-              <div className="font-bold">{pick(locale, selected.nameEn, selected.nameAr)}</div>
-              <div className="text-xs text-muted">
-                {Math.round(selected.caloriesPer100g)} kcal · P {Math.round(selected.proteinPer100g)}g / 100g
+            <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-4">
+              <FoodThumb src={selected.imageUrl} size="h-12 w-12" />
+              <div>
+                <div className="font-bold">{pick(locale, selected.nameEn, selected.nameAr)}</div>
+                <div className="text-xs text-muted">
+                  {Math.round(selected.caloriesPer100g)} kcal · P {Math.round(selected.proteinPer100g)}g / 100g
+                </div>
               </div>
             </div>
             <label className="flex flex-col gap-1">
@@ -608,9 +625,10 @@ function AddFoodSheet({
                               setSelected(item.food);
                               setQuantity(String(item.quantityG));
                             }}
-                            className="flex items-center justify-between gap-3 py-2 text-start"
+                            className="flex items-center gap-3 py-2 text-start"
                           >
-                            <span className="text-sm font-semibold">
+                            <FoodThumb src={item.food.imageUrl} size="h-9 w-9" />
+                            <span className="flex-1 text-sm font-semibold">
                               {pick(locale, item.food.nameEn, item.food.nameAr)}
                             </span>
                             <span className="shrink-0 text-xs tabular-nums text-muted">
@@ -711,9 +729,10 @@ function AddFoodSheet({
                             setSelected(food);
                             setQuantity("100");
                           }}
-                          className="flex flex-1 items-center justify-between gap-3 text-start"
+                          className="flex flex-1 items-center gap-3 text-start"
                         >
-                          <span className="font-semibold">{pick(locale, food.nameEn, food.nameAr)}</span>
+                          <FoodThumb src={food.imageUrl} size="h-9 w-9" />
+                          <span className="flex-1 font-semibold">{pick(locale, food.nameEn, food.nameAr)}</span>
                           <span className="shrink-0 text-xs tabular-nums text-muted">
                             {Math.round(food.caloriesPer100g)} kcal/100g
                           </span>

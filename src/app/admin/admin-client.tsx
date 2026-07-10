@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   updatePaymentSettings,
   updatePaymentMethod,
+  updatePlanPrice,
   activateRequest,
   rejectRequest,
   type SettingsInput,
@@ -19,6 +20,7 @@ import type { Database } from "@/types/db";
 
 type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
 type Method = Database["public"]["Tables"]["payment_methods"]["Row"];
+type Plan = Database["public"]["Tables"]["subscription_plans"]["Row"];
 type Request = Database["public"]["Tables"]["payment_requests"]["Row"] & {
   email: string | null;
 };
@@ -28,15 +30,17 @@ type Props = {
   settings: Settings | null;
   methods: Method[];
   requests: Request[];
+  plans: Plan[];
 };
 
 const fieldClass =
   "min-h-24 w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
-export function AdminClient({ locale, settings, methods, requests }: Props) {
+export function AdminClient({ locale, settings, methods, requests, plans }: Props) {
   return (
     <div className="flex flex-col gap-8">
       <RequestsCard locale={locale} requests={requests} />
+      <PlansCard locale={locale} plans={plans} />
       <SettingsCard locale={locale} settings={settings} />
 
       <div className="flex flex-col gap-4">
@@ -93,6 +97,9 @@ function RequestsCard({
                 {r.email ?? r.user_id}
               </p>
               <p className="text-sm text-muted">
+                {r.plan_tier && r.plan_months
+                  ? `${r.plan_tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")} · ${r.plan_months} ${t(locale, "admin.months_short")} · `
+                  : ""}
                 {r.method_key} · {r.amount_tnd} DT ·{" "}
                 {r.created_at
                   ? new Date(r.created_at).toLocaleString()
@@ -114,6 +121,70 @@ function RequestsCard({
                 onClick={() => act(() => rejectRequest(r.id))}
               >
                 {t(locale, "admin.reject")}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PlansCard({ locale, plans }: { locale: Locale; plans: Plan[] }) {
+  const router = useRouter();
+  const [prices, setPrices] = useState<Record<string, string>>(
+    () => Object.fromEntries(plans.map((p) => [p.id, String(p.price_tnd)])),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function save(plan: Plan) {
+    setError(null);
+    const price = parseFloat(prices[plan.id]);
+    startTransition(async () => {
+      const res = await updatePlanPrice(plan.id, price);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setSavedId(plan.id);
+      setTimeout(() => setSavedId((id) => (id === plan.id ? null : id)), 1500);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{t(locale, "admin.plans_title")}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {error && (
+          <p className="text-sm text-red-500" role="alert">
+            {error}
+          </p>
+        )}
+        {plans.map((plan) => (
+          <div
+            key={plan.id}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-hairline p-3"
+          >
+            <span className="text-sm font-bold">
+              {plan.tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")} ·{" "}
+              {plan.months} {t(locale, "admin.months_short")}
+            </span>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                inputMode="decimal"
+                value={prices[plan.id] ?? ""}
+                onChange={(e) => setPrices((prev) => ({ ...prev, [plan.id]: e.target.value }))}
+                className="h-10 w-24 text-center text-sm"
+              />
+              <span className="text-xs text-muted">DT</span>
+              <Button size="sm" variant="secondary" disabled={isPending} onClick={() => save(plan)}>
+                {savedId === plan.id ? "✓" : t(locale, "admin.save")}
               </Button>
             </div>
           </div>

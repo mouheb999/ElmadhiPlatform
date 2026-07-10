@@ -17,6 +17,7 @@ export type EditorItem = {
   proteinPer100g: number;
   carbsPer100g: number;
   fatPer100g: number;
+  imageUrl: string | null;
 };
 
 const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
@@ -77,6 +78,14 @@ export function MealCard({
         <div className="flex flex-col gap-2 border-t border-hairline p-4">
           {items.map((item) => (
             <div key={item.id} className="flex items-center gap-3">
+              {item.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- admin-hosted content URL
+                <img
+                  src={item.imageUrl}
+                  alt=""
+                  className="h-9 w-9 shrink-0 rounded-lg border border-hairline object-cover"
+                />
+              )}
               <span className="flex-1 text-sm font-semibold">{pick(locale, item.nameEn, item.nameAr)}</span>
               <Input
                 type="number"

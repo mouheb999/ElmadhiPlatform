@@ -53,7 +53,7 @@ export default async function FoodLogPage({
     protein_g: number;
     carbs_g: number;
     fat_g: number;
-    foods: { name_en: string | null; name_ar: string | null } | null;
+    foods: { name_en: string | null; name_ar: string | null; image_url: string | null } | null;
   };
   type FoodJoinRow = {
     food_id: string;
@@ -65,6 +65,7 @@ export default async function FoodLogPage({
       protein_per_100g: number;
       carbs_per_100g: number;
       fat_per_100g: number;
+      image_url: string | null;
     } | null;
   };
 
@@ -79,19 +80,25 @@ export default async function FoodLogPage({
       supabase.from("diet_profiles").select("id").eq("user_id", user!.id).eq("is_active", true).maybeSingle(),
       supabase
         .from("meal_logs")
-        .select("id, meal_slot, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g, foods(name_en, name_ar)")
+        .select(
+          "id, meal_slot, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g, foods(name_en, name_ar, image_url)",
+        )
         .eq("user_id", user!.id)
         .eq("log_date", viewDate)
         .order("logged_at", { ascending: true }),
       supabase
         .from("food_favorites")
-        .select("food_id, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)")
+        .select(
+          "food_id, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url)",
+        )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(20),
       supabase
         .from("meal_logs")
-        .select("food_id, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)")
+        .select(
+          "food_id, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url)",
+        )
         .eq("user_id", user!.id)
         .not("food_id", "is", null)
         .order("logged_at", { ascending: false })
@@ -128,6 +135,7 @@ export default async function FoodLogPage({
         protein_per_100g: number;
         carbs_per_100g: number;
         fat_per_100g: number;
+        image_url: string | null;
       } | null;
     }[];
   };
@@ -135,7 +143,7 @@ export default async function FoodLogPage({
     ? await supabase
         .from("meal_plan_meals")
         .select(
-          "id, meal_type, order_index, meal_plan_items(food_id, quantity_g, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
+          "id, meal_type, order_index, meal_plan_items(food_id, quantity_g, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
         )
         .eq("meal_plan_id", mealPlan.id)
         .order("order_index", { ascending: true })
@@ -155,6 +163,7 @@ export default async function FoodLogPage({
           proteinPer100g: item.foods!.protein_per_100g,
           carbsPer100g: item.foods!.carbs_per_100g,
           fatPer100g: item.foods!.fat_per_100g,
+          imageUrl: item.foods!.image_url,
         },
         quantityG: item.quantity_g,
       })),
@@ -184,6 +193,7 @@ export default async function FoodLogPage({
     proteinG: row.protein_g,
     carbsG: row.carbs_g,
     fatG: row.fat_g,
+    imageUrl: row.foods?.image_url ?? null,
   }));
 
   function toDiaryFood(row: FoodJoinRow): DiaryFood | null {
@@ -196,6 +206,7 @@ export default async function FoodLogPage({
       proteinPer100g: row.foods.protein_per_100g,
       carbsPer100g: row.foods.carbs_per_100g,
       fatPer100g: row.foods.fat_per_100g,
+      imageUrl: row.foods.image_url,
     };
   }
 

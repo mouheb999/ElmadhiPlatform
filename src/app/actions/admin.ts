@@ -103,7 +103,7 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
 
   const { data: req, error: reqError } = await admin
     .from("payment_requests")
-    .select("id, user_id, status")
+    .select("id, user_id, status, plan_tier, plan_months")
     .eq("id", requestId)
     .maybeSingle();
   if (reqError) return fail(reqError.message);
@@ -119,12 +119,61 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
     .eq("id", requestId);
   if (updateReqError) return fail(updateReqError.message);
 
+  // Subscription math: a renewal extends the current expiry, a lapsed or
+  // first-time subscription starts from now. Legacy requests without a plan
+  // default to 1 month of premium.
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("plan_expires_at")
+    .eq("id", req.user_id)
+    .maybeSingle();
+
+  const months = req.plan_months ?? 1;
+  const tier = req.plan_tier === "standard" ? "standard" : "premium";
+  const now = new Date();
+  const currentExpiry = profile?.plan_expires_at ? new Date(profile.plan_expires_at) : null;
+  const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
+  const newExpiry = new Date(base);
+  newExpiry.setMonth(newExpiry.getMonth() + months);
+
   const { error: updateProfileError } = await admin
     .from("profiles")
-    .update({ payment_status: "active", has_paid: true })
+    .update({
+      payment_status: "active",
+      has_paid: true,
+      paid_at: now.toISOString(),
+      plan_type: tier,
+      plan_expires_at: newExpiry.toISOString(),
+    })
     .eq("id", req.user_id);
   if (updateProfileError) return fail(updateProfileError.message);
 
+  revalidatePath("/admin");
+  return ok(undefined);
+}
+
+/** Admin: adjust a subscription plan's price. */
+export async function updatePlanPrice(
+  planId: string,
+  priceTnd: number,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+  } catch {
+    return fail("Not authorized.");
+  }
+  if (!Number.isFinite(priceTnd) || priceTnd <= 0 || priceTnd > 10000) {
+    return fail("Price looks off.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("subscription_plans")
+    .update({ price_tnd: priceTnd, updated_at: new Date().toISOString() })
+    .eq("id", planId);
+  if (error) return fail(error.message);
+
+  revalidatePath("/checkout");
   revalidatePath("/admin");
   return ok(undefined);
 }

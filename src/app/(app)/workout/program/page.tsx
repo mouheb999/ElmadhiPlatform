@@ -50,6 +50,8 @@ export default async function WorkoutProgramPage() {
         substitution_group: string | null;
         contraindicated_for: string[] | null;
         difficulty: string | null;
+        thumbnail_url: string | null;
+        video_url: string | null;
       } | null;
     }[];
   };
@@ -57,7 +59,7 @@ export default async function WorkoutProgramPage() {
   const { data: dayRowsRaw, error: dayRowsError } = await supabase
     .from("user_program_days")
     .select(
-      "id, day_number, day_name, user_program_exercises(id, exercise_id, sets, rep_range, rest_seconds, notes, exercises(id, name_en, name_ar, primary_muscle, equipment, substitution_group, contraindicated_for, difficulty))",
+      "id, day_number, day_name, user_program_exercises(id, exercise_id, sets, rep_range, rest_seconds, notes, exercises(id, name_en, name_ar, primary_muscle, equipment, substitution_group, contraindicated_for, difficulty, thumbnail_url, video_url))",
     )
     .eq("user_program_id", program.id)
     .order("day_number", { ascending: true });
@@ -106,6 +108,8 @@ export default async function WorkoutProgramPage() {
           repRange: row.rep_range,
           restSeconds: row.rest_seconds ?? 90,
           notes: row.notes,
+          thumbnailUrl: ex.thumbnail_url,
+          videoUrl: ex.video_url,
           substitutes,
         };
       }),

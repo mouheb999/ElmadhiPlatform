@@ -13,7 +13,7 @@ export default async function AdminPage() {
   const locale = await getLocale();
   const db = createAdminClient();
 
-  const [{ data: settings }, { data: methods }, { data: requests }] =
+  const [{ data: settings }, { data: methods }, { data: requests }, { data: plans }] =
     await Promise.all([
       db.from("payment_settings").select("*").eq("id", 1).maybeSingle(),
       db
@@ -25,6 +25,11 @@ export default async function AdminPage() {
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false }),
+      db
+        .from("subscription_plans")
+        .select("*")
+        .order("tier", { ascending: false })
+        .order("months", { ascending: true }),
     ]);
 
   // Resolve emails for the pending requests so the admin can match WhatsApp.
@@ -41,6 +46,7 @@ export default async function AdminPage() {
       settings={settings ?? null}
       methods={methods ?? []}
       requests={pending}
+      plans={plans ?? []}
     />
   );
 }
