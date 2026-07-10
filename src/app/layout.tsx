@@ -6,8 +6,15 @@ import { dir } from "@/lib/i18n";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ELMADHI",
+  title: { default: "ELMADHI", template: "%s · ELMADHI" },
   description: "Your personal diet and training coach.",
+  applicationName: "ELMADHI",
+  // Launch standalone from the iOS home screen with the ELMADHI name + dark status bar.
+  appleWebApp: {
+    capable: true,
+    title: "ELMADHI",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -15,6 +22,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   themeColor: "#0F0F0F",
+  // Let content extend under the notch/home-indicator; nav uses env(safe-area-inset-*).
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({
