@@ -42,5 +42,9 @@
   "pec-deck": "/exercise-library/chest/pec-deck.webp",
   "push-up": "/exercise-library/chest/push-up.webp",
   "svend-press": "/exercise-library/chest/svend-press.webp",
-  "wide-push-up": "/exercise-library/chest/wide-push-up.webp"
+  "wide-push-up": "/exercise-library/chest/wide-push-up.webp",
+  "arnold-press": "/exercise-library/shoulders/arnold-press.webp",
+  "dumbbell-shoulder-press": "/exercise-library/shoulders/dumbbell-shoulder-press.webp",
+  "overhead-press": "/exercise-library/shoulders/overhead-press.webp",
+  "seated-barbell-press": "/exercise-library/shoulders/seated-barbell-press.webp"
 }
