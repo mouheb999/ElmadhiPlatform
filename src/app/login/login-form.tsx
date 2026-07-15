@@ -35,7 +35,15 @@ export function LoginForm({ locale }: { locale: Locale }) {
     params.get("error") ? t(locale, "login.failed") : null,
   );
   const [notice, setNotice] = useState<string | null>(null);
+  const [showAdminChoice, setShowAdminChoice] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  function goTo(path: string) {
+    startTransition(() => {
+      router.push(path);
+      router.refresh();
+    });
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +55,11 @@ export function LoginForm({ locale }: { locale: Locale }) {
         const res = await signInWithPassword(email, password);
         if (!res.ok) {
           setError(res.error);
+          return;
+        }
+        // Admins pick a destination; regular users go straight in.
+        if (res.data.isAdmin) {
+          setShowAdminChoice(true);
           return;
         }
         router.push(next);
@@ -73,6 +86,42 @@ export function LoginForm({ locale }: { locale: Locale }) {
       }
       window.location.href = res.data;
     });
+  }
+
+  if (showAdminChoice) {
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+        <div className="mb-8">
+          <Logo />
+        </div>
+
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>{t(locale, "login.choose_title")}</CardTitle>
+            <CardDescription>{t(locale, "login.choose_sub")}</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Button
+              type="button"
+              disabled={isPending}
+              onClick={() => goTo("/admin")}
+              className="w-full"
+            >
+              {t(locale, "login.go_admin")}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={isPending}
+              onClick={() => goTo(next)}
+              className="w-full"
+            >
+              {t(locale, "login.go_app")}
+            </Button>
+          </CardContent>
+        </Card>
+      </main>
+    );
   }
 
   return (

@@ -39,6 +39,12 @@ export function AdminNav({ locale }: { locale: Locale }) {
           </Link>
         );
       })}
+      <Link
+        href="/dashboard"
+        className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-accent transition-colors hover:text-ink"
+      >
+        {t(locale, "admin.nav_app")}
+      </Link>
     </nav>
   );
 }

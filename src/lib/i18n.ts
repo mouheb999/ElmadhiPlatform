@@ -131,6 +131,7 @@ const STRINGS = {
   "admin.saved": { en: "Saved", tn: "تسجّل" },
 
   // ---- admin nav ----
+  "admin.nav_app": { en: "Back to app", tn: "ارجع للتطبيق" },
   "admin.nav_payments": { en: "Payments", tn: "الخلاص" },
   "admin.nav_foods": { en: "Foods", tn: "المأكولات" },
   "admin.nav_exercises": { en: "Exercises", tn: "التمارين" },
@@ -248,6 +249,13 @@ const STRINGS = {
     en: "Check your inbox to confirm your email, then sign in.",
     tn: "شوف إيميلك باش تأكّدو، ومبعد أدخل.",
   },
+  "login.choose_title": { en: "Where to?", tn: "وين تحب تمشي؟" },
+  "login.choose_sub": {
+    en: "You're an admin. Pick where to go.",
+    tn: "إنت أدمين. اختار وين تدخل.",
+  },
+  "login.go_admin": { en: "Admin panel", tn: "لوحة الأدمين" },
+  "login.go_app": { en: "Continue to the app", tn: "كمّل للتطبيق" },
 
   // ---- common ----
   "common.error": { en: "Something went wrong.", tn: "صار مشكل." },
@@ -300,6 +308,7 @@ const STRINGS = {
   "settings.redo_diet": { en: "Redo my diet goals", tn: "بدّل أهداف الأكل" },
   "settings.redo_workout": { en: "Redo my workout goals", tn: "بدّل أهداف التمرين" },
   "settings.sign_out": { en: "Sign out", tn: "اخرج" },
+  "settings.admin_panel": { en: "Admin panel", tn: "لوحة الأدمين" },
 
   // ---- diet maker: questions ----
   "diet.q_gender": { en: "Are you a man or a woman?", tn: "راجل ولا مرا؟" },

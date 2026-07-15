@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { getAdminUser } from "@/lib/auth";
 import { signOut } from "@/app/actions/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const locale = await getLocale();
+  const admin = await getAdminUser();
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,6 +34,16 @@ export default async function SettingsPage() {
           </Link>
         </CardContent>
       </Card>
+
+      {admin && (
+        <Card>
+          <CardContent className="p-0">
+            <Link href="/admin" className="block p-6 font-bold text-accent hover:bg-white/5">
+              {t(locale, "settings.admin_panel")}
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       <form action={signOut}>
         <Button type="submit" variant="secondary" className="w-full">

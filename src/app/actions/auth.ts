@@ -17,11 +17,21 @@ async function siteUrl() {
 export async function signInWithPassword(
   email: string,
   password: string,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ isAdmin: boolean }>> {
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
   if (error) return fail(error.message);
-  return ok(undefined);
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("is_admin")
+    .eq("id", data.user.id)
+    .maybeSingle();
+
+  return ok({ isAdmin: !!profile?.is_admin });
 }
 
 export async function signUpWithPassword(
