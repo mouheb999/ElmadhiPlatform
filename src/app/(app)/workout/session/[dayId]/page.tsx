@@ -40,6 +40,7 @@ export default async function WorkoutSessionPage({
         id: string;
         name_en: string;
         name_ar: string | null;
+        equipment: string;
         thumbnail_url: string | null;
         video_url: string | null;
       } | null;
@@ -49,7 +50,7 @@ export default async function WorkoutSessionPage({
   const { data: dayRaw } = await supabase
     .from("user_program_days")
     .select(
-      "id, day_name, user_programs!inner(user_id), user_program_exercises(id, exercise_id, sets, rep_range, rest_seconds, order_index, exercises(id, name_en, name_ar, thumbnail_url, video_url))",
+      "id, day_name, user_programs!inner(user_id), user_program_exercises(id, exercise_id, sets, rep_range, rest_seconds, order_index, exercises(id, name_en, name_ar, equipment, thumbnail_url, video_url))",
     )
     .eq("id", dayId)
     .eq("user_programs.user_id", user.id)
@@ -126,6 +127,7 @@ export default async function WorkoutSessionPage({
       exerciseId: r.exercise_id,
       nameEn: r.exercises!.name_en,
       nameAr: r.exercises!.name_ar,
+      equipment: r.exercises!.equipment,
       targetSets: r.sets,
       repRange: r.rep_range,
       restSeconds: r.rest_seconds ?? 90,

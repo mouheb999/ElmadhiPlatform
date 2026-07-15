@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Check, Timer, TrendingDown, TrendingUp, Trophy, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ExerciseMedia } from "@/components/workout/exercise-media";
+import { ExerciseIllustrationBanner, ExerciseMedia } from "@/components/workout/exercise-media";
+import { illustrationFor } from "@/lib/exercise-illustrations";
 import { cn } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { completeSession, type SessionSetInput } from "@/app/actions/sessions";
@@ -15,6 +16,8 @@ export type SessionExercise = {
   exerciseId: string;
   nameEn: string;
   nameAr: string | null;
+  /** exercises.equipment — drives which logging fields the card shows. */
+  equipment: string;
   targetSets: number;
   repRange: string;
   restSeconds: number;
@@ -74,6 +77,11 @@ function defaultReps(repRange: string): string {
   return match ? match[0] : "";
 }
 
+/** Bodyweight and band work has no load to log — the kg column starts hidden. */
+function usesWeight(equipment: string): boolean {
+  return equipment !== "bodyweight" && equipment !== "band";
+}
+
 /**
  * Live workout session. All state lives on the phone (localStorage draft,
  * survives refreshes and dead gym Wi-Fi); one server write on finish.
@@ -92,6 +100,14 @@ export function SessionClient({
   completedToday: boolean;
 }) {
   const [entries, setEntries] = useState<Record<string, SetEntry[]>>(() => emptyEntries(exercises));
+  // Per-exercise field visibility: the card only shows fields that matter for
+  // that exercise (no kg column on push-ups), with opt-in toggles for the rest.
+  const [showWeight, setShowWeight] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(exercises.map((ex) => [ex.rowId, usesWeight(ex.equipment)])),
+  );
+  const [showRir, setShowRir] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(exercises.map((ex) => [ex.rowId, false])),
+  );
   const [skipped, setSkipped] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [startedAt, setStartedAt] = useState<string>(() => new Date().toISOString());
@@ -112,6 +128,21 @@ export function SessionClient({
           const draft = JSON.parse(raw) as Draft;
           if (draft.date === todayKey()) {
             setEntries((prev) => ({ ...prev, ...draft.entries }));
+            // Fields with drafted values stay visible even if hidden by default.
+            setShowWeight((prev) => {
+              const next = { ...prev };
+              for (const [rowId, sets] of Object.entries(draft.entries)) {
+                if (sets.some((s) => s.weight.trim())) next[rowId] = true;
+              }
+              return next;
+            });
+            setShowRir((prev) => {
+              const next = { ...prev };
+              for (const [rowId, sets] of Object.entries(draft.entries)) {
+                if (sets.some((s) => s.rir.trim())) next[rowId] = true;
+              }
+              return next;
+            });
             setSkipped(draft.skipped ?? []);
             setNotes(draft.notes ?? "");
             if (draft.startedAt) setStartedAt(draft.startedAt);
@@ -343,6 +374,10 @@ export function SessionClient({
 
       {exercises.map((ex) => {
         const isSkipped = skipped.includes(ex.rowId);
+        const illustration = illustrationFor(ex.nameEn);
+        const weightVisible = showWeight[ex.rowId] ?? true;
+        const rirVisible = showRir[ex.rowId] ?? false;
+        const gridCols = `2rem ${weightVisible ? "1fr " : ""}1fr ${rirVisible ? "1fr " : ""}2.75rem`;
         return (
           <div
             key={ex.rowId}
@@ -351,14 +386,24 @@ export function SessionClient({
               isSkipped && "opacity-50",
             )}
           >
+            {illustration && !isSkipped && (
+              <ExerciseIllustrationBanner
+                locale={locale}
+                name={pick(locale, ex.nameEn, ex.nameAr)}
+                illustrationUrl={illustration}
+                videoUrl={ex.videoUrl}
+              />
+            )}
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
-                <ExerciseMedia
-                  locale={locale}
-                  name={pick(locale, ex.nameEn, ex.nameAr)}
-                  thumbnailUrl={ex.thumbnailUrl}
-                  videoUrl={ex.videoUrl}
-                />
+                {!illustration && (
+                  <ExerciseMedia
+                    locale={locale}
+                    name={pick(locale, ex.nameEn, ex.nameAr)}
+                    thumbnailUrl={ex.thumbnailUrl}
+                    videoUrl={ex.videoUrl}
+                  />
+                )}
                 <div className="min-w-0">
                   <div className="font-bold">{pick(locale, ex.nameEn, ex.nameAr)}</div>
                 <div className="text-xs text-muted">
@@ -397,23 +442,28 @@ export function SessionClient({
 
             {!isSkipped && (
               <>
-                <div className="grid grid-cols-[2rem_1fr_1fr_1fr_2.75rem] items-center gap-2 text-center text-[11px] font-bold uppercase tracking-wide text-muted">
+                <div
+                  className="grid items-center gap-2 text-center text-[11px] font-bold uppercase tracking-wide text-muted"
+                  style={{ gridTemplateColumns: gridCols }}
+                >
                   <span>#</span>
-                  <span>{t(locale, "session.kg")}</span>
+                  {weightVisible && <span>{t(locale, "session.kg")}</span>}
                   <span>{t(locale, "session.reps")}</span>
-                  <span>{t(locale, "session.rir")}</span>
+                  {rirVisible && <span>{t(locale, "session.rir")}</span>}
                   <span />
                 </div>
                 {entries[ex.rowId].map((entry, i) => (
-                  <div key={i} className="grid grid-cols-[2rem_1fr_1fr_1fr_2.75rem] items-center gap-2">
+                  <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: gridCols }}>
                     <span className="text-center text-sm font-bold text-muted">{i + 1}</span>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      value={entry.weight}
-                      onChange={(e) => updateSet(ex.rowId, i, { weight: e.target.value })}
-                      className="h-11 px-2 text-center text-sm"
-                    />
+                    {weightVisible && (
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        value={entry.weight}
+                        onChange={(e) => updateSet(ex.rowId, i, { weight: e.target.value })}
+                        className="h-11 px-2 text-center text-sm"
+                      />
+                    )}
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -421,13 +471,15 @@ export function SessionClient({
                       onChange={(e) => updateSet(ex.rowId, i, { reps: e.target.value })}
                       className="h-11 px-2 text-center text-sm"
                     />
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={entry.rir}
-                      onChange={(e) => updateSet(ex.rowId, i, { rir: e.target.value })}
-                      className="h-11 px-2 text-center text-sm"
-                    />
+                    {rirVisible && (
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        value={entry.rir}
+                        onChange={(e) => updateSet(ex.rowId, i, { rir: e.target.value })}
+                        className="h-11 px-2 text-center text-sm"
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => toggleDone(ex, i)}
@@ -442,19 +494,35 @@ export function SessionClient({
                       <Check className="h-5 w-5" />
                     </button>
                     {isPr(ex, entry) && (
-                      <span className="col-span-5 -mt-1 text-end text-xs font-bold text-accent">
+                      <span className="col-span-full -mt-1 text-end text-xs font-bold text-accent">
                         🏆 {t(locale, "session.pr_badge")}
                       </span>
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => addSet(ex.rowId)}
-                  className="self-start text-sm font-bold text-accent hover:underline"
-                >
-                  + {t(locale, "session.add_set")}
-                </button>
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => addSet(ex.rowId)}
+                    className="text-sm font-bold text-accent hover:underline"
+                  >
+                    + {t(locale, "session.add_set")}
+                  </button>
+                  <div className="flex gap-1.5">
+                    {!usesWeight(ex.equipment) && (
+                      <FieldToggle
+                        label={t(locale, "session.kg")}
+                        active={weightVisible}
+                        onClick={() => setShowWeight((prev) => ({ ...prev, [ex.rowId]: !weightVisible }))}
+                      />
+                    )}
+                    <FieldToggle
+                      label={t(locale, "session.rir")}
+                      active={rirVisible}
+                      onClick={() => setShowRir((prev) => ({ ...prev, [ex.rowId]: !rirVisible }))}
+                    />
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -503,6 +571,23 @@ export function SessionClient({
         </div>
       )}
     </div>
+  );
+}
+
+/** Small pill that shows/hides an optional logging column for one exercise. */
+function FieldToggle({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors",
+        active ? "border-accent/60 bg-accent/10 text-accent" : "border-hairline text-muted hover:text-ink",
+      )}
+    >
+      {active ? label : `+ ${label}`}
+    </button>
   );
 }
 

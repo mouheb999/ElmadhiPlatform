@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Repeat } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ExerciseMedia } from "@/components/workout/exercise-media";
+import { illustrationFor } from "@/lib/exercise-illustrations";
 import { pick, type Locale } from "@/lib/i18n";
 
 export type ExerciseCandidate = { id: string; nameEn: string | null; nameAr: string | null };
@@ -42,6 +43,7 @@ export function ExerciseCard({
           <ExerciseMedia
             locale={locale}
             name={pick(locale, exercise.nameEn, exercise.nameAr)}
+            illustrationUrl={illustrationFor(exercise.nameEn)}
             thumbnailUrl={exercise.thumbnailUrl}
             videoUrl={exercise.videoUrl}
             size="sm"
@@ -76,19 +78,33 @@ export function ExerciseCard({
 
       {swapping && (
         <div className="flex flex-col gap-1 border-t border-hairline pt-2">
-          {exercise.substitutes.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => {
-                onSwap(c);
-                setSwapping(false);
-              }}
-              className="rounded-xl px-3 py-2 text-start text-sm hover:bg-white/5"
-            >
-              {pick(locale, c.nameEn, c.nameAr)}
-            </button>
-          ))}
+          {exercise.substitutes.map((c) => {
+            const candidateIllustration = illustrationFor(c.nameEn);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => {
+                  onSwap(c);
+                  setSwapping(false);
+                }}
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-start text-sm hover:bg-white/5"
+              >
+                {candidateIllustration ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- pre-optimized local asset
+                  <img
+                    src={candidateIllustration}
+                    alt=""
+                    loading="lazy"
+                    className="h-9 w-[3.375rem] shrink-0 rounded-lg border border-hairline bg-[#161616] object-cover"
+                  />
+                ) : (
+                  <span className="h-9 w-[3.375rem] shrink-0 rounded-lg border border-hairline bg-white/5" />
+                )}
+                {pick(locale, c.nameEn, c.nameAr)}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
