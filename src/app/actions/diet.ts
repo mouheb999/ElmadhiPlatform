@@ -33,9 +33,10 @@ async function buildAndSaveMealPlan(
   answers: DietAnswers,
   macros: ReturnType<typeof calculateMacros>,
 ) {
-  const { data: foods } = await supabase
+  const { data: foods, error: foodsError } = await supabase
     .from("foods")
     .select("id, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, allergens, tags, price_tier, is_common");
+  if (foodsError) throw new Error(foodsError.message);
 
   const meals = generateMealPlan(
     { calories: macros.calories, proteinG: macros.proteinG, carbsG: macros.carbsG, fatG: macros.fatG },
@@ -50,6 +51,12 @@ async function buildAndSaveMealPlan(
     },
   );
 
+  // An all-empty plan means the food catalog can't satisfy the constraints;
+  // saving it would leave the plan/diary screens showing nothing.
+  if (meals.every((meal) => meal.items.length === 0)) {
+    throw new Error("No foods in the catalog match your constraints — the plan could not be generated.");
+  }
+
   const { data: plan, error: planError } = await supabase
     .from("meal_plans")
     .insert({ user_id: userId, diet_profile_id: dietProfileId })
@@ -57,23 +64,30 @@ async function buildAndSaveMealPlan(
     .single();
   if (planError || !plan) throw new Error(planError?.message ?? "Failed to create meal plan.");
 
-  for (const [index, meal] of meals.entries()) {
-    const { data: mealRow, error: mealError } = await supabase
-      .from("meal_plan_meals")
-      .insert({ meal_plan_id: plan.id, meal_type: meal.mealType, order_index: index })
-      .select("id")
-      .single();
-    if (mealError || !mealRow) continue;
+  try {
+    for (const [index, meal] of meals.entries()) {
+      const { data: mealRow, error: mealError } = await supabase
+        .from("meal_plan_meals")
+        .insert({ meal_plan_id: plan.id, meal_type: meal.mealType, order_index: index })
+        .select("id")
+        .single();
+      if (mealError || !mealRow) throw new Error(mealError?.message ?? "Failed to create meal.");
 
-    if (meal.items.length > 0) {
-      await supabase.from("meal_plan_items").insert(
-        meal.items.map((item) => ({
-          meal_id: mealRow.id,
-          food_id: item.foodId,
-          quantity_g: item.quantityG,
-        })),
-      );
+      if (meal.items.length > 0) {
+        const { error: itemsError } = await supabase.from("meal_plan_items").insert(
+          meal.items.map((item) => ({
+            meal_id: mealRow.id,
+            food_id: item.foodId,
+            quantity_g: item.quantityG,
+          })),
+        );
+        if (itemsError) throw new Error(itemsError.message);
+      }
     }
+  } catch (e) {
+    // Don't leave a half-written active plan behind (cascade removes meals/items).
+    await supabase.from("meal_plans").delete().eq("id", plan.id);
+    throw e;
   }
 
   return plan.id;

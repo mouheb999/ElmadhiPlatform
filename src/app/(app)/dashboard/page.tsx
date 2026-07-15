@@ -105,6 +105,8 @@ export default async function DashboardPage() {
       .select("id")
       .eq("user_id", user!.id)
       .eq("is_active", true)
+      .order("generated_at", { ascending: false })
+      .limit(1)
       .maybeSingle(),
     supabase
       .from("meal_logs")

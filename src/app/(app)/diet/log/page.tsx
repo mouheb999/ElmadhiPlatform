@@ -115,6 +115,8 @@ export default async function FoodLogPage({
         .select("id")
         .eq("user_id", user!.id)
         .eq("is_active", true)
+        .order("generated_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
     ]);
 
