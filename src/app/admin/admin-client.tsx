@@ -211,13 +211,17 @@ function SettingsCard({
     whatsapp_message_ar: settings?.whatsapp_message_ar ?? "",
   });
   const [isPending, startTransition] = useTransition();
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
   function save() {
     setStatus(null);
     startTransition(async () => {
       const res = await updatePaymentSettings(form);
-      setStatus(res.ok ? t(locale, "admin.saved") : res.error);
+      setStatus(
+        res.ok
+          ? { ok: true, text: t(locale, "admin.saved") }
+          : { ok: false, text: res.error },
+      );
     });
   }
 
@@ -303,7 +307,14 @@ function SettingsCard({
           <Button onClick={save} disabled={isPending}>
             {t(locale, "admin.save")}
           </Button>
-          {status && <span className="text-sm text-muted">{status}</span>}
+          {status && (
+            <span
+              role={status.ok ? "status" : "alert"}
+              className={status.ok ? "text-sm text-muted" : "text-sm font-bold text-red-500"}
+            >
+              {status.text}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -321,13 +332,17 @@ function MethodCard({ locale, method }: { locale: Locale; method: Method }) {
     instructions_ar: method.instructions_ar,
   });
   const [isPending, startTransition] = useTransition();
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
 
   function save() {
     setStatus(null);
     startTransition(async () => {
       const res = await updatePaymentMethod(form);
-      setStatus(res.ok ? t(locale, "admin.saved") : res.error);
+      setStatus(
+        res.ok
+          ? { ok: true, text: t(locale, "admin.saved") }
+          : { ok: false, text: res.error },
+      );
     });
   }
 
@@ -397,7 +412,14 @@ function MethodCard({ locale, method }: { locale: Locale; method: Method }) {
           <Button onClick={save} disabled={isPending}>
             {t(locale, "admin.save")}
           </Button>
-          {status && <span className="text-sm text-muted">{status}</span>}
+          {status && (
+            <span
+              role={status.ok ? "status" : "alert"}
+              className={status.ok ? "text-sm text-muted" : "text-sm font-bold text-red-500"}
+            >
+              {status.text}
+            </span>
+          )}
         </div>
       </CardContent>
     </Card>
