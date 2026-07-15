@@ -1,0 +1,24 @@
+{
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GY58bxXeEeIwKJMaLIAhePLvQM/",
+  "category": "chest",
+  "images": {
+    "barbell-bench-press": "hf_20260715_224218_247ccacc-9728-40a1-bd7e-82955df90267.png",
+    "dumbbell-bench-press": "hf_20260715_224221_aec4fead-d70e-4587-a955-139867a0027f.png",
+    "incline-dumbbell-press": "hf_20260715_224226_d8d40f4a-5329-4a6a-a2bb-7b314e770823.png",
+    "incline-barbell-press": "hf_20260715_224230_1d534dc0-dc06-4cc8-be1e-dc3f8ad092b6.png",
+    "decline-barbell-press": "hf_20260715_224243_af6f017f-43d3-4c84-ba5c-e9fc250d607f.png",
+    "dumbbell-fly": "hf_20260715_224247_3b54280a-db03-42cf-b4b9-ca5a6506e934.png",
+    "incline-cable-fly": "hf_20260715_224252_6c5781e3-c496-4cb6-a1b9-3a0f7d302db9.png",
+    "cable-crossover": "hf_20260715_224255_b7cbf976-9e26-4ac0-bc95-2b0759044a80.png",
+    "pec-deck": "hf_20260715_224310_81e4c630-81a1-4c95-87d5-adc7afdcca8d.png",
+    "machine-chest-press": "hf_20260715_224313_d6e73d12-c566-4a89-8ad6-8523fbed8f61.png",
+    "incline-machine-press": "hf_20260715_224318_977ace65-8f8e-4255-9cde-32696d6d7056.png",
+    "chest-dip": "hf_20260715_224321_000b04f3-6470-40fd-8e06-e57816393362.png",
+    "push-up": "hf_20260715_224337_496aabea-3976-4e6b-afc0-aa2bd2a7dbb5.png",
+    "decline-push-up": "hf_20260715_224341_34e2404c-7af3-4b12-b33c-be3a270fe004.png",
+    "wide-push-up": "hf_20260715_224345_3c47ea56-6281-48f9-8ced-8628c271c5aa.png",
+    "svend-press": "hf_20260715_224348_6e729c0e-74c4-4b9d-91d8-b69f4baa2c0c.png",
+    "kettlebell-floor-press": "hf_20260715_224401_d5b41afc-26ad-4b11-806b-8fac2bcda4da.png",
+    "dumbbell-pullover": "hf_20260715_224405_f706319c-bf63-4223-809f-d1ebc7fb1312.png"
+  }
+}
