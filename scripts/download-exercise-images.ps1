@@ -24,7 +24,8 @@ foreach ($manifestPath in $manifests) {
 
     foreach ($p in $m.images.PSObject.Properties) {
         $dest = Join-Path $outDir "$($p.Name).png"
-        $url = "$($m.base)$($p.Value)"
+        # Entries may be a bare filename (joined with base) or a full URL (used as-is).
+        $url = if ($p.Value -like "http*") { $p.Value } else { "$($m.base)$($p.Value)" }
         try {
             Invoke-WebRequest -Uri $url -OutFile $dest -UseBasicParsing
             $done++

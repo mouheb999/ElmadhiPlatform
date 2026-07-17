@@ -1,11 +1,26 @@
 {
-  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GY58bxXeEeIwKJMaLIAhePLvQM/",
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GafedlSUcLzAbY5MXt5tQkjjXQ/",
   "category": "shoulders",
-  "status": "partial - 4 of 20 generated, credits ran out",
   "images": {
-    "overhead-press": "hf_20260715_224943_3b96cada-2c03-4a5c-9e5f-3c90051eed64.png",
-    "seated-barbell-press": "hf_20260715_224946_255cb087-9129-48bb-977f-69596031c708.png",
-    "dumbbell-shoulder-press": "hf_20260715_224950_ce125613-73b1-4201-bf7e-4009e7009040.png",
-    "arnold-press": "hf_20260715_225003_b1b46445-8685-4154-a64f-bd00fb44146a.png"
+    "overhead-press": "hf_20260717_002635_5ca472e2-4e1f-4bbc-b31d-d81c6380184e.png",
+    "seated-barbell-press": "https://d8j0ntlcm91z4.cloudfront.net/user_3GY58bxXeEeIwKJMaLIAhePLvQM/hf_20260715_224946_255cb087-9129-48bb-977f-69596031c708.png",
+    "dumbbell-shoulder-press": "https://d8j0ntlcm91z4.cloudfront.net/user_3GY58bxXeEeIwKJMaLIAhePLvQM/hf_20260715_224950_ce125613-73b1-4201-bf7e-4009e7009040.png",
+    "arnold-press": "https://d8j0ntlcm91z4.cloudfront.net/user_3GY58bxXeEeIwKJMaLIAhePLvQM/hf_20260715_225003_b1b46445-8685-4154-a64f-bd00fb44146a.png",
+    "machine-shoulder-press": "hf_20260717_002542_422a4306-d003-4a79-bffd-3c4e59271085.png",
+    "push-press": "hf_20260716_234456_19db2d97-074e-44a4-a21a-2dd85643a89a.png",
+    "landmine-press": "hf_20260716_234500_655667c5-820c-498c-bc6a-9ca7c3c18c3f.png",
+    "lateral-raise": "hf_20260717_003549_d61c201c-aa8f-46ab-892e-c2982940653d.png",
+    "cable-lateral-raise": "hf_20260717_002641_ab94e088-8d7b-47a9-9cc3-ff46cf38f045.png",
+    "machine-lateral-raise": "hf_20260716_234523_0239a606-f477-4a3d-b0ec-4b564868411d.png",
+    "band-lateral-raise": "hf_20260716_234528_a443443a-9551-4e0a-b85e-b13e0034bad7.png",
+    "front-raise": "hf_20260716_234531_3b473a23-abad-4e93-aff6-b47edd1e2762.png",
+    "cable-front-raise": "hf_20260716_234544_46eadb38-d106-4535-935c-da2d2638f5ae.png",
+    "face-pull": "hf_20260716_234548_cbc1afa0-ffae-4781-b6e9-8a899789b994.png",
+    "dumbbell-rear-delt-fly": "hf_20260717_002710_cf07367e-0e50-4c8a-bd44-5b1a9df004d2.png",
+    "reverse-pec-deck": "hf_20260717_003555_e3ec915b-0b5c-4641-8729-4ec740897d95.png",
+    "upright-row": "hf_20260716_234611_f40ca8c3-f14e-492d-b39a-8fdf2c5e4b03.png",
+    "pike-push-up": "hf_20260716_234615_73ab26ea-f512-4c6f-8539-0d32c125d5b1.png",
+    "handstand-push-up": "hf_20260717_002645_4dced942-ebfe-4502-b252-5978db91b156.png",
+    "cable-external-rotation": "hf_20260717_002630_3168cd23-f469-421c-a00a-e1cf8a892a67.png"
   }
 }
