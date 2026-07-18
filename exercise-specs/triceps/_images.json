@@ -1,0 +1,22 @@
+{
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GafedlSUcLzAbY5MXt5tQkjjXQ/",
+  "category": "triceps",
+  "images": {
+    "triceps-pushdown": "hf_20260717_162428_087fa79e-499a-4512-b872-df3938038558.png",
+    "rope-pushdown": "hf_20260718_133448_93d22469-7640-4733-879d-d05365a42f0a.png",
+    "reverse-grip-pushdown": "hf_20260717_162442_e283928d-7c7f-45c7-b45f-7421436c538f.png",
+    "single-arm-pushdown": "hf_20260718_134025_571d4460-e9c3-4475-8d60-0f6057e0024c.png",
+    "band-pushdown": "hf_20260717_162504_cdcc4840-adfe-4c73-ba23-3aa0cac45088.png",
+    "skull-crusher": "hf_20260718_133505_57765ac9-2fee-47a4-9c2e-e1e7e8020d20.png",
+    "jm-press": "hf_20260718_134016_8af25b69-b067-4d1a-bb1f-c99385e8393b.png",
+    "close-grip-bench-press": "hf_20260718_134008_665f27b1-08fb-4ab4-88b3-09b8176e2776.png",
+    "tate-press": "hf_20260718_133439_5d837579-6426-49ba-9233-4c616b7d28a3.png",
+    "overhead-triceps-extension": "hf_20260717_162549_95d72538-7289-485f-b81a-09484ca240e5.png",
+    "cable-overhead-extension": "hf_20260717_162556_b3015c23-f5b8-46c5-91e3-279e1dbc3387.png",
+    "machine-triceps-extension": "hf_20260717_162602_776915c4-5bae-40f7-b9c6-b4ee562c9f19.png",
+    "diamond-push-up": "hf_20260718_133957_0b939039-7fef-421f-810f-44ab336ad9be.png",
+    "bench-dip": "hf_20260718_133130_d0ffe647-a191-4aed-a90a-b1dcfeb39ba5.png",
+    "parallel-bar-dip": "hf_20260718_133338_5446c109-51c9-4e4c-b813-2b4959d1aba5.png",
+    "triceps-kickback": "hf_20260717_162642_b54faaaa-c947-4cbe-92f8-ab3a39492d12.png"
+  }
+}

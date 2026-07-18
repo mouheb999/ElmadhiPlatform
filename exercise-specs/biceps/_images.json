@@ -1,0 +1,22 @@
+{
+  "base": "https://d8j0ntlcm91z4.cloudfront.net/user_3GafedlSUcLzAbY5MXt5tQkjjXQ/",
+  "category": "biceps",
+  "images": {
+    "barbell-curl": "hf_20260717_161000_ea003893-e039-42fd-bc45-9442bfe95e41.png",
+    "ez-bar-curl": "hf_20260717_161005_a0c5f0c7-8747-45da-8238-43af5132711c.png",
+    "dumbbell-curl": "hf_20260717_161010_6848fb03-ba2b-4af8-ac7b-bd461ebf4ffd.png",
+    "hammer-curl": "hf_20260717_161015_430c7bdb-7251-4e6d-8ccf-cfbce03ef424.png",
+    "incline-dumbbell-curl": "hf_20260717_161031_e3c3d2dd-a25e-4441-ba3a-cf48f498bcf0.png",
+    "concentration-curl": "hf_20260717_161037_333c1e55-4275-493d-9ab9-f4bb8929d68e.png",
+    "preacher-curl": "hf_20260717_161042_0bd6f711-ed46-4956-b110-9bad68c0ac33.png",
+    "spider-curl": "hf_20260717_161047_bcf07bfd-8f64-4a7b-8645-d9b414322bbd.png",
+    "drag-curl": "hf_20260717_161102_b4d0caf8-4aab-4fbc-96ed-57326559ec29.png",
+    "cable-curl": "hf_20260717_161107_d98b8595-5283-4da2-9074-bc9254498e71.png",
+    "rope-hammer-curl": "hf_20260717_161528_fe941162-b694-4658-a5be-10784fb0067c.png",
+    "machine-curl": "hf_20260717_161117_395e2ef1-210e-47a5-9e61-ca1a76371210.png",
+    "band-curl": "hf_20260717_161130_ca20a719-3adc-4260-a0d9-506e2a753ffe.png",
+    "reverse-curl": "hf_20260717_161136_0ee943e9-c347-4fdd-b214-289fe4b55015.png",
+    "chin-up": "hf_20260717_161536_9781bfcf-a1bc-4079-9c0b-1d80879e0246.png",
+    "barbell-21s": "hf_20260717_161147_1045869a-a339-4e6c-ac94-fea69202ecfa.png"
+  }
+}
