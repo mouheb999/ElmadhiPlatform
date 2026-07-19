@@ -8,6 +8,9 @@ import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/co
 import { MealsTile, type MealsTileMeal } from "@/components/dashboard/meals-tile";
 import { NutritionLiveTile } from "@/components/dashboard/nutrition-live-tile";
 import { QaSpark, type QaSparkCard } from "@/components/dashboard/qa-spark";
+import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
+import { Reveal } from "@/components/shared/reveal";
+import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
 
@@ -20,23 +23,19 @@ function shuffled<T>(items: T[], count: number): T[] {
   return copy.slice(0, count);
 }
 
-function isoDate(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/** Consecutive-day streak over check-in dates (desc), anchored at today or yesterday. */
+/** Consecutive-day streak over check-in dates (desc), anchored at today or yesterday (Tunis). */
 function checkinStreak(datesDesc: string[]): number {
   if (datesDesc.length === 0) return 0;
-  const cursor = new Date();
-  if (datesDesc[0] !== isoDate(cursor)) {
-    cursor.setDate(cursor.getDate() - 1);
-    if (datesDesc[0] !== isoDate(cursor)) return 0;
+  let cursor = tunisDateKey();
+  if (datesDesc[0] !== cursor) {
+    cursor = prevDateKey(cursor);
+    if (datesDesc[0] !== cursor) return 0;
   }
   let streak = 0;
   for (const date of datesDesc) {
-    if (date !== isoDate(cursor)) break;
+    if (date !== cursor) break;
     streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor = prevDateKey(cursor);
   }
   return streak;
 }
@@ -52,11 +51,10 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const today = isoDate(new Date());
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const weekStart = new Date(todayStart);
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7)); // Monday
+  // "Today" and "this week" in Africa/Tunis — never server-local time.
+  const today = tunisDateKey();
+  const todayStart = tunisDayStartUtc();
+  const weekStart = tunisWeekStartUtc();
 
   const [
     { data: profile },
@@ -182,7 +180,7 @@ export default async function DashboardPage() {
 
       if (days.length > 0) {
         const dayIds = days.map((d) => d.id);
-        const [{ data: weekSessions }, { data: lastSession }] = await Promise.all([
+        const [{ data: weekSessions }, { data: openSession }] = await Promise.all([
           supabase
             .from("workout_sessions")
             .select("id, completed_at, user_program_day_id")
@@ -192,29 +190,34 @@ export default async function DashboardPage() {
             .gte("completed_at", weekStart.toISOString()),
           supabase
             .from("workout_sessions")
-            .select("user_program_day_id, completed_at")
+            .select("id, user_program_day_id")
             .eq("user_id", user!.id)
-            .in("user_program_day_id", dayIds)
-            .not("completed_at", "is", null)
-            .order("completed_at", { ascending: false })
-            .limit(1)
+            .is("completed_at", null)
             .maybeSingle(),
         ]);
 
-        weekDone = (weekSessions ?? []).length;
+        // Weekly gate: each day counts once per Tunis week, any order.
+        const doneDayIds = new Set(
+          (weekSessions ?? []).map((s) => s.user_program_day_id).filter(Boolean),
+        );
+        weekDone = doneDayIds.size;
         const doneToday = (weekSessions ?? []).some(
           (s) => s.completed_at && new Date(s.completed_at) >= todayStart,
         );
+        const openDay = openSession?.user_program_day_id
+          ? days.find((d) => d.id === openSession.user_program_day_id)
+          : undefined;
 
-        if (doneToday) {
+        if (openDay) {
+          todayDay = { id: openDay.id, name: openDay.dayName, exerciseCount: openDay.exerciseCount };
+          workoutState = "in_progress";
+        } else if (doneToday) {
           workoutState = "done";
-        } else if (weekTarget > 0 && weekDone >= weekTarget) {
+        } else if (weekDone >= Math.min(weekTarget || days.length, days.length)) {
           workoutState = "rest";
         } else {
-          const lastIndex = lastSession?.user_program_day_id
-            ? days.findIndex((d) => d.id === lastSession.user_program_day_id)
-            : -1;
-          const next = days[(lastIndex + 1) % days.length];
+          // First day (by program order) not yet completed this week.
+          const next = days.find((d) => !doneDayIds.has(d.id)) ?? days[0];
           todayDay = { id: next.id, name: next.dayName, exerciseCount: next.exerciseCount };
           workoutState = "ready";
         }
@@ -233,6 +236,12 @@ export default async function DashboardPage() {
     : null;
   const lastWeightKg = (checkins ?? []).find((c) => c.weight_kg !== null)?.weight_kg ?? null;
   const streak = checkinStreak((checkins ?? []).map((c) => c.checkin_date));
+  // Teaser sparkline: last 14 logged weights, oldest first (checkins are desc).
+  const teaserWeights = (checkins ?? [])
+    .filter((c) => c.weight_kg !== null)
+    .slice(0, 14)
+    .map((c) => c.weight_kg as number)
+    .reverse();
 
   const nutritionTarget = macros
     ? { calories: macros.calories, proteinG: macros.protein_g, carbsG: macros.carbs_g, fatG: macros.fat_g }
@@ -290,16 +299,33 @@ export default async function DashboardPage() {
         </Link>
       )}
 
-      <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+      <Reveal>
+        <TodayWorkout locale={locale} state={workoutState} day={todayDay} />
+      </Reveal>
 
-      <TodayWorkout locale={locale} state={workoutState} day={todayDay} />
+      <Reveal delay={0.05}>
+        <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+      </Reveal>
 
-      <div className="grid grid-cols-2 gap-3">
-        <NutritionLiveTile locale={locale} target={nutritionTarget} consumed={consumed} />
-        <MealsTile locale={locale} meals={meals} />
-      </div>
+      <Reveal delay={0.1}>
+        <ProgressTeaser
+          locale={locale}
+          points={teaserWeights}
+          weekDone={weekDone}
+          weekTarget={weekTarget}
+        />
+      </Reveal>
 
-      <QaSpark locale={locale} cards={qaCards} />
+      <Reveal delay={0.15}>
+        <div className="grid grid-cols-2 gap-3">
+          <NutritionLiveTile locale={locale} target={nutritionTarget} consumed={consumed} />
+          <MealsTile locale={locale} meals={meals} />
+        </div>
+      </Reveal>
+
+      <Reveal delay={0.2}>
+        <QaSpark locale={locale} cards={qaCards} />
+      </Reveal>
     </div>
   );
 }

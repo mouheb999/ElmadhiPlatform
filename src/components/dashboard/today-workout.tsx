@@ -3,7 +3,7 @@ import { CheckCircle2, Dumbbell, Moon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t, type Locale } from "@/lib/i18n";
 
-export type TodayWorkoutState = "none" | "ready" | "done" | "rest";
+export type TodayWorkoutState = "none" | "ready" | "in_progress" | "done" | "rest";
 
 export type TodayWorkoutDay = {
   id: string;
@@ -40,6 +40,22 @@ export function TodayWorkout({
               <Link href={`/workout/session/${day.id}`}>
                 <Play className="h-5 w-5" />
                 {t(locale, "today.start_workout")}
+              </Link>
+            </Button>
+          </>
+        )}
+
+        {state === "in_progress" && day && (
+          <>
+            <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight">{day.name}</h1>
+            <p className="flex items-center gap-2 text-sm text-muted">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
+              {t(locale, "session.other_in_progress")}
+            </p>
+            <Button asChild size="lg" className="mt-2 w-max">
+              <Link href={`/workout/session/${day.id}`}>
+                <Play className="h-5 w-5" />
+                {t(locale, "today.continue_workout")}
               </Link>
             </Button>
           </>

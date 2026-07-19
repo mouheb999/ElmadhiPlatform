@@ -212,6 +212,14 @@ export default async function WeeklyReviewPage() {
         ))}
       </div>
 
+      <Link
+        href="/progress"
+        className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface px-4 py-3 transition-colors hover:bg-white/5"
+      >
+        <span className="text-sm font-bold">{t(locale, "progress.title")}</span>
+        <ArrowRight className="h-4 w-4 shrink-0 text-accent rtl:rotate-180" />
+      </Link>
+
       {adaptationContext && (
         <AdaptationCard
           locale={locale}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
+import { tunisDateKey } from "@/lib/dates";
 
 export type CheckinInput = {
   weightKg: number | null;
@@ -28,7 +29,8 @@ export async function submitCheckin(input: CheckinInput): Promise<ActionResult> 
   const { error } = await supabase.from("daily_checkins").upsert(
     {
       user_id: user.id,
-      checkin_date: new Date().toISOString().slice(0, 10),
+      // Tunis calendar day, not UTC — a 00:30 check-in belongs to today here.
+      checkin_date: tunisDateKey(),
       weight_kg: input.weightKg,
       energy: input.energy,
       sleep_hours: input.sleepHours,

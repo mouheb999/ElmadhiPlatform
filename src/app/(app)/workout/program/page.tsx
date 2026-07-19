@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
-import { ProgramEditor, type EditorDay } from "@/components/workout/program-editor";
+import { ProgramEditor, type DayStatus, type EditorDay } from "@/components/workout/program-editor";
+import { tunisWeekStartUtc } from "@/lib/dates";
 import { filterSafeExercises, type ExerciseRow, type TrainingEquipment } from "@/lib/algorithms/exercise-substitution";
 import { LoadFailure } from "@/components/shared/load-failure";
 
@@ -77,6 +78,81 @@ export default async function WorkoutProgramPage() {
   }
 
   const dayRows = (dayRowsRaw ?? []) as unknown as DayRow[];
+
+  // ---- Weekly gating: which days are done (locked) or in progress? ----
+  const dayIds = dayRows.map((d) => d.id);
+  const weekStartIso = tunisWeekStartUtc().toISOString();
+  const [{ data: openSession }, { data: weekSessions }] = await Promise.all([
+    supabase
+      .from("workout_sessions")
+      .select("id, user_program_day_id")
+      .eq("user_id", user!.id)
+      .is("completed_at", null)
+      .maybeSingle(),
+    dayIds.length
+      ? supabase
+          .from("workout_sessions")
+          .select("id, user_program_day_id, started_at, completed_at")
+          .eq("user_id", user!.id)
+          .in("user_program_day_id", dayIds)
+          .not("completed_at", "is", null)
+          .gte("completed_at", weekStartIso)
+      : Promise.resolve({ data: [] as never[] }),
+  ]);
+
+  const doneSessions = weekSessions ?? [];
+  const doneSessionIds = doneSessions.map((s) => s.id);
+  const [{ data: doneSets }, { data: doneEvents }] = doneSessionIds.length
+    ? await Promise.all([
+        supabase
+          .from("workout_sets")
+          .select("session_id, weight_kg, reps")
+          .in("session_id", doneSessionIds),
+        supabase
+          .from("events")
+          .select("payload")
+          .eq("user_id", user!.id)
+          .eq("event_type", "session_completed")
+          .in("payload->>session_id", doneSessionIds),
+      ])
+    : [{ data: [] }, { data: [] }];
+
+  const prCountBySession = new Map<string, number>();
+  for (const e of doneEvents ?? []) {
+    const payload = (e.payload ?? {}) as { session_id?: string; pr_exercise_ids?: string[] };
+    if (payload.session_id) {
+      prCountBySession.set(payload.session_id, (payload.pr_exercise_ids ?? []).length);
+    }
+  }
+
+  const dayStatus: Record<string, DayStatus> = {};
+  for (const session of doneSessions) {
+    if (!session.user_program_day_id) continue;
+    const sets = (doneSets ?? []).filter((s) => s.session_id === session.id);
+    dayStatus[session.user_program_day_id] = {
+      state: "completed",
+      stats: {
+        setCount: sets.length,
+        volumeKg: Math.round(sets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * s.reps, 0)),
+        minutes:
+          session.completed_at && session.started_at
+            ? Math.max(
+                1,
+                Math.round(
+                  (Date.parse(session.completed_at) - Date.parse(session.started_at)) / 60000,
+                ),
+              )
+            : 0,
+        prCount: prCountBySession.get(session.id) ?? 0,
+      },
+    };
+  }
+  if (
+    openSession?.user_program_day_id &&
+    !dayStatus[openSession.user_program_day_id]
+  ) {
+    dayStatus[openSession.user_program_day_id] = { state: "in_progress" };
+  }
   const allExercises = (allExercisesRaw ?? []) as (ExerciseRow & { name_en: string; name_ar: string | null })[];
   const safePool = filterSafeExercises(allExercises, {
     injuries: trainingProfile.injuries ?? [],
@@ -115,5 +191,7 @@ export default async function WorkoutProgramPage() {
       }),
   }));
 
-  return <ProgramEditor locale={locale} programId={program.id} initialDays={days} />;
+  return (
+    <ProgramEditor locale={locale} programId={program.id} initialDays={days} dayStatus={dayStatus} />
+  );
 }

@@ -2,11 +2,19 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Sunrise } from "lucide-react";
+import {
+  Battery,
+  BatteryFull,
+  BatteryLow,
+  BatteryMedium,
+  CheckCircle2,
+  Sunrise,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { t, type Locale } from "@/lib/i18n";
+import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { submitCheckin } from "@/app/actions/checkins";
 
 export type TodayCheckin = {
@@ -15,12 +23,12 @@ export type TodayCheckin = {
   sleepHours: number | null;
 } | null;
 
-const ENERGY_LEVELS = [
-  { value: 1, emoji: "🥱" },
-  { value: 2, emoji: "😕" },
-  { value: 3, emoji: "🙂" },
-  { value: 4, emoji: "😄" },
-  { value: 5, emoji: "🔥" },
+const ENERGY_LEVELS: { value: number; icon: typeof Battery; labelKey: StringKey }[] = [
+  { value: 1, icon: BatteryLow, labelKey: "checkin.energy_1" },
+  { value: 2, icon: Battery, labelKey: "checkin.energy_2" },
+  { value: 3, icon: BatteryMedium, labelKey: "checkin.energy_3" },
+  { value: 4, icon: BatteryFull, labelKey: "checkin.energy_4" },
+  { value: 5, icon: Zap, labelKey: "checkin.energy_5" },
 ];
 
 /** The 15-second morning check-in that feeds the coaching data spine. */
@@ -132,15 +140,17 @@ export function CheckinCard({
               key={level.value}
               type="button"
               onClick={() => setEnergy((e) => (e === level.value ? null : level.value))}
-              aria-label={`Energy ${level.value}`}
+              aria-label={t(locale, level.labelKey)}
+              aria-pressed={energy === level.value}
+              title={t(locale, level.labelKey)}
               className={cn(
-                "grid h-11 flex-1 place-items-center rounded-xl border text-xl transition-colors",
+                "grid h-11 flex-1 place-items-center rounded-xl border transition-colors",
                 energy === level.value
-                  ? "border-accent bg-accent/15"
-                  : "border-hairline hover:bg-white/5",
+                  ? "border-accent bg-accent/15 text-accent"
+                  : "border-hairline text-muted hover:bg-white/5 hover:text-ink",
               )}
             >
-              {level.emoji}
+              <level.icon className="h-5 w-5" />
             </button>
           ))}
         </div>

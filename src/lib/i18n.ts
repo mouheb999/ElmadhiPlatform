@@ -396,12 +396,11 @@ const STRINGS = {
 
   // ---- workout: start session ----
   "workout.start_day": { en: "Start this workout", tn: "ابدا الحصّة" },
+  "workout.continue_day": { en: "Continue workout", tn: "كمّل الحصّة" },
+  "workout.day_done": { en: "Completed", tn: "كملت" },
+  "workout.locked_until_monday": { en: "Locked until Monday", tn: "مسكّرة حتى الاثنين" },
 
   // ---- workout session mode ----
-  "session.already_done": {
-    en: "You already logged this workout today — training again still counts.",
-    tn: "ديجا سجّلت هالتمرين اليوم — كان تعاود، يتحسبلك زادة.",
-  },
   "session.kg": { en: "kg", tn: "كغ" },
   "session.reps": { en: "Reps", tn: "عدّات" },
   "session.rir": { en: "RIR", tn: "RIR" },
@@ -432,10 +431,109 @@ const STRINGS = {
   "session.pr_title": { en: "New personal records", tn: "أرقام قياسية جديدة" },
   "session.back_home": { en: "Back to home", tn: "ارجع للوحة" },
 
+  // ---- live sessions: resume / weekly lock / sync ----
+  "session.continue": { en: "Continue workout", tn: "كمّل الحصّة" },
+  "session.other_in_progress": {
+    en: "You already have a workout in progress",
+    tn: "عندك حصّة أخرى محلولة توّا",
+  },
+  "session.started_ago": { en: "Started", tn: "بديتها" },
+  "session.discard": { en: "Discard empty session", tn: "فسّخ الحصّة الفارغة" },
+  "session.week_locked": {
+    en: "Done this week — unlocks Monday",
+    tn: "تعملت هالجمعة — تتحل نهار الاثنين",
+  },
+  "session.locked_title": { en: "This workout is completed", tn: "هالحصّة كمّلتها" },
+  "session.locked_sub": {
+    en: "Great work. It unlocks again on Monday — here's how it went.",
+    tn: "برافو عليك. تتحل من جديد نهار الاثنين — هذا ملخّصها.",
+  },
+  "session.skip_confirm": { en: "Skip for good?", tn: "تفوّتها بالحق؟" },
+  "session.skipped_label": { en: "Skipped", tn: "مفوّتة" },
+  "session.sync_saved": { en: "All sets saved", tn: "السيتات الكل تسجّلت" },
+  "session.sync_saving": { en: "Saving…", tn: "قاعد يسجّل…" },
+  "session.sync_offline": {
+    en: "Offline — will sync",
+    tn: "ما فماش أنترنات — يتسجّل وقت ترجع",
+  },
+  "session.sync_offline_finish": {
+    en: "Can't finish while offline — your sets are safe, retry when you're back online.",
+    tn: "ما تنجمش تكمّل بلا أنترنات — السيتات محفوظة، عاود كي ترجع الشبكة.",
+  },
+  "session.stat_prs": { en: "PRs", tn: "أرقام قياسية" },
+  "session.need_reps": { en: "Enter reps first", tn: "دخّل العدّات قبل" },
+  "session.already_logged": {
+    en: "Already logged this session",
+    tn: "مسجّلة ديجا في هالحصّة",
+  },
+  "session.locked_set": { en: "Logged", tn: "تسجّلت" },
+  "session.go_program": { en: "Back to program", tn: "ارجع للبرنامج" },
+
+  // ---- dashboard: progress teaser ----
+  "dashboard.progress_title": { en: "Your progress", tn: "تقدّمك" },
+  "dashboard.progress_cta": { en: "See details", tn: "شوف التفاصيل" },
+
+  // ---- progress page ----
+  "progress.title": { en: "Progress", tn: "التقدّم" },
+  "progress.subtitle": {
+    en: "What your logging says about you.",
+    tn: "شنوّا يقولو أرقامك عليك.",
+  },
+  "progress.weight_title": { en: "Body weight", tn: "وزن الجسم" },
+  "progress.strength_title": { en: "Strength", tn: "القوة" },
+  "progress.volume_week": { en: "Weekly volume (kg)", tn: "الحجم في الجمعة (كغ)" },
+  "progress.consistency_title": { en: "Consistency", tn: "الانتظام" },
+  "progress.muscles_title": { en: "By muscle group", tn: "حسب العضلة" },
+  "progress.muscles_sub": {
+    en: "Volume, last 4 weeks vs the 4 before",
+    tn: "الحجم، آخر 4 جمعات مقابل الـ4 اللي قبلهم",
+  },
+  "progress.top_exercises": { en: "Top exercises", tn: "أهم التمارين" },
+  "progress.range_30": { en: "30 days", tn: "30 يوم" },
+  "progress.range_90": { en: "90 days", tn: "90 يوم" },
+  "progress.trend_up": { en: "trending up", tn: "طالع" },
+  "progress.trend_down": { en: "trending down", tn: "هابط" },
+  "progress.trend_flat": { en: "steady", tn: "ثابت" },
+  "progress.sessions_label": { en: "sessions", tn: "حصص" },
+  "progress.week_streak": { en: "week streak", tn: "جمعة متتالية" },
+  "progress.this_week": { en: "this week", tn: "هالجمعة" },
+  "progress.prior_label": { en: "before", tn: "قبل" },
+  "progress.recent_label": { en: "recent", tn: "مؤخرًا" },
+  "progress.empty": {
+    en: "Log a few workouts and check-ins to see your progress here.",
+    tn: "سجّل شوية حصص وتشيك-إن باش تشوف تقدّمك هوني.",
+  },
+  "progress.empty_weight": {
+    en: "Log your weight in the morning check-in to see the trend.",
+    tn: "سجّل وزنك في تسجيل الصباح باش تشوف المنحنى.",
+  },
+  "progress.empty_strength": {
+    en: "Finish a few workouts to see your strength build up.",
+    tn: "كمّل شوية حصص باش تشوف قوتك كيفاش تزيد.",
+  },
+
+  // ---- muscle groups ----
+  "muscle.chest": { en: "Chest", tn: "صدر" },
+  "muscle.back": { en: "Back", tn: "ظهر" },
+  "muscle.shoulders": { en: "Shoulders", tn: "أكتاف" },
+  "muscle.quads": { en: "Quads", tn: "فخذ قدامي" },
+  "muscle.hamstrings": { en: "Hamstrings", tn: "فخذ خلفي" },
+  "muscle.glutes": { en: "Glutes", tn: "مؤخرة" },
+  "muscle.calves": { en: "Calves", tn: "بطة الساق" },
+  "muscle.biceps": { en: "Biceps", tn: "بايسبس" },
+  "muscle.triceps": { en: "Triceps", tn: "ترايسبس" },
+  "muscle.core": { en: "Core", tn: "بطن" },
+  "muscle.forearms": { en: "Forearms", tn: "ساعد" },
+
   // ---- today screen: check-in ----
   "checkin.title": { en: "Morning check-in", tn: "تسجيل الصباح" },
   "checkin.subtitle": { en: "15 seconds — it powers your coaching.", tn: "١٥ ثانية — بيها نتبّعو تقدّمك." },
   "checkin.weight": { en: "Weight (kg)", tn: "الوزن (كغ)" },
+  "checkin.energy_1": { en: "Exhausted", tn: "ميت بالنعس" },
+  "checkin.energy_2": { en: "Low", tn: "ضعيفة" },
+  "checkin.energy_3": { en: "Okay", tn: "مليح" },
+  "checkin.energy_4": { en: "Good", tn: "باهي" },
+  "checkin.energy_5": { en: "On fire", tn: "في الفورمة" },
   "checkin.sleep": { en: "Sleep (hours)", tn: "النوم (سوايع)" },
   "checkin.energy": { en: "Energy today", tn: "طاقتك اليوم" },
   "checkin.save": { en: "Save check-in", tn: "سجّل" },
@@ -446,7 +544,8 @@ const STRINGS = {
   // ---- today screen ----
   "today.workout_title": { en: "Today's workout", tn: "تمرين اليوم" },
   "today.start_workout": { en: "Start workout", tn: "ابدا التمرين" },
-  "today.workout_done": { en: "Workout done today 💪", tn: "تمرين اليوم كمل 💪" },
+  "today.continue_workout": { en: "Continue workout", tn: "كمّل الحصّة" },
+  "today.workout_done": { en: "Workout done today", tn: "تمرين اليوم كمل" },
   "today.no_program": { en: "No program yet — build yours in 2 minutes.", tn: "مازال ما عندكش برنامج — اعملو في دقيقتين." },
   "today.build_program": { en: "Build my program", tn: "اعمل برنامجي" },
   "today.week_label": { en: "This week", tn: "هالجمعة" },
@@ -514,8 +613,8 @@ const STRINGS = {
     tn: "البروتين ناقص اليوم — زيد حاجة فيها بروتين في الوجبة الجاية.",
   },
   "coach.protein_hit": {
-    en: "Protein target hit — that's how muscle is kept and built. 💪",
-    tn: "هدف البروتين تحقق — هكة يتبنى العضل. 💪",
+    en: "Protein target hit — that's how muscle is kept and built.",
+    tn: "هدف البروتين تحقق — هكة يتبنى العضل.",
   },
   "coach.calories_over": {
     en: "You're over today's calories. One day won't hurt — get back on target tomorrow.",
@@ -530,8 +629,8 @@ const STRINGS = {
     tn: "الدهون مرتفعة اليوم — خفّفها في الوجبة الجاية.",
   },
   "coach.great_day": {
-    en: "Great day: calories on target and protein locked in. 🎯",
-    tn: "نهار ممتاز: سعرات في الهدف وبروتين كامل. 🎯",
+    en: "Great day: calories on target and protein locked in.",
+    tn: "نهار ممتاز: سعرات في الهدف وبروتين كامل.",
   },
   "coach.on_track": {
     en: "On track so far — keep it going.",
