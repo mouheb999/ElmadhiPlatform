@@ -22,7 +22,29 @@ import { ImageUpload } from "@/components/shared/image-upload";
 import { type Locale, dir, pick, t } from "@/lib/i18n";
 import type { Database } from "@/types/db";
 
-type ExerciseRow = Database["public"]["Tables"]["exercises"]["Row"];
+/**
+ * Only the columns `page.tsx` actually selects — it deliberately avoids
+ * SELECT *, so typing this as the full Row would over-promise and break every
+ * time a column is added to `exercises`.
+ */
+type ExerciseRow = Pick<
+  Database["public"]["Tables"]["exercises"]["Row"],
+  | "id"
+  | "name_ar"
+  | "name_en"
+  | "name_fr"
+  | "primary_muscle"
+  | "secondary_muscles"
+  | "equipment"
+  | "movement_pattern"
+  | "difficulty"
+  | "contraindicated_for"
+  | "substitution_group"
+  | "video_url"
+  | "thumbnail_url"
+  | "instructions"
+  | "created_at"
+>;
 
 const selectClass =
   "flex h-12 w-full rounded-2xl border border-hairline bg-surface px-4 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";

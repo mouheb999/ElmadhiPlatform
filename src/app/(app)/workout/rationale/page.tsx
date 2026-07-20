@@ -4,23 +4,16 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { RationaleCard } from "@/components/shared/rationale-card";
+import { repSchemeFor } from "@/lib/algorithms/split-fill";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
-const SPLIT_EXPLANATION_EN: Record<string, string> = {
-  full_body: "Full Body hits every muscle each session — great when you can only train 2 days a week.",
-  upper_lower: "Upper/Lower splits your week so each muscle recovers fully before you train it again.",
-  ppl: "Push/Pull/Legs groups movements by direction, so nothing gets trained two days in a row.",
-  arnold: "The Arnold split gives chest & back, shoulders & arms, and legs their own dedicated day each.",
-};
-
-const SPLIT_EXPLANATION_AR: Record<string, string> = {
-  full_body: "الفل بادي يخدم كل عضلة في كل حصة — مناسب إذا تنجم تتمرن يومين في الجمعة برك.",
-  upper_lower: "أعلى/أسفل الجسم يوزع الجمعة باش كل عضلة تاخو راحتها قبل ما تخدمها مرة أخرى.",
-  ppl: "دفع/سحب/أرجل يجمع الحركات حسب الاتجاه، باش ما تخدمش نفس العضلة يومين متتاليين.",
-  arnold: "تقسيمة أرنولد تعطي الصدر والظهر، الأكتاف والذراعين، والأرجل، كل وحدة يوم خاص بيها.",
-};
+/**
+ * Split copy comes from `split_definitions` (migrated from splits.json), not a
+ * hardcoded map. `user_programs.split_type` now holds the split id
+ * ("arnold_ul_4day"), which is that table's primary key.
+ */
 
 export default async function WorkoutRationalePage() {
   const supabase = await createClient();
@@ -31,7 +24,7 @@ export default async function WorkoutRationalePage() {
 
   const { data: trainingProfile } = await supabase
     .from("training_profiles")
-    .select("id, days_per_week, experience, goal, equipment, injuries")
+    .select("id, days_per_week, experience, goal, injuries, training_style")
     .eq("user_id", user!.id)
     .eq("is_active", true)
     .maybeSingle();
@@ -45,8 +38,19 @@ export default async function WorkoutRationalePage() {
     .maybeSingle();
   if (!program) redirect("/workout/questions");
 
-  const splitEn = SPLIT_EXPLANATION_EN[program.split_type] ?? "This split fits how many days you can train.";
-  const splitAr = SPLIT_EXPLANATION_AR[program.split_type] ?? "هالتقسيمة تناسب عدد الأيام اللي تنجم تتمرن فيهم.";
+  const { data: split } = await supabase
+    .from("split_definitions")
+    .select("label_en, label_ar, note_en, note_ar")
+    .eq("id", program.split_type)
+    .maybeSingle();
+
+  const splitEn = split?.note_en || split?.label_en || "This split fits how many days you can train.";
+  const splitAr = split?.note_ar || split?.label_ar || "هالتقسيمة تناسب عدد الأيام اللي تنجم تتمرن فيهم.";
+
+  const scheme = repSchemeFor({
+    goal: trainingProfile.goal,
+    trainingStyle: trainingProfile.training_style ?? undefined,
+  });
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-5">
@@ -60,8 +64,8 @@ export default async function WorkoutRationalePage() {
         headline={locale === "tn" ? "عدد المجموعات والتكرارات" : "Sets and reps"}
         body={
           locale === "tn"
-            ? "الحركات المركبة 2-3 مجموعات من 8-10 تكرار، والحركات العزل 2 مجموعات من 10-12 تكرار — نفس المنهج المستعمل في كل الجداول."
-            : "Compound lifts get 2-3 sets of 8-10 reps, isolation lifts get 2 sets of 10-12 reps — the same scheme across every template."
+            ? `${scheme.sets} مجموعات × ${scheme.repRange} تكرار، مع راحة ${scheme.restSeconds} ثانية بين المجموعات — مبني على هدفك وأسلوب التمرين اللي اخترتو.`
+            : `${scheme.sets} sets of ${scheme.repRange} reps, resting ${scheme.restSeconds}s between sets — based on your goal and the training style you chose.`
         }
       />
 

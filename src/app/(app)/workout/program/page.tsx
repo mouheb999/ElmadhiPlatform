@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { ProgramEditor, type DayStatus, type EditorDay } from "@/components/workout/program-editor";
 import { tunisWeekStartUtc } from "@/lib/dates";
-import { filterSafeExercises, type ExerciseRow, type TrainingEquipment } from "@/lib/algorithms/exercise-substitution";
+import { filterSafeExercises, type ExerciseRow } from "@/lib/algorithms/exercise-substitution";
+import { resolveEquipmentValues } from "@/lib/algorithms/split-fill";
 import { LoadFailure } from "@/components/shared/load-failure";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export default async function WorkoutProgramPage() {
 
   const { data: trainingProfile } = await supabase
     .from("training_profiles")
-    .select("id, equipment, injuries, experience")
+    .select("id, injuries, experience, location, equipment_gym, equipment_home")
     .eq("user_id", user!.id)
     .eq("is_active", true)
     .maybeSingle();
@@ -154,9 +155,24 @@ export default async function WorkoutProgramPage() {
     dayStatus[openSession.user_program_day_id] = { state: "in_progress" };
   }
   const allExercises = (allExercisesRaw ?? []) as (ExerciseRow & { name_en: string; name_ar: string | null })[];
+  // The swap picker must offer the same equipment the generator used, so it
+  // resolves location + the two equipment multi-selects through the same map.
+  const { data: equipmentRule } = await supabase
+    .from("questionnaire_rules")
+    .select("payload")
+    .eq("key", "equipment_option_map")
+    .maybeSingle();
+
   const safePool = filterSafeExercises(allExercises, {
     injuries: trainingProfile.injuries ?? [],
-    trainingEquipment: trainingProfile.equipment as TrainingEquipment,
+    equipment: resolveEquipmentValues(
+      {
+        location: trainingProfile.location ?? undefined,
+        equipment_gym: trainingProfile.equipment_gym ?? [],
+        equipment_home: trainingProfile.equipment_home ?? [],
+      },
+      (equipmentRule?.payload ?? {}) as Record<string, string>,
+    ),
   });
 
   const days: EditorDay[] = dayRows.map((day) => ({

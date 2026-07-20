@@ -352,30 +352,11 @@ const STRINGS = {
     tn: "هذا باش يحفظ برنامجك الحالي ويرجع يسألك من جديد.",
   },
 
-  // ---- workout maker: questions ----
-  "workout.q_goal": { en: "What do you want from training?", tn: "شنوة تحب من التمرين؟" },
-  "workout.goal_lose_fat": { en: "Look leaner", tn: "نبان أنشف" },
-  "workout.goal_build_muscle": { en: "Build muscle", tn: "نبني عضل" },
-  "workout.goal_get_stronger": { en: "Get stronger", tn: "نزيد قوة" },
-  "workout.goal_general_fitness": { en: "Just feel good and healthy", tn: "نبقى في صحة ونحس بالراحة" },
-  "workout.q_days": { en: "How many days a week can you train?", tn: "قداش يوم في الجمعة تنجم تتمرّن؟" },
-  "workout.q_session_minutes": { en: "How long can a session be?", tn: "قداش يدوم التمرين؟" },
-  "workout.q_equipment": { en: "Where will you train?", tn: "وين باش تتمرّن؟" },
-  "workout.equipment_full_gym": { en: "Full gym", tn: "نادي كامل" },
-  "workout.equipment_home_basic": { en: "Home, some equipment", tn: "الدار، شوية معدات" },
-  "workout.equipment_home_advanced": { en: "Home, serious setup", tn: "الدار، تجهيز قوي" },
-  "workout.equipment_bodyweight": { en: "Just my body, no equipment", tn: "جسمي فقط، بلا معدات" },
-  "workout.q_experience": { en: "Have you trained before?", tn: "سبق تمرّنت؟" },
-  "workout.experience_beginner": { en: "Never, or a long time ago", tn: "عمري ما تمرّنت، ولا وقت طويل فات" },
-  "workout.experience_intermediate": { en: "On and off for a while", tn: "نتمرّن ونوقف من مدّة" },
-  "workout.experience_advanced": { en: "I train consistently for years", tn: "نتمرّن بانتظام من سنين" },
-  "workout.q_injuries": { en: "Anything that hurts or needs care?", tn: "فما حاجة توجعك ولازم تحاذر فيها؟" },
+  // ---- workout maker ----
+  // The 19 question texts and their options live in `questionnaire_questions`
+  // (EN + AR columns), not here — migration 019/022. Only UI chrome remains.
   "workout.rationale_title": { en: "Why we picked this for you", tn: "علاش اخترنالك هكة" },
   "workout.see_program": { en: "See my program", tn: "شوف البرنامج" },
-  "workout.redo_confirm": {
-    en: "This will archive your current program and ask the questions again.",
-    tn: "هذا باش يحفظ برنامجك الحالي ويرجع يسألك من جديد.",
-  },
 
   // ---- q&a ----
   "qa.title": { en: "Q&A Library", tn: "مكتبة الأسئلة" },

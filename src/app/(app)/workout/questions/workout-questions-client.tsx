@@ -4,109 +4,91 @@ import { useRouter } from "next/navigation";
 import { QuestionWizard, type WizardStep } from "@/components/shared/question-wizard";
 import { OptionCardGroup } from "@/components/shared/option-card";
 import { submitWorkoutQuestions, type WorkoutAnswers } from "@/app/actions/training";
-import { t, type Locale } from "@/lib/i18n";
+import { isQuestionVisible } from "@/lib/algorithms/split-fill";
+import { type Locale } from "@/lib/i18n";
 
-export function WorkoutQuestionsClient({ locale }: { locale: Locale }) {
+export type QuestionRow = {
+  id: string;
+  order_index: number;
+  question_en: string;
+  question_ar: string | null;
+  type: string;
+  options: string[];
+  options_ar: string[] | null;
+  shown_if: Record<string, string[]> | null;
+  max_selections: number | null;
+};
+
+/**
+ * Options that clear the rest of a multi-select. Every "None"-style option is
+ * mutually exclusive with a real answer — "None" plus a knee injury is not a
+ * state the engine can act on.
+ */
+function exclusiveOptionsFor(options: string[]): string[] {
+  return options.filter((o) => /^None\b/i.test(o) || /^Balanced physique/i.test(o));
+}
+
+/**
+ * The questionnaire is rendered entirely from `questionnaire_questions` — 19
+ * questions, their `shown_if` conditionals and `max_selections` caps all come
+ * from the database. Adding or rewording a question is a data change, not a
+ * code change.
+ *
+ * Stored answers are always the English option string: it is the canonical
+ * value the CHECK constraints and `questionnaire_rules` are keyed on. Arabic
+ * is display-only.
+ */
+export function WorkoutQuestionsClient({
+  locale,
+  questions,
+}: {
+  locale: Locale;
+  questions: QuestionRow[];
+}) {
   const router = useRouter();
+  const isAr = locale === "tn";
 
-  const steps: WizardStep<WorkoutAnswers>[] = [
-    {
-      key: "goal",
-      title: t(locale, "workout.q_goal"),
+  const steps: WizardStep<WorkoutAnswers>[] = questions.map((q) => {
+    const multi = q.type === "multi_select";
+    const exclusive = multi ? exclusiveOptionsFor(q.options) : [];
+
+    return {
+      key: q.id,
+      title: (isAr && q.question_ar) || q.question_en,
+      visibleIf: q.shown_if ? (answers) => isQuestionVisible(q.shown_if, answers) : undefined,
+      isValid: (answers) => {
+        const v = answers[q.id];
+        return multi ? Array.isArray(v) && v.length > 0 : typeof v === "string" && v.length > 0;
+      },
       render: ({ answers, setAnswer }) => (
         <OptionCardGroup
-          options={[
-            { value: "lose_fat", label: t(locale, "workout.goal_lose_fat") },
-            { value: "build_muscle", label: t(locale, "workout.goal_build_muscle") },
-            { value: "get_stronger", label: t(locale, "workout.goal_get_stronger") },
-            { value: "general_fitness", label: t(locale, "workout.goal_general_fitness") },
-          ]}
-          value={answers.goal}
-          onChange={(v) => setAnswer("goal", v as WorkoutAnswers["goal"])}
+          multi={multi}
+          maxSelections={q.max_selections ?? undefined}
+          exclusiveOptions={exclusive}
+          options={q.options.map((opt, i) => ({
+            value: opt,
+            label: (isAr && q.options_ar?.[i]) || opt,
+          }))}
+          value={answers[q.id] as string | string[] | undefined}
+          onChange={(v) => setAnswer(q.id, v)}
         />
       ),
-    },
-    {
-      key: "daysPerWeek",
-      title: t(locale, "workout.q_days"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[2, 3, 4, 5, 6].map((n) => ({ value: String(n), label: String(n) }))}
-          value={answers.daysPerWeek ? String(answers.daysPerWeek) : undefined}
-          onChange={(v) => setAnswer("daysPerWeek", Number(v))}
-        />
-      ),
-    },
-    {
-      key: "sessionMinutes",
-      title: t(locale, "workout.q_session_minutes"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[30, 45, 60, 75, 90].map((n) => ({ value: String(n), label: `${n} min` }))}
-          value={answers.sessionMinutes ? String(answers.sessionMinutes) : undefined}
-          onChange={(v) => setAnswer("sessionMinutes", Number(v))}
-        />
-      ),
-    },
-    {
-      key: "equipment",
-      title: t(locale, "workout.q_equipment"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "full_gym", label: t(locale, "workout.equipment_full_gym") },
-            { value: "home_basic", label: t(locale, "workout.equipment_home_basic") },
-            { value: "home_advanced", label: t(locale, "workout.equipment_home_advanced") },
-            { value: "bodyweight", label: t(locale, "workout.equipment_bodyweight") },
-          ]}
-          value={answers.equipment}
-          onChange={(v) => setAnswer("equipment", v as WorkoutAnswers["equipment"])}
-        />
-      ),
-    },
-    {
-      key: "experience",
-      title: t(locale, "workout.q_experience"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "beginner", label: t(locale, "workout.experience_beginner") },
-            { value: "intermediate", label: t(locale, "workout.experience_intermediate") },
-            { value: "advanced", label: t(locale, "workout.experience_advanced") },
-          ]}
-          value={answers.experience}
-          onChange={(v) => setAnswer("experience", v as WorkoutAnswers["experience"])}
-        />
-      ),
-    },
-    {
-      key: "injuries",
-      title: t(locale, "workout.q_injuries"),
-      optional: true,
-      isValid: () => true,
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          multi
-          options={["shoulder", "knee", "lower_back", "wrist", "elbow"].map((i) => ({ value: i, label: i }))}
-          value={answers.injuries ?? []}
-          onChange={(v) => setAnswer("injuries", v as string[])}
-        />
-      ),
-    },
-  ];
+    };
+  });
 
   async function handleComplete(answers: WorkoutAnswers) {
-    const result = await submitWorkoutQuestions({ ...answers, injuries: answers.injuries ?? [] });
+    const result = await submitWorkoutQuestions(answers);
     if (!result.ok) throw new Error(result.error);
     router.push("/workout/rationale");
   }
 
-  return (
-    <QuestionWizard
-      steps={steps}
-      onComplete={handleComplete}
-      locale={locale}
-      initialAnswers={{ sessionMinutes: 60, injuries: [] }}
-    />
-  );
+  if (steps.length === 0) {
+    return (
+      <p className="text-center text-sm text-muted">
+        {isAr ? "الأسئلة مش متوفرة توّا." : "The questionnaire isn't available yet."}
+      </p>
+    );
+  }
+
+  return <QuestionWizard steps={steps} onComplete={handleComplete} locale={locale} />;
 }

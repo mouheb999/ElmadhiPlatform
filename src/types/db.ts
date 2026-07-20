@@ -456,7 +456,6 @@ export type Database = {
           is_active: boolean | null;
           days_per_week: number;
           session_minutes: number | null;
-          equipment: string;
           experience: string;
           injuries: string[] | null;
           goal: string;
@@ -464,6 +463,22 @@ export type Database = {
           weak_muscles: string[] | null;
           consistency_self_rating: number | null;
           created_at: string | null;
+          // migration 022 — one column per questionnaire_questions.id
+          session_duration: string | null;
+          location: string | null;
+          equipment_gym: string[] | null;
+          equipment_home: string[] | null;
+          training_style: string | null;
+          pullup_ability: string | null;
+          lift_comfort: string[] | null;
+          age_bracket: string | null;
+          gender: string | null;
+          pregnancy_status: string | null;
+          body_focus: string[] | null;
+          exercise_dislikes: string[] | null;
+          weight_goal: string | null;
+          cardio_preference: string | null;
+          recovery_capacity: string | null;
         };
         Insert: {
           id?: string;
@@ -472,7 +487,6 @@ export type Database = {
           is_active?: boolean | null;
           days_per_week: number;
           session_minutes?: number | null;
-          equipment: string;
           experience: string;
           injuries?: string[] | null;
           goal: string;
@@ -480,6 +494,21 @@ export type Database = {
           weak_muscles?: string[] | null;
           consistency_self_rating?: number | null;
           created_at?: string | null;
+          session_duration?: string | null;
+          location?: string | null;
+          equipment_gym?: string[] | null;
+          equipment_home?: string[] | null;
+          training_style?: string | null;
+          pullup_ability?: string | null;
+          lift_comfort?: string[] | null;
+          age_bracket?: string | null;
+          gender?: string | null;
+          pregnancy_status?: string | null;
+          body_focus?: string[] | null;
+          exercise_dislikes?: string[] | null;
+          weight_goal?: string | null;
+          cardio_preference?: string | null;
+          recovery_capacity?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["training_profiles"]["Insert"]
@@ -492,7 +521,8 @@ export type Database = {
           name_en: string;
           name_ar: string | null;
           name_fr: string | null;
-          primary_muscle: string;
+          /** NULL for exercise_type 'cardio' | 'stretching' (migration 019). */
+          primary_muscle: string | null;
           secondary_muscles: string[] | null;
           equipment: string;
           movement_pattern: string | null;
@@ -503,13 +533,19 @@ export type Database = {
           thumbnail_url: string | null;
           instructions: string | null;
           created_at: string | null;
+          slug: string | null;
+          exercise_type: string;
+          needs_tier_review: boolean;
+          needs_home_review: boolean;
+          ar_needs_review: boolean;
+          needs_injury_review: boolean;
         };
         Insert: {
           id?: string;
           name_en: string;
           name_ar?: string | null;
           name_fr?: string | null;
-          primary_muscle: string;
+          primary_muscle?: string | null;
           secondary_muscles?: string[] | null;
           equipment: string;
           movement_pattern?: string | null;
@@ -520,88 +556,24 @@ export type Database = {
           thumbnail_url?: string | null;
           instructions?: string | null;
           created_at?: string | null;
+          slug?: string | null;
+          exercise_type?: string;
+          needs_tier_review?: boolean;
+          needs_home_review?: boolean;
+          ar_needs_review?: boolean;
+          needs_injury_review?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["exercises"]["Insert"]>;
         Relationships: [];
       };
-      program_templates: {
-        Row: {
-          id: string;
-          name: string;
-          split_type: string;
-          days_per_week: number;
-          goal: string;
-          experience: string;
-          equipment_required: string;
-          description: string | null;
-          rationale_template: Json | null;
-          created_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          split_type: string;
-          days_per_week: number;
-          goal: string;
-          experience: string;
-          equipment_required: string;
-          description?: string | null;
-          rationale_template?: Json | null;
-          created_at?: string | null;
-        };
-        Update: Partial<
-          Database["public"]["Tables"]["program_templates"]["Insert"]
-        >;
-        Relationships: [];
-      };
-      template_days: {
-        Row: {
-          id: string;
-          template_id: string;
-          day_number: number;
-          day_name: string;
-        };
-        Insert: {
-          id?: string;
-          template_id: string;
-          day_number: number;
-          day_name: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["template_days"]["Insert"]>;
-        Relationships: [];
-      };
-      template_exercises: {
-        Row: {
-          id: string;
-          template_day_id: string;
-          exercise_id: string;
-          order_index: number;
-          sets: number;
-          rep_range: string;
-          rest_seconds: number | null;
-          notes: string | null;
-        };
-        Insert: {
-          id?: string;
-          template_day_id: string;
-          exercise_id: string;
-          order_index: number;
-          sets?: number;
-          rep_range?: string;
-          rest_seconds?: number | null;
-          notes?: string | null;
-        };
-        Update: Partial<
-          Database["public"]["Tables"]["template_exercises"]["Insert"]
-        >;
-        Relationships: [];
-      };
+      // program_templates / template_days / template_exercises dropped in
+      // migration 023 — the template-copy engine was replaced by slot filling
+      // (split_definitions -> split_days -> split_day_slots).
       user_programs: {
         Row: {
           id: string;
           user_id: string;
           training_profile_id: string;
-          source_template_id: string | null;
           version: number;
           is_active: boolean | null;
           name: string;
@@ -614,7 +586,6 @@ export type Database = {
           id?: string;
           user_id: string;
           training_profile_id: string;
-          source_template_id?: string | null;
           version?: number;
           is_active?: boolean | null;
           name: string;
@@ -945,6 +916,140 @@ export type Database = {
         };
         Update: Partial<Database["public"]["Tables"]["qa_requests"]["Insert"]>;
         Relationships: [];
+      };
+
+      // ---- migration 019: canonical catalog config ----
+      exercise_ratings: {
+        Row: {
+          exercise_id: string;
+          tier: string;
+          home_friendly: boolean;
+        };
+        Insert: {
+          exercise_id: string;
+          tier: string;
+          home_friendly?: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["exercise_ratings"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "exercise_ratings_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: true;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      questionnaire_questions: {
+        Row: {
+          id: string;
+          order_index: number;
+          question_en: string;
+          question_ar: string | null;
+          type: string;
+          options: Json;
+          options_ar: Json | null;
+          shown_if: Json | null;
+          max_selections: number | null;
+        };
+        Insert: {
+          id: string;
+          order_index: number;
+          question_en: string;
+          question_ar?: string | null;
+          type: string;
+          options: Json;
+          options_ar?: Json | null;
+          shown_if?: Json | null;
+          max_selections?: number | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["questionnaire_questions"]["Insert"]>;
+        Relationships: [];
+      };
+      questionnaire_rules: {
+        Row: { key: string; payload: Json };
+        Insert: { key: string; payload: Json };
+        Update: Partial<Database["public"]["Tables"]["questionnaire_rules"]["Insert"]>;
+        Relationships: [];
+      };
+      split_definitions: {
+        Row: {
+          id: string;
+          days_per_week: number;
+          label_en: string;
+          label_ar: string | null;
+          note_en: string | null;
+          note_ar: string | null;
+        };
+        Insert: {
+          id: string;
+          days_per_week: number;
+          label_en: string;
+          label_ar?: string | null;
+          note_en?: string | null;
+          note_ar?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["split_definitions"]["Insert"]>;
+        Relationships: [];
+      };
+      split_days: {
+        Row: {
+          id: string;
+          split_id: string;
+          day_number: number;
+          day_name_en: string;
+          day_name_ar: string | null;
+          note_en: string | null;
+          note_ar: string | null;
+        };
+        Insert: {
+          id?: string;
+          split_id: string;
+          day_number: number;
+          day_name_en: string;
+          day_name_ar?: string | null;
+          note_en?: string | null;
+          note_ar?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["split_days"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "split_days_split_id_fkey";
+            columns: ["split_id"];
+            isOneToOne: false;
+            referencedRelation: "split_definitions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      split_day_slots: {
+        Row: {
+          id: string;
+          split_day_id: string;
+          order_index: number;
+          primary_muscle: string;
+          exercise_slots: number;
+          preferred_tiers: string[];
+        };
+        Insert: {
+          id?: string;
+          split_day_id: string;
+          order_index: number;
+          primary_muscle: string;
+          exercise_slots: number;
+          preferred_tiers: string[];
+        };
+        Update: Partial<Database["public"]["Tables"]["split_day_slots"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "split_day_slots_split_day_id_fkey";
+            columns: ["split_day_id"];
+            isOneToOne: false;
+            referencedRelation: "split_days";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
