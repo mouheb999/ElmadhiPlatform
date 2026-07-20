@@ -29,7 +29,7 @@ const arr = (a: WorkoutAnswers, k: string): string[] =>
 
 /** "None"-style options mean "no answer", not a value to match against. */
 const meaningful = (values: string[]): string[] =>
-  values.filter((v) => !/^None\b/i.test(v) && !/^Balanced physique/i.test(v));
+  values.filter((v) => !/^None\b/i.test(v));
 
 export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<ActionResult<{ programId: string }>> {
   const supabase = await createClient();
@@ -65,7 +65,6 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
       days_per_week: daysPerWeek,
       goal,
       experience,
-      session_duration: str(answers, "session_duration"),
       location: str(answers, "location"),
       equipment_gym: arr(answers, "equipment_gym"),
       equipment_home: arr(answers, "equipment_home"),
@@ -76,7 +75,6 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
       gender: str(answers, "gender"),
       pregnancy_status: str(answers, "pregnancy_status"),
       injuries: arr(answers, "injuries"),
-      body_focus: arr(answers, "body_focus"),
       exercise_dislikes: arr(answers, "exercise_dislikes"),
       weight_goal: str(answers, "weight_goal"),
       cardio_preference: str(answers, "cardio_preference"),
@@ -92,8 +90,6 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     .select("key, payload")
     .in("key", [
       "split_recommendation_logic",
-      "slot_count_adjustment_by_duration",
-      "body_focus_boost",
       "equipment_option_map",
       "dislike_option_expansion",
       "age_based_exclusions",
@@ -180,7 +176,6 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     ...(str(answers, "pullup_ability") === "Can't do a full one yet" ? ["Pull-Up"] : []),
   ];
 
-  const durations = (rules.slot_count_adjustment_by_duration ?? {}) as Record<string, number>;
   const filled = generateProgram(days, pool, {
     equipment: resolveEquipmentValues(
       {
@@ -194,9 +189,6 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     dislikes: [...new Set(excludedNames)],
     excludeMuscles: (pregRule?.exclude_muscle_groups ?? []).map((m) => m.toLowerCase()),
     requireHomeFriendly: requiresHomeFriendly(location),
-    durationFactor: durations[str(answers, "session_duration") ?? ""] ?? 1,
-    bodyFocus: meaningful(arr(answers, "body_focus")),
-    bodyFocusRules: (rules.body_focus_boost ?? {}) as Parameters<typeof generateProgram>[2]["bodyFocusRules"],
     goal,
     trainingStyle: str(answers, "training_style"),
   });

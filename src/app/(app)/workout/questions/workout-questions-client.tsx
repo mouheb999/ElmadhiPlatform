@@ -25,11 +25,11 @@ export type QuestionRow = {
  * state the engine can act on.
  */
 function exclusiveOptionsFor(options: string[]): string[] {
-  return options.filter((o) => /^None\b/i.test(o) || /^Balanced physique/i.test(o));
+  return options.filter((o) => /^None\b/i.test(o));
 }
 
 /**
- * The questionnaire is rendered entirely from `questionnaire_questions` — 19
+ * The questionnaire is rendered entirely from `questionnaire_questions` — the
  * questions, their `shown_if` conditionals and `max_selections` caps all come
  * from the database. Adding or rewording a question is a data change, not a
  * code change.

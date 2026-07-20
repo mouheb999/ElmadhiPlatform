@@ -7,8 +7,6 @@ import {
   expandDislikes,
   filterCandidates,
   rankByTier,
-  scaleSlotsForDuration,
-  applyBodyFocusBoost,
   fillDay,
   generateProgram,
   setsRepsFor,
@@ -293,85 +291,6 @@ describe("rankByTier", () => {
   });
 });
 
-describe("scaleSlotsForDuration", () => {
-  it("is a no-op at factor 1", () => {
-    const slots = [slot({ primary_muscle: "chest", exercise_slots: 3 })];
-    expect(scaleSlotsForDuration(slots, 1)).toBe(slots);
-  });
-
-  it("hits the rounded total exactly rather than rounding each slot", () => {
-    // Seven 1-slot muscles at x1.4 => target 10. Per-slot rounding would give 7.
-    const slots = Array.from({ length: 7 }, (_, i) =>
-      slot({ primary_muscle: `m${i}`, exercise_slots: 1, order_index: i }),
-    );
-    const out = scaleSlotsForDuration(slots, 1.4);
-    expect(out.reduce((n, s) => n + s.exercise_slots, 0)).toBe(10);
-  });
-
-  it("scales a realistic PPL push day up", () => {
-    const slots = [
-      slot({ primary_muscle: "chest", exercise_slots: 3, order_index: 0 }),
-      slot({ primary_muscle: "shoulders", exercise_slots: 2, order_index: 1 }),
-      slot({ primary_muscle: "triceps", exercise_slots: 2, order_index: 2 }),
-    ];
-    const out = scaleSlotsForDuration(slots, 1.4);
-    expect(out.reduce((n, s) => n + s.exercise_slots, 0)).toBe(10); // round(7 * 1.4)
-  });
-
-  it("scales down for short sessions but never below one per slot", () => {
-    const slots = [
-      slot({ primary_muscle: "chest", exercise_slots: 1, order_index: 0 }),
-      slot({ primary_muscle: "back", exercise_slots: 1, order_index: 1 }),
-      slot({ primary_muscle: "legs", exercise_slots: 1, order_index: 2 }),
-    ];
-    const out = scaleSlotsForDuration(slots, 0.7);
-    expect(out.every((s) => s.exercise_slots >= 1)).toBe(true);
-  });
-
-  it("reduces total volume at 0.7 on a larger day", () => {
-    const slots = [
-      slot({ primary_muscle: "legs", exercise_slots: 5, order_index: 0 }),
-      slot({ primary_muscle: "core", exercise_slots: 2, order_index: 1 }),
-    ];
-    const out = scaleSlotsForDuration(slots, 0.7);
-    expect(out.reduce((n, s) => n + s.exercise_slots, 0)).toBe(5); // round(7 * 0.7)
-  });
-});
-
-describe("applyBodyFocusBoost", () => {
-  const rules = {
-    Arms: { muscle_group: ["Biceps", "Triceps"], add_slots: 1 },
-    Chest: { muscle_group: "Chest", add_slots: 1 },
-    "Abs / core": { muscle_group: "Core", add_slots: 1 },
-  };
-
-  it("adds a slot to the focused muscle", () => {
-    const slots = [slot({ primary_muscle: "chest", exercise_slots: 3 })];
-    expect(applyBodyFocusBoost(slots, ["Chest"], rules)[0].exercise_slots).toBe(4);
-  });
-
-  it("boosts both muscles for Arms", () => {
-    const slots = [
-      slot({ primary_muscle: "biceps", exercise_slots: 2, order_index: 0 }),
-      slot({ primary_muscle: "triceps", exercise_slots: 2, order_index: 1 }),
-    ];
-    const out = applyBodyFocusBoost(slots, ["Arms"], rules);
-    expect(out.map((s) => s.exercise_slots)).toEqual([3, 3]);
-  });
-
-  it("never introduces a muscle the day does not already train", () => {
-    const slots = [slot({ primary_muscle: "chest", exercise_slots: 3 })];
-    const out = applyBodyFocusBoost(slots, ["Abs / core"], rules);
-    expect(out).toHaveLength(1);
-    expect(out[0].primary_muscle).toBe("chest");
-  });
-
-  it("is a no-op with no focus selected", () => {
-    const slots = [slot({ primary_muscle: "chest", exercise_slots: 3 })];
-    expect(applyBodyFocusBoost(slots, [], rules)).toBe(slots);
-  });
-});
-
 describe("fillDay", () => {
   const day: SplitDay = {
     day_number: 1,
@@ -450,13 +369,7 @@ describe("generateProgram", () => {
     ...["b1", "b2", "b3"].map((id) => ex({ id, primary_muscle: "back", tier: "S" })),
   ];
 
-  const base = {
-    ...NO_LIMITS,
-    ...SCHEME_OPTS,
-    durationFactor: 1,
-    bodyFocus: [] as string[],
-    bodyFocusRules: { Chest: { muscle_group: "Chest", add_slots: 1 } },
-  };
+  const base = { ...NO_LIMITS, ...SCHEME_OPTS };
 
   it("fills every day of the split", () => {
     const out = generateProgram(days, pool, base);
@@ -464,11 +377,28 @@ describe("generateProgram", () => {
     expect(out.flatMap((d) => d.picks)).toHaveLength(4);
   });
 
-  it("lets an explicit body focus survive a short-session downscale", () => {
-    const out = generateProgram(days, pool, { ...base, durationFactor: 0.7, bodyFocus: ["Chest"] });
-    const push = out.find((d) => d.day_name_en === "Push")!;
-    // boosted 2 -> 3, then scaled x0.7 -> 2; without the boost it would be 1.
-    expect(push.picks.length).toBeGreaterThan(1);
+  it("gives each day exactly its slot-defined exercise count", () => {
+    // Exercise count is fixed per day type by split_day_slots — there is no
+    // duration multiplier or body-focus boost anymore (migration 026).
+    const out = generateProgram(days, pool, base);
+    for (const day of out) {
+      const defined = days.find((d) => d.day_number === day.day_number)!;
+      const slotTotal = defined.slots.reduce((n, s) => n + s.exercise_slots, 0);
+      expect(day.picks).toHaveLength(slotTotal);
+    }
+  });
+
+  it("keeps the exercise count identical across every user profile", () => {
+    // Goal and training style change sets/reps, never how many exercises a
+    // day holds — the inputs that used to change the count no longer exist.
+    const profiles = [
+      base,
+      { ...base, goal: "Strength" },
+      { ...base, goal: "Fat loss", trainingStyle: "Lighter weight, high reps (pump / endurance feel)" },
+      { ...base, goal: "Muscle growth (hypertrophy)", trainingStyle: "Heavy weight, low reps (strength feel)" },
+    ];
+    const counts = profiles.map((p) => generateProgram(days, pool, p).map((d) => d.picks.length));
+    for (const c of counts) expect(c).toEqual(counts[0]);
   });
 
   it("allows the same exercise on different days", () => {

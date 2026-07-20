@@ -17,12 +17,12 @@ export function OptionCardGroup<T extends string>({
   value: T | T[] | undefined;
   onChange: (value: T | T[]) => void;
   multi?: boolean;
-  /** Backs `questionnaire_questions.max_selections` (body_focus caps at 2). */
+  /** Backs `questionnaire_questions.max_selections`. */
   maxSelections?: number;
   /**
-   * Options that clear every other choice when picked — "None", "Balanced
-   * physique (no extra focus)". Selecting "None" alongside real injuries is
-   * contradictory, so it is made mutually exclusive rather than merely odd.
+   * Options that clear every other choice when picked — "None"-style answers.
+   * Selecting "None" alongside real injuries is contradictory, so it is made
+   * mutually exclusive rather than merely odd.
    */
   exclusiveOptions?: T[];
 }) {

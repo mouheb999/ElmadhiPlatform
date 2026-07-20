@@ -464,6 +464,7 @@ export type Database = {
           consistency_self_rating: number | null;
           created_at: string | null;
           // migration 022 — one column per questionnaire_questions.id
+          /** Retired by migration 026 — kept for historical rows, never written anymore. */
           session_duration: string | null;
           location: string | null;
           equipment_gym: string[] | null;
@@ -474,6 +475,7 @@ export type Database = {
           age_bracket: string | null;
           gender: string | null;
           pregnancy_status: string | null;
+          /** Retired by migration 026 — kept for historical rows, never written anymore. */
           body_focus: string[] | null;
           exercise_dislikes: string[] | null;
           weight_goal: string | null;

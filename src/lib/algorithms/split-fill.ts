@@ -278,75 +278,6 @@ export function rankByTier(candidates: Candidate[], preferredTiers: string[]): C
 }
 
 /**
- * `slot_count_adjustment_by_duration` scales a day's TOTAL slots, not each
- * slot independently — "multiply each day's total exercise slots by this
- * factor and round to nearest whole slot before filling". Scaling per-slot
- * and rounding each one drifts badly (seven 1-slot muscles at x1.4 would
- * become seven 1s, no change at all), so this hits the rounded total exactly
- * using largest-remainder apportionment. Every slot keeps at least 1.
- */
-export function scaleSlotsForDuration(slots: Slot[], factor: number): Slot[] {
-  if (factor === 1 || slots.length === 0) return slots;
-
-  const total = slots.reduce((n, s) => n + s.exercise_slots, 0);
-  const target = Math.max(slots.length, Math.round(total * factor));
-
-  const raw = slots.map((s) => s.exercise_slots * factor);
-  const floored = raw.map((r) => Math.max(1, Math.floor(r)));
-  let used = floored.reduce((n, v) => n + v, 0);
-
-  const order = raw
-    .map((r, i) => ({ i, remainder: r - Math.floor(r) }))
-    .sort((a, b) => b.remainder - a.remainder);
-
-  const result = [...floored];
-  let cursor = 0;
-  while (used < target && order.length > 0) {
-    result[order[cursor % order.length].i] += 1;
-    used += 1;
-    cursor += 1;
-  }
-  // Overshoot can only come from the min-1 clamp; trim the largest slots.
-  while (used > target) {
-    const biggest = result.reduce((best, v, i) => (v > result[best] ? i : best), 0);
-    if (result[biggest] <= 1) break;
-    result[biggest] -= 1;
-    used -= 1;
-  }
-
-  return slots.map((s, i) => ({ ...s, exercise_slots: result[i] }));
-}
-
-/**
- * `body_focus_boost` adds +1 slot to a chosen muscle on the days it already
- * appears — it never introduces a muscle to a day that doesn't train it.
- * `Arms` maps to two muscles (biceps + triceps); both get the boost.
- */
-export function applyBodyFocusBoost(
-  slots: Slot[],
-  focuses: string[],
-  boostRules: Record<string, { muscle_group: string | string[]; add_slots: number }>,
-): Slot[] {
-  if (focuses.length === 0) return slots;
-
-  const boostByMuscle = new Map<string, number>();
-  for (const focus of focuses) {
-    const rule = boostRules[focus];
-    if (!rule) continue;
-    const muscles = Array.isArray(rule.muscle_group) ? rule.muscle_group : [rule.muscle_group];
-    for (const m of muscles) {
-      const key = m.toLowerCase();
-      boostByMuscle.set(key, (boostByMuscle.get(key) ?? 0) + rule.add_slots);
-    }
-  }
-
-  return slots.map((s) => {
-    const boost = boostByMuscle.get(s.primary_muscle);
-    return boost ? { ...s, exercise_slots: s.exercise_slots + boost } : s;
-  });
-}
-
-/**
  * Picks `count` exercises for one muscle block, prioritising tier and using
  * `substitution_group` for variety.
  *
@@ -530,26 +461,18 @@ export function fillDay(
 }
 
 /**
- * Full generation for one split: applies the duration multiplier and body-focus
- * boost to every day, then fills each. Boost is applied before the duration
- * scale so an explicit focus survives a short-session downscale.
+ * Full generation for one split: fills each day straight from its
+ * `split_day_slots` definitions. A day's exercise count is fixed by the day
+ * type alone — the old session-duration multiplier and body-focus boost are
+ * gone (migration 026), so no user input can change how many exercises a
+ * day holds.
  */
 export function generateProgram(
   days: SplitDay[],
   pool: Candidate[],
-  opts: FilterOptions & {
-    durationFactor: number;
-    bodyFocus: string[];
-    bodyFocusRules: Record<string, { muscle_group: string | string[]; add_slots: number }>;
-    goal: string;
-    trainingStyle?: string;
-  },
+  opts: FilterOptions & { goal: string; trainingStyle?: string },
 ): FilledDay[] {
-  return days.map((day) => {
-    const boosted = applyBodyFocusBoost(day.slots, opts.bodyFocus, opts.bodyFocusRules);
-    const scaled = scaleSlotsForDuration(boosted, opts.durationFactor);
-    return fillDay({ ...day, slots: scaled }, pool, opts);
-  });
+  return days.map((day) => fillDay(day, pool, opts));
 }
 
 export type SetScheme = { sets: number; repRange: string; restSeconds: number };
