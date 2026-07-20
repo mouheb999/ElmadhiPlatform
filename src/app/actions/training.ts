@@ -9,7 +9,6 @@ import {
   requiresHomeFriendly,
   expandDislikes,
   generateProgram,
-  repSchemeFor,
   type Candidate,
   type SplitDay,
   type UnfilledSlot,
@@ -135,7 +134,7 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
   // ---- candidate pool: exercises joined to their tier/home rating ----
   const { data: exerciseRows } = await supabase
     .from("exercises")
-    .select("id, name_en, primary_muscle, equipment, contraindicated_for, substitution_group, exercise_ratings(tier, home_friendly)");
+    .select("id, name_en, primary_muscle, equipment, contraindicated_for, substitution_group, role, sub_target, true_max_effort, exercise_ratings(tier, home_friendly)");
 
   const pool: Candidate[] = (exerciseRows ?? []).flatMap((e) => {
     const rating = Array.isArray(e.exercise_ratings) ? e.exercise_ratings[0] : e.exercise_ratings;
@@ -149,6 +148,9 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
       home_friendly: rating.home_friendly,
       contraindicated_for: e.contraindicated_for,
       substitution_group: e.substitution_group,
+      role: e.role as Candidate["role"],
+      sub_target: e.sub_target,
+      true_max_effort: e.true_max_effort,
     }];
   });
 
@@ -195,9 +197,9 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     durationFactor: durations[str(answers, "session_duration") ?? ""] ?? 1,
     bodyFocus: meaningful(arr(answers, "body_focus")),
     bodyFocusRules: (rules.body_focus_boost ?? {}) as Parameters<typeof generateProgram>[2]["bodyFocusRules"],
+    goal,
+    trainingStyle: str(answers, "training_style"),
   });
-
-  const scheme = repSchemeFor({ goal, trainingStyle: str(answers, "training_style") });
 
   // ---- persist ----
   const { data: userProgram, error: programError } = await supabase
@@ -225,13 +227,15 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     if (!userDay || day.picks.length === 0) continue;
 
     await supabase.from("user_program_exercises").insert(
+      // Sets/reps now vary per exercise by compound-vs-isolation role, not one
+      // scheme for the whole day.
       day.picks.map((p) => ({
         user_program_day_id: userDay.id,
         exercise_id: p.exerciseId,
         order_index: p.order_index,
-        sets: scheme.sets,
-        rep_range: scheme.repRange,
-        rest_seconds: scheme.restSeconds,
+        sets: p.sets,
+        rep_range: p.repRange,
+        rest_seconds: p.restSeconds,
       })),
     );
   }

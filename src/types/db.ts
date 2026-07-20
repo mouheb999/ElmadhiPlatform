@@ -539,6 +539,11 @@ export type Database = {
           needs_home_review: boolean;
           ar_needs_review: boolean;
           needs_injury_review: boolean;
+          // migration 024 — training-logic role tags
+          role: string | null;
+          sub_target: string | null;
+          true_max_effort: boolean;
+          needs_role_review: boolean;
         };
         Insert: {
           id?: string;
@@ -562,6 +567,10 @@ export type Database = {
           needs_home_review?: boolean;
           ar_needs_review?: boolean;
           needs_injury_review?: boolean;
+          role?: string | null;
+          sub_target?: string | null;
+          true_max_effort?: boolean;
+          needs_role_review?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["exercises"]["Insert"]>;
         Relationships: [];

@@ -11,7 +11,11 @@ import {
   applyBodyFocusBoost,
   fillDay,
   generateProgram,
-  repSchemeFor,
+  setsRepsFor,
+  isCompoundRole,
+  selectForBlock,
+  orderBlock,
+  orderDay,
   type Candidate,
   type Slot,
   type SplitDay,
@@ -25,8 +29,13 @@ const ex = (over: Partial<Candidate> & { id: string }): Candidate => ({
   home_friendly: true,
   contraindicated_for: null,
   substitution_group: null,
+  role: "mid_isolation",
+  sub_target: null,
+  true_max_effort: false,
   ...over,
 });
+
+const SCHEME_OPTS = { goal: "Muscle growth (hypertrophy)" };
 
 const slot = (over: Partial<Slot> & { primary_muscle: string }): Slot => ({
   exercise_slots: 1,
@@ -36,7 +45,8 @@ const slot = (over: Partial<Slot> & { primary_muscle: string }): Slot => ({
 });
 
 const ALL_EQUIPMENT = ["barbell", "dumbbell", "cable", "machine", "bodyweight", "kettlebell", "band", "plate"];
-const NO_LIMITS = { equipment: ALL_EQUIPMENT, injuries: [], dislikes: [] };
+const NO_LIMITS = { equipment: ALL_EQUIPMENT, injuries: [] as string[], dislikes: [] as string[] };
+const FILL = { ...NO_LIMITS, ...SCHEME_OPTS };
 
 describe("resolveSplitId", () => {
   const logic = {
@@ -272,6 +282,15 @@ describe("rankByTier", () => {
     rankByTier(pool, ["S"]);
     expect(pool.map((c) => c.id)).toEqual(["b", "s"]);
   });
+
+  it("breaks tier ties by role rank, not alphabetically", () => {
+    // Back Squat (opener_heavy) vs Pistol Squat (opener_compound) — both S.
+    const pool = [
+      ex({ id: "pistol", tier: "S", role: "opener_compound" }),
+      ex({ id: "back-squat", tier: "S", role: "opener_heavy", true_max_effort: true }),
+    ];
+    expect(rankByTier(pool, ["S", "A"])[0].id).toBe("back-squat");
+  });
 });
 
 describe("scaleSlotsForDuration", () => {
@@ -372,24 +391,24 @@ describe("fillDay", () => {
   ];
 
   it("fills each slot with the best available tiers", () => {
-    const out = fillDay(day, pool, NO_LIMITS);
+    const out = fillDay(day, pool, FILL);
     expect(out.picks.map((p) => p.exerciseId)).toEqual(["c1", "c2", "t1"]);
     expect(out.unfilled).toEqual([]);
   });
 
   it("never picks the same exercise twice in a day", () => {
-    const out = fillDay(day, pool, NO_LIMITS);
+    const out = fillDay(day, pool, FILL);
     expect(new Set(out.picks.map((p) => p.exerciseId)).size).toBe(out.picks.length);
   });
 
   it("assigns a contiguous order_index across slots", () => {
-    const out = fillDay(day, pool, NO_LIMITS);
+    const out = fillDay(day, pool, FILL);
     expect(out.picks.map((p) => p.order_index)).toEqual([0, 1, 2]);
   });
 
   it("reports a short slot instead of silently shrinking the day", () => {
     const thin = [ex({ id: "c1", primary_muscle: "chest", tier: "S" })];
-    const out = fillDay(day, thin, NO_LIMITS);
+    const out = fillDay(day, thin, FILL);
     expect(out.picks).toHaveLength(1);
     expect(out.unfilled).toEqual([
       { primary_muscle: "chest", requested: 2, filled: 1 },
@@ -398,12 +417,12 @@ describe("fillDay", () => {
   });
 
   it("reports every slot unfilled when injuries eliminate the pool", () => {
-    const out = fillDay(day, pool, { ...NO_LIMITS, injuries: ["Shoulder"] });
+    const out = fillDay(day, pool, { ...FILL, injuries: ["Shoulder"] });
     expect(out.picks).toHaveLength(3); // nothing in this pool is contraindicated
     const injured = fillDay(
       day,
       pool.map((c) => ({ ...c, contraindicated_for: ["Shoulder"] })),
-      { ...NO_LIMITS, injuries: ["Shoulder"] },
+      { ...FILL, injuries: ["Shoulder"] },
     );
     expect(injured.picks).toHaveLength(0);
     expect(injured.unfilled).toHaveLength(2);
@@ -433,6 +452,7 @@ describe("generateProgram", () => {
 
   const base = {
     ...NO_LIMITS,
+    ...SCHEME_OPTS,
     durationFactor: 1,
     bodyFocus: [] as string[],
     bodyFocusRules: { Chest: { muscle_group: "Chest", add_slots: 1 } },
@@ -458,24 +478,205 @@ describe("generateProgram", () => {
   });
 });
 
-describe("repSchemeFor", () => {
+describe("isCompoundRole", () => {
+  it("classifies every role on the compound side", () => {
+    for (const r of ["opener_heavy", "opener_compound", "mid_compound", "mid_compound_machine", "finisher_compound"] as const)
+      expect(isCompoundRole(r)).toBe(true);
+  });
+  it("classifies every role on the isolation side", () => {
+    for (const r of ["opener_isolation", "mid_isolation", "finisher_isolation"] as const)
+      expect(isCompoundRole(r)).toBe(false);
+  });
+});
+
+describe("setsRepsFor", () => {
+  it("gives compounds and isolations different prescriptions on the same day", () => {
+    const opts = { goal: "Muscle growth (hypertrophy)", trainingStyle: "Heavy weight, low reps (strength feel)" };
+    expect(setsRepsFor("opener_heavy", opts)).toEqual({ sets: 4, repRange: "6-8", restSeconds: 150 });
+    expect(setsRepsFor("finisher_isolation", opts)).toEqual({ sets: 3, repRange: "8-12", restSeconds: 90 });
+  });
+
   it("lets an explicit training style override the goal", () => {
-    expect(repSchemeFor({ goal: "Fat loss", trainingStyle: "Heavy weight, low reps (strength feel)" })).toEqual({
-      sets: 4,
-      repRange: "4-6",
-      restSeconds: 150,
-    });
+    const out = setsRepsFor("opener_heavy", { goal: "Fat loss", trainingStyle: "Heavy weight, low reps (strength feel)" });
+    expect(out.repRange).toBe("6-8");
   });
 
-  it("falls back to the goal default when the user is not sure", () => {
-    expect(repSchemeFor({ goal: "Strength", trainingStyle: "Not sure — let my goal decide" }).repRange).toBe("4-6");
+  it("falls back to the goal when the user is not sure", () => {
+    const out = setsRepsFor("opener_heavy", { goal: "Strength", trainingStyle: "Not sure — let my goal decide" });
+    expect(out.repRange).toBe("6-8");
   });
 
-  it("uses higher reps for fat loss", () => {
-    expect(repSchemeFor({ goal: "Fat loss" }).repRange).toBe("10-15");
+  it("uses higher reps and shorter rest for fat loss isolation work", () => {
+    expect(setsRepsFor("mid_isolation", { goal: "Fat loss" })).toEqual({ sets: 2, repRange: "15-20", restSeconds: 45 });
   });
 
-  it("defaults to hypertrophy rep ranges", () => {
-    expect(repSchemeFor({ goal: "Muscle growth (hypertrophy)" }).repRange).toBe("8-12");
+  it("never drops below the 2-set / 6-rep floor", () => {
+    for (const goal of ["Strength", "Fat loss", "Muscle growth (hypertrophy)"]) {
+      for (const style of ["Heavy weight, low reps", "Moderate weight", "Lighter weight, high reps", undefined]) {
+        for (const role of ["opener_heavy", "mid_isolation", "finisher_isolation"] as const) {
+          const s = setsRepsFor(role, { goal, trainingStyle: style });
+          expect(s.sets).toBeGreaterThanOrEqual(2);
+          expect(Number(s.repRange.split("-")[0])).toBeGreaterThanOrEqual(6);
+        }
+      }
+    }
+  });
+});
+
+describe("selectForBlock", () => {
+  const chest = [
+    ex({ id: "bench", tier: "S", role: "opener_heavy", substitution_group: "chest_horizontal_press", true_max_effort: true }),
+    ex({ id: "incline", tier: "S", role: "opener_heavy", substitution_group: "chest_incline_press" }),
+    ex({ id: "dip", tier: "S", role: "opener_compound", substitution_group: "chest_chest_dip" }),
+    ex({ id: "db-bench", tier: "S", role: "opener_compound", substitution_group: "chest_horizontal_press" }),
+    ex({ id: "fly", tier: "A", role: "mid_isolation", substitution_group: "chest_chest_fly" }),
+    ex({ id: "band-press", tier: "B", role: "finisher_compound", substitution_group: "chest_horizontal_press" }),
+  ];
+
+  it("does not pick two exercises from the same substitution_group when alternatives exist", () => {
+    // Would have been Bench + DB Bench (same group); should be Bench + Incline.
+    const out = selectForBlock(chest, 2, ["S", "A"]);
+    expect(out.map((c) => c.id)).toEqual(["bench", "incline"]);
+  });
+
+  it("prefers tier quality over role diversity on a small block", () => {
+    // Old reservation would pick Bench (S opener_heavy) + Band Press (B
+    // finisher_compound) to satisfy 'opener + finisher'. Correct behaviour:
+    // pick the two best by tier that live in different groups.
+    const out = selectForBlock(chest, 2, ["S", "A"]);
+    expect(out.every((c) => c.tier === "S")).toBe(true);
+  });
+
+  it("takes the best opener at one slot", () => {
+    expect(selectForBlock(chest, 1, ["S", "A"])[0].id).toBe("bench");
+  });
+
+  it("falls back to same-group when the pool is too small for variety", () => {
+    const twoInSameGroup = [
+      ex({ id: "a", tier: "S", role: "opener_heavy", substitution_group: "g1" }),
+      ex({ id: "b", tier: "A", role: "opener_compound", substitution_group: "g1" }),
+    ];
+    // Only one group available; block must still fill.
+    expect(selectForBlock(twoInSameGroup, 2, ["S", "A"])).toHaveLength(2);
+  });
+
+  it("never returns more than the pool holds", () => {
+    expect(selectForBlock(chest, 99, ["S", "A"])).toHaveLength(chest.length);
+  });
+
+  it("still fills isolation-only pools (core, forearms, calves)", () => {
+    const isoOnly = [
+      ex({ id: "a", tier: "S", role: "mid_isolation", substitution_group: "g1" }),
+      ex({ id: "b", tier: "A", role: "mid_isolation", substitution_group: "g2" }),
+    ];
+    expect(selectForBlock(isoOnly, 2, ["S", "A"])).toHaveLength(2);
+  });
+
+  it("caps barbell compounds at 1 per block — no Bench + Incline Barbell", () => {
+    const chestBarbells = [
+      ex({ id: "bench", tier: "S", role: "opener_heavy", equipment: "barbell", substitution_group: "chest_horizontal_press" }),
+      ex({ id: "incline-bb", tier: "S", role: "opener_heavy", equipment: "barbell", substitution_group: "chest_incline_press" }),
+      ex({ id: "dip", tier: "S", role: "opener_compound", equipment: "bodyweight", substitution_group: "chest_chest_dip" }),
+      ex({ id: "incline-db", tier: "S", role: "opener_compound", equipment: "dumbbell", substitution_group: "chest_incline_press" }),
+    ];
+    const out = selectForBlock(chestBarbells, 3, ["S", "A"]);
+    expect(out.filter((c) => c.equipment === "barbell").length).toBeLessThanOrEqual(1);
+    expect(out.map((c) => c.id)).toContain("bench");
+  });
+
+  it("falls back to two barbell compounds if that is all the pool offers", () => {
+    const barbellOnly = [
+      ex({ id: "a", tier: "S", role: "opener_heavy", equipment: "barbell", substitution_group: "g1" }),
+      ex({ id: "b", tier: "A", role: "opener_compound", equipment: "barbell", substitution_group: "g2" }),
+    ];
+    expect(selectForBlock(barbellOnly, 2, ["S", "A"])).toHaveLength(2);
+  });
+
+  it("does not restrict non-barbell equipment", () => {
+    // Two dumbbell compounds is fine — the cap is barbell-specific.
+    const dbOnly = [
+      ex({ id: "a", tier: "S", role: "opener_compound", equipment: "dumbbell", substitution_group: "g1" }),
+      ex({ id: "b", tier: "S", role: "opener_compound", equipment: "dumbbell", substitution_group: "g2" }),
+    ];
+    expect(selectForBlock(dbOnly, 2, ["S", "A"])).toHaveLength(2);
+  });
+});
+
+describe("orderBlock", () => {
+  it("runs openers before finishers", () => {
+    const out = orderBlock([
+      ex({ id: "fin", role: "finisher_isolation" }),
+      ex({ id: "open", role: "opener_heavy", true_max_effort: true }),
+      ex({ id: "mid", role: "mid_compound" }),
+    ]);
+    expect(out.map((c) => c.id)).toEqual(["open", "mid", "fin"]);
+  });
+
+  it("orders shoulders rear -> side -> press for pre-exhaustion", () => {
+    const out = orderBlock([
+      ex({ id: "press", primary_muscle: "shoulders", role: "mid_compound", sub_target: "press_region" }),
+      ex({ id: "side", primary_muscle: "shoulders", role: "mid_isolation", sub_target: "side_delt_region" }),
+      ex({ id: "rear", primary_muscle: "shoulders", role: "opener_isolation", sub_target: "rear_delt_region" }),
+    ]);
+    expect(out.map((c) => c.id)).toEqual(["rear", "side", "press"]);
+  });
+
+  it("puts a true_max_effort press FIRST instead, overriding pre-exhaustion", () => {
+    const out = orderBlock([
+      ex({ id: "rear", primary_muscle: "shoulders", role: "opener_isolation", sub_target: "rear_delt_region" }),
+      ex({ id: "ohp", primary_muscle: "shoulders", role: "opener_heavy", sub_target: "press_region", true_max_effort: true }),
+    ]);
+    expect(out[0].id).toBe("ohp");
+  });
+});
+
+describe("orderDay", () => {
+  it("trains large muscles before small, core last", () => {
+    const out = orderDay([
+      ex({ id: "crunch", primary_muscle: "core", role: "finisher_isolation" }),
+      ex({ id: "curl", primary_muscle: "biceps", role: "mid_isolation" }),
+      ex({ id: "row", primary_muscle: "back", role: "opener_compound" }),
+    ]);
+    expect(out.map((c) => c.primary_muscle)).toEqual(["back", "biceps", "core"]);
+  });
+
+  it("puts calves after the other leg muscles but before core", () => {
+    const out = orderDay([
+      ex({ id: "core1", primary_muscle: "core", role: "mid_isolation" }),
+      ex({ id: "calf", primary_muscle: "calves", role: "mid_isolation" }),
+      ex({ id: "squat", primary_muscle: "quads", role: "opener_heavy" }),
+    ]);
+    expect(out.map((c) => c.primary_muscle)).toEqual(["quads", "calves", "core"]);
+  });
+
+  it("does NOT promote a true_max_effort lift across muscle blocks", () => {
+    // Back Squat (quads, opener_heavy, MAX) must lead the Legs day even
+    // though Hip Thrust (glutes) is technically also true_max_effort. Large
+    // muscles come first; global promotion is not stronger than that.
+    const out = orderDay([
+      ex({ id: "hip-thrust", primary_muscle: "glutes", role: "opener_heavy", true_max_effort: true }),
+      ex({ id: "back-squat", primary_muscle: "quads", role: "opener_heavy", true_max_effort: true }),
+    ]);
+    expect(out.map((c) => c.primary_muscle)).toEqual(["quads", "glutes"]);
+    expect(out[0].id).toBe("back-squat");
+  });
+
+  it("never leaves a true_max_effort lift last", () => {
+    const out = orderDay([
+      ex({ id: "curl", primary_muscle: "biceps", role: "mid_isolation" }),
+      ex({ id: "dl", primary_muscle: "back", role: "opener_heavy", true_max_effort: true }),
+      ex({ id: "crunch", primary_muscle: "core", role: "finisher_isolation" }),
+    ]);
+    expect(out[out.length - 1].true_max_effort).toBe(false);
+  });
+
+  it("swaps a max-effort lift back one step when it would otherwise close the day", () => {
+    // Contrived case: max-effort lift is on the last-ordered muscle. It should
+    // still not close the day.
+    const out = orderDay([
+      ex({ id: "crunch", primary_muscle: "core", role: "opener_heavy", true_max_effort: true }),
+      ex({ id: "curl", primary_muscle: "biceps", role: "mid_isolation" }),
+    ]);
+    expect(out[out.length - 1].id).not.toBe("crunch");
   });
 });

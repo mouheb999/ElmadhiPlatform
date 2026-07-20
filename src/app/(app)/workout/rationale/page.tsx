@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { RationaleCard } from "@/components/shared/rationale-card";
-import { repSchemeFor } from "@/lib/algorithms/split-fill";
+import { setsRepsFor } from "@/lib/algorithms/split-fill";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -47,10 +47,14 @@ export default async function WorkoutRationalePage() {
   const splitEn = split?.note_en || split?.label_en || "This split fits how many days you can train.";
   const splitAr = split?.note_ar || split?.label_ar || "هالتقسيمة تناسب عدد الأيام اللي تنجم تتمرن فيهم.";
 
-  const scheme = repSchemeFor({
+  // Compounds and isolations now carry different prescriptions, so show both
+  // rather than one number that is only true for half the session.
+  const schemeOpts = {
     goal: trainingProfile.goal,
     trainingStyle: trainingProfile.training_style ?? undefined,
-  });
+  };
+  const compound = setsRepsFor("opener_heavy", schemeOpts);
+  const isolation = setsRepsFor("finisher_isolation", schemeOpts);
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-5">
@@ -64,8 +68,8 @@ export default async function WorkoutRationalePage() {
         headline={locale === "tn" ? "عدد المجموعات والتكرارات" : "Sets and reps"}
         body={
           locale === "tn"
-            ? `${scheme.sets} مجموعات × ${scheme.repRange} تكرار، مع راحة ${scheme.restSeconds} ثانية بين المجموعات — مبني على هدفك وأسلوب التمرين اللي اخترتو.`
-            : `${scheme.sets} sets of ${scheme.repRange} reps, resting ${scheme.restSeconds}s between sets — based on your goal and the training style you chose.`
+            ? `التمارين المركبة: ${compound.sets} مجموعات × ${compound.repRange} تكرار وراحة ${compound.restSeconds} ثانية. تمارين العزل: ${isolation.sets} مجموعات × ${isolation.repRange} تكرار وراحة ${isolation.restSeconds} ثانية.`
+            : `Compound lifts: ${compound.sets} sets of ${compound.repRange}, resting ${compound.restSeconds}s. Isolation work: ${isolation.sets} sets of ${isolation.repRange}, resting ${isolation.restSeconds}s.`
         }
       />
 
