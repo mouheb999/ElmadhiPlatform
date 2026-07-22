@@ -48,6 +48,8 @@ export type SessionExercise = {
   /** Admin CMS media: thumbnail + demo video (YouTube link). */
   thumbnailUrl: string | null;
   videoUrl: string | null;
+  /** Per-exercise coaching cues from the split, shown only here (in-session). */
+  notes: string | null;
 };
 
 /** A set already stored server-side (resume hydration). */
@@ -594,6 +596,19 @@ export function SessionClient({
                       {t(locale, ex.suggestionReasonKey)}
                     </span>
                   </div>
+                )}
+                {ex.notes && !isSkipped && (
+                  <ul className="mt-2 flex flex-col gap-1">
+                    {ex.notes.split("|").map((cue, i) => {
+                      const text = cue.trim();
+                      return text ? (
+                        <li key={i} className="flex items-start gap-1.5 text-xs font-medium text-emerald-400">
+                          <span aria-hidden className="mt-1 h-1 w-1 shrink-0 rounded-full bg-emerald-400" />
+                          <span>{text}</span>
+                        </li>
+                      ) : null;
+                    })}
+                  </ul>
                 )}
                 </div>
               </div>

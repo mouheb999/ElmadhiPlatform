@@ -1062,6 +1062,91 @@ export type Database = {
           },
         ];
       };
+      // Pre-built splits from the sheet (migration 027). One row per
+      // (gender, days_per_week); replaces the split_definitions slot system.
+      fixed_splits: {
+        Row: {
+          id: string;
+          gender: string;
+          days_per_week: number;
+          title_en: string;
+          week_order_en: string | null;
+        };
+        Insert: {
+          id: string;
+          gender: string;
+          days_per_week: number;
+          title_en: string;
+          week_order_en?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["fixed_splits"]["Insert"]>;
+        Relationships: [];
+      };
+      fixed_split_days: {
+        Row: {
+          id: string;
+          fixed_split_id: string;
+          day_number: number;
+          day_name_en: string;
+          day_name_ar: string | null;
+          description_en: string | null;
+        };
+        Insert: {
+          id?: string;
+          fixed_split_id: string;
+          day_number: number;
+          day_name_en: string;
+          day_name_ar?: string | null;
+          description_en?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["fixed_split_days"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "fixed_split_days_fixed_split_id_fkey";
+            columns: ["fixed_split_id"];
+            isOneToOne: false;
+            referencedRelation: "fixed_splits";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      fixed_split_exercises: {
+        Row: {
+          id: string;
+          fixed_split_day_id: string;
+          order_index: number;
+          exercise_id: string;
+          reps: string;
+          swap_options: Json;
+          advice_en: string | null;
+        };
+        Insert: {
+          id?: string;
+          fixed_split_day_id: string;
+          order_index: number;
+          exercise_id: string;
+          reps: string;
+          swap_options?: Json;
+          advice_en?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["fixed_split_exercises"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "fixed_split_exercises_fixed_split_day_id_fkey";
+            columns: ["fixed_split_day_id"];
+            isOneToOne: false;
+            referencedRelation: "fixed_split_days";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "fixed_split_exercises_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

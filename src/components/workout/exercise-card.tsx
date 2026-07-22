@@ -53,7 +53,6 @@ export function ExerciseCard({
             <div className="text-sm text-muted">
               {exercise.sets} × {exercise.repRange} · {exercise.restSeconds}s {locale === "tn" ? "راحة" : "rest"}
             </div>
-            {exercise.notes && <div className="mt-1 text-xs text-amber-300">{exercise.notes}</div>}
           </div>
         </div>
         <div className="flex items-center gap-2">
