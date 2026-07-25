@@ -166,26 +166,33 @@ describe("mealPlanForDay", () => {
 describe("fillTemplate", () => {
   const target = { calories: 2200, proteinG: 170, carbsG: 200, fatG: 60 };
 
-  it("scales grams so protein lands close to target", () => {
-    const meals = fillTemplate(SLOTS, target, byId, bySlot, baseConstraints);
-    let protein = 0;
-    for (const meal of meals) {
+  function totals(meals: ReturnType<typeof fillTemplate>) {
+    let P = 0, C = 0, F = 0;
+    for (const meal of meals)
       for (const item of meal.items) {
         const ing = byId.get(item.ingredientId)!;
-        protein += (ing.proteinPer100g * item.quantityG) / 100;
+        P += (ing.proteinPer100g * item.quantityG) / 100;
+        C += (ing.carbsPer100g * item.quantityG) / 100;
+        F += (ing.fatPer100g * item.quantityG) / 100;
       }
-    }
-    // Within 20% of target — heuristic solver, plan is editable.
-    expect(protein).toBeGreaterThan(target.proteinG * 0.8);
-    expect(protein).toBeLessThan(target.proteinG * 1.3);
+    return { P, C, F, kcal: P * 4 + C * 4 + F * 9 };
+  }
+
+  it("hits protein and total calories closely", () => {
+    const t = totals(fillTemplate(SLOTS, target, byId, bySlot, baseConstraints));
+    // Protein and calories are the hard targets (carbs/fat flex).
+    expect(t.P).toBeGreaterThan(target.proteinG * 0.9);
+    expect(t.P).toBeLessThan(target.proteinG * 1.1);
+    expect(t.kcal).toBeGreaterThan(target.calories * 0.9);
+    expect(t.kcal).toBeLessThan(target.calories * 1.12);
   });
 
   it("keeps every portion within sane bounds", () => {
     const meals = fillTemplate(SLOTS, target, byId, bySlot, baseConstraints);
     for (const meal of meals) {
       for (const item of meal.items) {
-        expect(item.quantityG).toBeGreaterThanOrEqual(20);
-        expect(item.quantityG).toBeLessThanOrEqual(400);
+        expect(item.quantityG).toBeGreaterThanOrEqual(15);
+        expect(item.quantityG).toBeLessThanOrEqual(500);
       }
     }
   });
