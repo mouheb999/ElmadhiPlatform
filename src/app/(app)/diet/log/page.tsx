@@ -53,11 +53,11 @@ export default async function FoodLogPage({
     protein_g: number;
     carbs_g: number;
     fat_g: number;
-    foods: { name_en: string | null; name_ar: string | null; image_url: string | null } | null;
+    nutrition_ingredients: { name_en: string | null; name_ar: string | null; image_url: string | null } | null;
   };
   type FoodJoinRow = {
-    food_id: string;
-    foods: {
+    ingredient_id: string;
+    nutrition_ingredients: {
       id: string;
       name_en: string | null;
       name_ar: string;
@@ -74,6 +74,7 @@ export default async function FoodLogPage({
     { data: todayLogsRaw },
     { data: favoritesRaw },
     { data: recentsRaw },
+    { data: ingredientsRaw },
     { data: previousRow },
     { data: mealPlan },
   ] = await Promise.all([
@@ -81,7 +82,7 @@ export default async function FoodLogPage({
       supabase
         .from("meal_logs")
         .select(
-          "id, meal_slot, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g, foods(name_en, name_ar, image_url)",
+          "id, meal_slot, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g, nutrition_ingredients(name_en, name_ar, image_url)",
         )
         .eq("user_id", user!.id)
         .eq("log_date", viewDate)
@@ -89,7 +90,7 @@ export default async function FoodLogPage({
       supabase
         .from("food_favorites")
         .select(
-          "food_id, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url)",
+          "ingredient_id, nutrition_ingredients(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url)",
         )
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
@@ -97,12 +98,16 @@ export default async function FoodLogPage({
       supabase
         .from("meal_logs")
         .select(
-          "food_id, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url)",
+          "ingredient_id, nutrition_ingredients(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url)",
         )
         .eq("user_id", user!.id)
-        .not("food_id", "is", null)
+        .not("ingredient_id", "is", null)
         .order("logged_at", { ascending: false })
         .limit(40),
+      supabase
+        .from("nutrition_ingredients")
+        .select("id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url")
+        .order("slot", { ascending: true }),
       supabase
         .from("meal_logs")
         .select("id")
@@ -127,9 +132,9 @@ export default async function FoodLogPage({
     meal_type: string;
     order_index: number;
     meal_plan_items: {
-      food_id: string | null;
+      ingredient_id: string | null;
       quantity_g: number;
-      foods: {
+      nutrition_ingredients: {
         id: string;
         name_en: string | null;
         name_ar: string;
@@ -145,7 +150,7 @@ export default async function FoodLogPage({
     ? await supabase
         .from("meal_plan_meals")
         .select(
-          "id, meal_type, order_index, meal_plan_items(food_id, quantity_g, foods(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
+          "id, meal_type, order_index, meal_plan_items(ingredient_id, quantity_g, nutrition_ingredients(id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
         )
         .eq("meal_plan_id", mealPlan.id)
         .order("order_index", { ascending: true })
@@ -155,17 +160,17 @@ export default async function FoodLogPage({
     id: meal.id,
     mealType: meal.meal_type,
     items: (meal.meal_plan_items ?? [])
-      .filter((item) => item.foods)
+      .filter((item) => item.nutrition_ingredients)
       .map((item) => ({
         food: {
-          id: item.foods!.id,
-          nameEn: item.foods!.name_en,
-          nameAr: item.foods!.name_ar,
-          caloriesPer100g: item.foods!.calories_per_100g,
-          proteinPer100g: item.foods!.protein_per_100g,
-          carbsPer100g: item.foods!.carbs_per_100g,
-          fatPer100g: item.foods!.fat_per_100g,
-          imageUrl: item.foods!.image_url,
+          id: item.nutrition_ingredients!.id,
+          nameEn: item.nutrition_ingredients!.name_en,
+          nameAr: item.nutrition_ingredients!.name_ar,
+          caloriesPer100g: item.nutrition_ingredients!.calories_per_100g,
+          proteinPer100g: item.nutrition_ingredients!.protein_per_100g,
+          carbsPer100g: item.nutrition_ingredients!.carbs_per_100g,
+          fatPer100g: item.nutrition_ingredients!.fat_per_100g,
+          imageUrl: item.nutrition_ingredients!.image_url,
         },
         quantityG: item.quantity_g,
       })),
@@ -188,29 +193,43 @@ export default async function FoodLogPage({
   const entries: DiaryEntry[] = ((todayLogsRaw ?? []) as unknown as LogRow[]).map((row) => ({
     id: row.id,
     slot: row.meal_slot ?? "snack",
-    nameEn: row.foods?.name_en ?? row.custom_name,
-    nameAr: row.foods?.name_ar ?? row.custom_name,
+    nameEn: row.nutrition_ingredients?.name_en ?? row.custom_name,
+    nameAr: row.nutrition_ingredients?.name_ar ?? row.custom_name,
     quantityG: row.quantity_g,
     calories: row.calories,
     proteinG: row.protein_g,
     carbsG: row.carbs_g,
     fatG: row.fat_g,
-    imageUrl: row.foods?.image_url ?? null,
+    imageUrl: row.nutrition_ingredients?.image_url ?? null,
   }));
 
   function toDiaryFood(row: FoodJoinRow): DiaryFood | null {
-    if (!row.foods) return null;
+    const ing = row.nutrition_ingredients;
+    if (!ing) return null;
     return {
-      id: row.foods.id,
-      nameEn: row.foods.name_en,
-      nameAr: row.foods.name_ar,
-      caloriesPer100g: row.foods.calories_per_100g,
-      proteinPer100g: row.foods.protein_per_100g,
-      carbsPer100g: row.foods.carbs_per_100g,
-      fatPer100g: row.foods.fat_per_100g,
-      imageUrl: row.foods.image_url,
+      id: ing.id,
+      nameEn: ing.name_en,
+      nameAr: ing.name_ar,
+      caloriesPer100g: ing.calories_per_100g,
+      proteinPer100g: ing.protein_per_100g,
+      carbsPer100g: ing.carbs_per_100g,
+      fatPer100g: ing.fat_per_100g,
+      imageUrl: ing.image_url,
     };
   }
+
+  const ingredients: DiaryFood[] = ((ingredientsRaw ?? []) as unknown as FoodJoinRow["nutrition_ingredients"][])
+    .filter((i): i is NonNullable<typeof i> => i !== null)
+    .map((i) => ({
+      id: i.id,
+      nameEn: i.name_en,
+      nameAr: i.name_ar,
+      caloriesPer100g: i.calories_per_100g,
+      proteinPer100g: i.protein_per_100g,
+      carbsPer100g: i.carbs_per_100g,
+      fatPer100g: i.fat_per_100g,
+      imageUrl: i.image_url,
+    }));
 
   const favorites = ((favoritesRaw ?? []) as unknown as FoodJoinRow[])
     .map(toDiaryFood)
@@ -233,6 +252,7 @@ export default async function FoodLogPage({
       entries={entries}
       recents={recents}
       favorites={favorites}
+      ingredients={ingredients}
       planMeals={planMeals}
       hasPreviousDay={!!previousRow}
       isToday={isToday}

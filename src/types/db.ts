@@ -197,6 +197,20 @@ export type Database = {
           cooking_skill: string | null;
           favorite_foods: string[] | null;
           diet_intensity: string;
+          // migration 028 — professional 20-question answers
+          target_weight_kg: number | null;
+          body_fat_level: string | null;
+          daily_steps: string | null;
+          training_days: string | null;
+          training_time: string | null;
+          cooking_pref: string | null;
+          digestion: string[] | null;
+          water_intake: string | null;
+          supplements: string[] | null;
+          tracking_experience: string | null;
+          food_restrictions: string[] | null;
+          avoid_foods: string[] | null;
+          selected_template_code: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -219,6 +233,19 @@ export type Database = {
           cooking_skill?: string | null;
           favorite_foods?: string[] | null;
           diet_intensity?: string;
+          target_weight_kg?: number | null;
+          body_fat_level?: string | null;
+          daily_steps?: string | null;
+          training_days?: string | null;
+          training_time?: string | null;
+          cooking_pref?: string | null;
+          digestion?: string[] | null;
+          water_intake?: string | null;
+          supplements?: string[] | null;
+          tracking_experience?: string | null;
+          food_restrictions?: string[] | null;
+          avoid_foods?: string[] | null;
+          selected_template_code?: string | null;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["diet_profiles"]["Insert"]>;
@@ -254,130 +281,90 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["macro_targets"]["Insert"]>;
         Relationships: [];
       };
-      foods: {
+      // migration 028 — the large `foods` catalog + `recipes`, `recipe_ingredients`
+      // and `user_foods` were dropped and replaced by the curated ingredient set.
+      nutrition_ingredients: {
         Row: {
           id: string;
+          name_en: string;
           name_ar: string;
-          name_fr: string | null;
-          name_en: string | null;
-          category: string;
+          slot: string;
           calories_per_100g: number;
           protein_per_100g: number;
           carbs_per_100g: number;
           fat_per_100g: number;
-          fiber_per_100g: number | null;
+          fiber_per_100g: number;
           typical_serving_g: number | null;
-          price_tnd_per_kg: number | null;
-          price_tier: string | null;
-          allergens: string[] | null;
-          tags: string[] | null;
-          is_common: boolean | null;
+          budget_tier: string;
+          tags: string[];
+          is_slot_default: boolean;
           image_url: string | null;
           created_at: string | null;
         };
         Insert: {
-          id?: string;
+          id: string;
+          name_en: string;
           name_ar: string;
-          name_fr?: string | null;
-          name_en?: string | null;
-          category: string;
+          slot: string;
           calories_per_100g: number;
           protein_per_100g: number;
           carbs_per_100g: number;
           fat_per_100g: number;
-          fiber_per_100g?: number | null;
+          fiber_per_100g?: number;
           typical_serving_g?: number | null;
-          price_tnd_per_kg?: number | null;
-          price_tier?: string | null;
-          allergens?: string[] | null;
-          tags?: string[] | null;
-          is_common?: boolean | null;
+          budget_tier?: string;
+          tags?: string[];
+          is_slot_default?: boolean;
           image_url?: string | null;
           created_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["foods"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["nutrition_ingredients"]["Insert"]>;
         Relationships: [];
       };
-      recipes: {
+      meal_templates: {
         Row: {
           id: string;
-          name_ar: string;
-          name_fr: string | null;
-          name_en: string | null;
-          category: string | null;
-          typical_serving_g: number | null;
-          calories_per_100g: number | null;
-          protein_per_100g: number | null;
-          carbs_per_100g: number | null;
-          fat_per_100g: number | null;
-          fiber_per_100g: number | null;
-          price_tier: string | null;
-          allergens: string[] | null;
-          tags: string[] | null;
+          title_en: string;
+          title_ar: string;
+          cooking_tier: string;
+          budget_tier: string;
+          notes_en: string | null;
+          notes_ar: string | null;
           created_at: string | null;
         };
         Insert: {
-          id?: string;
-          name_ar: string;
-          name_fr?: string | null;
-          name_en?: string | null;
-          category?: string | null;
-          typical_serving_g?: number | null;
-          calories_per_100g?: number | null;
-          protein_per_100g?: number | null;
-          carbs_per_100g?: number | null;
-          fat_per_100g?: number | null;
-          fiber_per_100g?: number | null;
-          price_tier?: string | null;
-          allergens?: string[] | null;
-          tags?: string[] | null;
+          id: string;
+          title_en: string;
+          title_ar: string;
+          cooking_tier?: string;
+          budget_tier?: string;
+          notes_en?: string | null;
+          notes_ar?: string | null;
           created_at?: string | null;
         };
-        Update: Partial<Database["public"]["Tables"]["recipes"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["meal_templates"]["Insert"]>;
         Relationships: [];
       };
-      recipe_ingredients: {
+      meal_template_slots: {
         Row: {
           id: string;
-          recipe_id: string;
-          food_id: string;
-          quantity_g: number;
-          order_index: number | null;
+          template_id: string;
+          meal_key: string;
+          order_index: number;
+          ingredient_id: string;
+          role: string;
+          is_optional: boolean;
         };
         Insert: {
           id?: string;
-          recipe_id: string;
-          food_id: string;
-          quantity_g: number;
-          order_index?: number | null;
+          template_id: string;
+          meal_key: string;
+          order_index: number;
+          ingredient_id: string;
+          role: string;
+          is_optional?: boolean;
         };
-        Update: Partial<
-          Database["public"]["Tables"]["recipe_ingredients"]["Insert"]
-        >;
-        Relationships: [];
-      };
-      user_foods: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          calories_per_100g: number;
-          protein_per_100g: number;
-          carbs_per_100g: number;
-          fat_per_100g: number;
-          created_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          calories_per_100g: number;
-          protein_per_100g: number;
-          carbs_per_100g: number;
-          fat_per_100g: number;
-          created_at?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["user_foods"]["Insert"]>;
+        Update: Partial<Database["public"]["Tables"]["meal_template_slots"]["Insert"]>;
         Relationships: [];
       };
       meal_plans: {
@@ -390,6 +377,7 @@ export type Database = {
           generated_at: string | null;
           user_modified: boolean | null;
           warnings_acknowledged: Json | null;
+          template_code: string | null;
         };
         Insert: {
           id?: string;
@@ -400,6 +388,7 @@ export type Database = {
           generated_at?: string | null;
           user_modified?: boolean | null;
           warnings_acknowledged?: Json | null;
+          template_code?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
         Relationships: [];
@@ -411,6 +400,7 @@ export type Database = {
           day_number: number;
           meal_type: string;
           order_index: number;
+          slot_label: string | null;
         };
         Insert: {
           id?: string;
@@ -418,6 +408,7 @@ export type Database = {
           day_number?: number;
           meal_type: string;
           order_index: number;
+          slot_label?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["meal_plan_meals"]["Insert"]
@@ -428,19 +419,19 @@ export type Database = {
         Row: {
           id: string;
           meal_id: string;
-          food_id: string | null;
-          recipe_id: string | null;
-          user_food_id: string | null;
+          ingredient_id: string | null;
           quantity_g: number;
+          role: string | null;
+          is_optional: boolean;
           is_user_modified: boolean | null;
         };
         Insert: {
           id?: string;
           meal_id: string;
-          food_id?: string | null;
-          recipe_id?: string | null;
-          user_food_id?: string | null;
+          ingredient_id?: string | null;
           quantity_g: number;
+          role?: string | null;
+          is_optional?: boolean;
           is_user_modified?: boolean | null;
         };
         Update: Partial<
@@ -741,7 +732,7 @@ export type Database = {
           logged_at: string;
           log_date: string;
           meal_slot: string | null;
-          food_id: string | null;
+          ingredient_id: string | null;
           custom_name: string | null;
           quantity_g: number | null;
           calories: number;
@@ -757,7 +748,7 @@ export type Database = {
           logged_at?: string;
           log_date?: string;
           meal_slot?: string | null;
-          food_id?: string | null;
+          ingredient_id?: string | null;
           custom_name?: string | null;
           quantity_g?: number | null;
           calories: number;
@@ -795,12 +786,12 @@ export type Database = {
       food_favorites: {
         Row: {
           user_id: string;
-          food_id: string;
+          ingredient_id: string;
           created_at: string | null;
         };
         Insert: {
           user_id: string;
-          food_id: string;
+          ingredient_id: string;
           created_at?: string | null;
         };
         Update: Partial<

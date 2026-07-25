@@ -24,7 +24,7 @@ function serverToday(): string {
  */
 export async function logFood(input: {
   slot: MealSlot;
-  foodId: string;
+  ingredientId: string;
   quantityG: number;
   entryMethod: ManualEntryMethod;
 }): Promise<ActionResult> {
@@ -42,9 +42,9 @@ export async function logFood(input: {
   }
 
   const { data: food } = await supabase
-    .from("foods")
+    .from("nutrition_ingredients")
     .select("id, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-    .eq("id", input.foodId)
+    .eq("id", input.ingredientId)
     .maybeSingle();
   if (!food) return fail("Food not found.");
 
@@ -53,7 +53,7 @@ export async function logFood(input: {
     user_id: user.id,
     log_date: serverToday(),
     meal_slot: input.slot,
-    food_id: food.id,
+    ingredient_id: food.id,
     quantity_g: quantity,
     calories: Math.round((food.calories_per_100g ?? 0) * factor * 10) / 10,
     protein_g: Math.round((food.protein_per_100g ?? 0) * factor * 10) / 10,
@@ -74,9 +74,11 @@ export async function logFood(input: {
   return ok(undefined);
 }
 
-/** Plan meal_type → diary slot (snack_1/snack_2 both land in "snack"). */
+/** Template meal_key → diary slot. Pre/post-workout + snack land in "snack". */
 function planTypeToSlot(mealType: string): MealSlot {
-  if (mealType === "breakfast" || mealType === "lunch" || mealType === "dinner") return mealType;
+  if (mealType === "meal_1" || mealType === "breakfast") return "breakfast";
+  if (mealType === "meal_2" || mealType === "lunch") return "lunch";
+  if (mealType === "meal_3" || mealType === "last_meal" || mealType === "dinner") return "dinner";
   return "snack";
 }
 
@@ -99,9 +101,9 @@ export async function logPlanMeal(
     meal_type: string;
     meal_plans: { user_id: string } | null;
     meal_plan_items: {
-      food_id: string | null;
+      ingredient_id: string | null;
       quantity_g: number;
-      foods: {
+      nutrition_ingredients: {
         calories_per_100g: number | null;
         protein_per_100g: number | null;
         carbs_per_100g: number | null;
@@ -113,7 +115,7 @@ export async function logPlanMeal(
   const { data: mealRaw } = await supabase
     .from("meal_plan_meals")
     .select(
-      "id, meal_type, meal_plans!inner(user_id), meal_plan_items(food_id, quantity_g, foods(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
+      "id, meal_type, meal_plans!inner(user_id), meal_plan_items(ingredient_id, quantity_g, nutrition_ingredients(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
     )
     .eq("id", mealId)
     .eq("meal_plans.user_id", user.id)
@@ -121,7 +123,7 @@ export async function logPlanMeal(
   if (!mealRaw) return fail("Meal not found.");
 
   const meal = mealRaw as unknown as PlanMealRow;
-  const items = (meal.meal_plan_items ?? []).filter((i) => i.foods);
+  const items = (meal.meal_plan_items ?? []).filter((i) => i.nutrition_ingredients);
   if (items.length === 0) return fail("This meal has no foods yet.");
 
   const slot = planTypeToSlot(meal.meal_type);
@@ -130,16 +132,17 @@ export async function logPlanMeal(
   const { error } = await supabase.from("meal_logs").insert(
     items.map((item) => {
       const factor = (item.quantity_g ?? 0) / 100;
+      const ing = item.nutrition_ingredients!;
       return {
         user_id: user.id,
         log_date: today,
         meal_slot: slot,
-        food_id: item.food_id,
+        ingredient_id: item.ingredient_id,
         quantity_g: item.quantity_g,
-        calories: Math.round((item.foods!.calories_per_100g ?? 0) * factor * 10) / 10,
-        protein_g: Math.round((item.foods!.protein_per_100g ?? 0) * factor * 10) / 10,
-        carbs_g: Math.round((item.foods!.carbs_per_100g ?? 0) * factor * 10) / 10,
-        fat_g: Math.round((item.foods!.fat_per_100g ?? 0) * factor * 10) / 10,
+        calories: Math.round((ing.calories_per_100g ?? 0) * factor * 10) / 10,
+        protein_g: Math.round((ing.protein_per_100g ?? 0) * factor * 10) / 10,
+        carbs_g: Math.round((ing.carbs_per_100g ?? 0) * factor * 10) / 10,
+        fat_g: Math.round((ing.fat_per_100g ?? 0) * factor * 10) / 10,
         entry_method: "template",
       };
     }),
@@ -223,7 +226,7 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
 
   const { data: entries } = await supabase
     .from("meal_logs")
-    .select("meal_slot, food_id, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g")
+    .select("meal_slot, ingredient_id, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g")
     .eq("user_id", user.id)
     .eq("log_date", lastDayRow.log_date);
   if (!entries || entries.length === 0) return fail("No previous day to copy.");
@@ -233,7 +236,7 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
       user_id: user.id,
       log_date: today,
       meal_slot: e.meal_slot,
-      food_id: e.food_id,
+      ingredient_id: e.ingredient_id,
       custom_name: e.custom_name,
       quantity_g: e.quantity_g,
       calories: e.calories,
@@ -276,7 +279,7 @@ export async function removeMealLog(logId: string): Promise<ActionResult> {
 }
 
 export async function toggleFavoriteFood(
-  foodId: string,
+  ingredientId: string,
   favorite: boolean,
 ): Promise<ActionResult> {
   const supabase = await createClient();
@@ -289,14 +292,14 @@ export async function toggleFavoriteFood(
     ? (
         await supabase
           .from("food_favorites")
-          .upsert({ user_id: user.id, food_id: foodId }, { onConflict: "user_id,food_id" })
+          .upsert({ user_id: user.id, ingredient_id: ingredientId }, { onConflict: "user_id,ingredient_id" })
       )
     : (
         await supabase
           .from("food_favorites")
           .delete()
           .eq("user_id", user.id)
-          .eq("food_id", foodId)
+          .eq("ingredient_id", ingredientId)
       );
   if (error) return fail(error.message);
 

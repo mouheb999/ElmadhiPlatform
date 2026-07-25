@@ -4,9 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t, pick } from "@/lib/i18n";
 import { RationaleCard } from "@/components/shared/rationale-card";
-import { IntensityToggle } from "@/components/diet/intensity-toggle";
 import { Button } from "@/components/ui/button";
-import type { Goal } from "@/lib/algorithms/diet-strategy";
 import type { Bilingual } from "@/lib/algorithms/diet-strategy";
 import type { Json } from "@/types/db";
 
@@ -26,7 +24,7 @@ export default async function DietRationalePage() {
 
   const { data: dietProfile } = await supabase
     .from("diet_profiles")
-    .select("id, goal, diet_intensity")
+    .select("id, goal")
     .eq("user_id", user!.id)
     .eq("is_active", true)
     .maybeSingle();
@@ -70,22 +68,6 @@ export default async function DietRationalePage() {
         <RationaleCard headline={`${macros.carbs_g}g`} body={pick(locale, asBilingual(r.carbs).en, asBilingual(r.carbs).ar)} />
         <RationaleCard headline={`${macros.fat_g}g`} body={pick(locale, asBilingual(r.fat).en, asBilingual(r.fat).ar)} />
       </div>
-
-      <IntensityToggle
-        dietProfileId={dietProfile.id}
-        goal={dietProfile.goal as Goal}
-        currentIntensity={dietProfile.diet_intensity}
-        locale={locale}
-        warning={
-          dietProfile.goal === "lose_fat"
-            ? locale === "tn"
-              ? "أسرع، لكن أصعب: طاقة أقل للتمرين، احتمال تخسر عضل أكثر، وما ينفعش تكمل فيه أكثر من شهرين تقريبًا."
-              : "Faster, but harder: less training energy, higher risk of muscle loss, not meant to last more than ~2 months."
-            : locale === "tn"
-              ? "باش تزيد دهون أكثر، والتنشيف بعدها يكون أطول وأصعب."
-              : "You'll gain noticeably more fat, and the cut afterward will be longer and harder."
-        }
-      />
 
       <Button asChild size="lg" className="mt-2">
         <Link href="/diet/plan">{t(locale, "diet.see_plan")}</Link>

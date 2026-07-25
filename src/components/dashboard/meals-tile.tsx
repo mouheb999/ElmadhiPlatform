@@ -9,11 +9,16 @@ export type MealsTileMeal = {
 };
 
 const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  meal_1: { en: "Meal 1", ar: "الوجبة 1" },
+  snack: { en: "Snack", ar: "وجبة خفيفة" },
+  meal_2: { en: "Meal 2", ar: "الوجبة 2" },
+  meal_3: { en: "Meal 3", ar: "الوجبة 3" },
+  pre_workout: { en: "Pre-workout", ar: "قبل التمرين" },
+  post_workout: { en: "Post-workout", ar: "بعد التمرين" },
+  last_meal: { en: "Last meal", ar: "آخر وجبة" },
   breakfast: { en: "Breakfast", ar: "الفطور" },
   lunch: { en: "Lunch", ar: "الغدا" },
   dinner: { en: "Dinner", ar: "العشا" },
-  snack_1: { en: "Snack", ar: "وجبة خفيفة" },
-  snack_2: { en: "Snack 2", ar: "وجبة خفيفة ٢" },
 };
 
 /** Today's meals from the active plan, one glance, one tap to the full plan. */

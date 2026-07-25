@@ -45,9 +45,9 @@ export default async function DietPlanPage() {
     meal_type: string;
     meal_plan_items: {
       id: string;
-      food_id: string | null;
+      ingredient_id: string | null;
       quantity_g: number;
-      foods: {
+      nutrition_ingredients: {
         name_en: string | null;
         name_ar: string;
         calories_per_100g: number;
@@ -59,13 +59,19 @@ export default async function DietPlanPage() {
     }[];
   };
 
-  const { data: mealRowsRaw, error: mealRowsError } = await supabase
-    .from("meal_plan_meals")
-    .select(
-      "id, meal_type, order_index, meal_plan_items(id, food_id, quantity_g, foods(name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
-    )
-    .eq("meal_plan_id", plan.id)
-    .order("order_index", { ascending: true });
+  const [{ data: mealRowsRaw, error: mealRowsError }, { data: ingredientsRaw }] = await Promise.all([
+    supabase
+      .from("meal_plan_meals")
+      .select(
+        "id, meal_type, order_index, meal_plan_items(id, ingredient_id, quantity_g, nutrition_ingredients(name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
+      )
+      .eq("meal_plan_id", plan.id)
+      .order("order_index", { ascending: true }),
+    supabase
+      .from("nutrition_ingredients")
+      .select("id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url")
+      .order("slot", { ascending: true }),
+  ]);
 
   if (mealRowsError) {
     return <LoadFailure detail={mealRowsError.message} />;
@@ -77,19 +83,30 @@ export default async function DietPlanPage() {
     id: meal.id,
     mealType: meal.meal_type,
     items: (meal.meal_plan_items ?? [])
-      .filter((item) => item.foods)
+      .filter((item) => item.nutrition_ingredients)
       .map((item) => ({
         id: item.id,
-        foodId: item.food_id!,
-        nameEn: item.foods!.name_en,
-        nameAr: item.foods!.name_ar,
+        ingredientId: item.ingredient_id!,
+        nameEn: item.nutrition_ingredients!.name_en,
+        nameAr: item.nutrition_ingredients!.name_ar,
         quantityG: item.quantity_g,
-        caloriesPer100g: item.foods!.calories_per_100g,
-        proteinPer100g: item.foods!.protein_per_100g,
-        carbsPer100g: item.foods!.carbs_per_100g,
-        fatPer100g: item.foods!.fat_per_100g,
-        imageUrl: item.foods!.image_url,
+        caloriesPer100g: item.nutrition_ingredients!.calories_per_100g,
+        proteinPer100g: item.nutrition_ingredients!.protein_per_100g,
+        carbsPer100g: item.nutrition_ingredients!.carbs_per_100g,
+        fatPer100g: item.nutrition_ingredients!.fat_per_100g,
+        imageUrl: item.nutrition_ingredients!.image_url,
       })),
+  }));
+
+  const ingredients = (ingredientsRaw ?? []).map((i) => ({
+    id: i.id,
+    nameEn: i.name_en,
+    nameAr: i.name_ar,
+    caloriesPer100g: i.calories_per_100g,
+    proteinPer100g: i.protein_per_100g,
+    carbsPer100g: i.carbs_per_100g,
+    fatPer100g: i.fat_per_100g,
+    imageUrl: i.image_url,
   }));
 
   return (
@@ -98,6 +115,7 @@ export default async function DietPlanPage() {
       planId={plan.id}
       target={{ calories: macros.calories, proteinG: macros.protein_g, carbsG: macros.carbs_g, fatG: macros.fat_g }}
       initialMeals={meals}
+      ingredients={ingredients}
     />
   );
 }

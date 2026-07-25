@@ -1,8 +1,12 @@
 import { differenceInYears } from "date-fns";
-import { resolveDietStrategy, type DietIntensity, type Goal } from "./diet-strategy";
-import type { Bilingual } from "./diet-strategy";
+import {
+  resolveGoalStrategy,
+  type BodyFatLevel,
+  type Bilingual,
+  type Goal,
+} from "./diet-strategy";
 
-/** kcal per gram — from AbuzDietPlan.pdf p.2. */
+/** kcal per gram. */
 export const KCAL_PER_G_PROTEIN = 4;
 export const KCAL_PER_G_CARBS = 4;
 export const KCAL_PER_G_FAT = 9;
@@ -17,6 +21,17 @@ const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
   very_active: 1.9,
 };
 
+/** Q8 daily-steps band → small additive kcal on top of the activity factor. */
+export type DailySteps = "under_4k" | "4k_7k" | "7k_10k" | "over_10k" | "unknown";
+
+const STEP_BONUS_KCAL: Record<DailySteps, number> = {
+  under_4k: 0,
+  "4k_7k": 100,
+  "7k_10k": 200,
+  over_10k: 350,
+  unknown: 0,
+};
+
 export type MacroProfileInput = {
   gender: "male" | "female";
   birthDate: Date;
@@ -24,7 +39,8 @@ export type MacroProfileInput = {
   weightKg: number;
   activityLevel: ActivityLevel;
   goal: Goal;
-  dietIntensity: DietIntensity;
+  bodyFatLevel: BodyFatLevel;
+  dailySteps: DailySteps;
 };
 
 export type MacroTargets = {
@@ -35,10 +51,7 @@ export type MacroTargets = {
   carbsG: number;
   fatG: number;
   fiberG: number;
-  strategyKey: string;
-  strategyLabel: Bilingual;
-  strategyRationale: Bilingual;
-  strategyWarning: Bilingual | null;
+  goalLabel: Bilingual;
   rationale: {
     bmr: Bilingual;
     tdee: Bilingual;
@@ -48,19 +61,6 @@ export type MacroTargets = {
     carbs: Bilingual;
   };
 };
-
-/** Protein target from the source material: 1.6-2.2 g/kg depending on goal. */
-function proteinPerKgFor(goal: Goal): number {
-  switch (goal) {
-    case "build_muscle":
-    case "recomp":
-      return 2.2;
-    case "lose_fat":
-      return 2.0;
-    case "maintain":
-      return 1.8;
-  }
-}
 
 export function calculateMacros(input: MacroProfileInput): MacroTargets {
   const age = differenceInYears(new Date(), input.birthDate);
@@ -73,16 +73,28 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
       ? 10 * w + 6.25 * h - 5 * age + 5
       : 10 * w + 6.25 * h - 5 * age - 161;
 
-  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[input.activityLevel]);
+  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[input.activityLevel] + STEP_BONUS_KCAL[input.dailySteps]);
 
-  const strategy = resolveDietStrategy(input.goal, input.dietIntensity);
-  const calories = Math.max(1200, tdee + strategy.calorieAdjustment);
+  const strategy = resolveGoalStrategy(input.goal, input.bodyFatLevel);
 
-  const proteinG = Math.round(w * proteinPerKgFor(input.goal));
-  const fatG = Math.round((calories * 0.25) / KCAL_PER_G_FAT);
-  const carbsG = Math.round(
-    (calories - proteinG * KCAL_PER_G_PROTEIN - fatG * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS,
+  // 1. Calories.
+  const calories = Math.max(1200, Math.round(tdee * (1 + strategy.calorieFactor)));
+
+  // 2. Protein (g/kg bodyweight).
+  const proteinG = Math.round(w * strategy.proteinPerKg);
+
+  // 3. Fat (% of calories, floor 0.5 g/kg).
+  const fatFromPct = (calories * strategy.fatCaloriePct) / KCAL_PER_G_FAT;
+  const fatFloor = 0.5 * w;
+  const fatG = Math.round(Math.max(fatFromPct, fatFloor));
+
+  // 4. Carbs = remainder.
+  const carbsG = Math.max(
+    0,
+    Math.round((calories - proteinG * KCAL_PER_G_PROTEIN - fatG * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS),
   );
+
+  // 5. Fiber from final calories.
   const fiberG = Math.round((calories / 1000) * 14);
 
   const delta = calories - tdee;
@@ -95,10 +107,7 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
     carbsG,
     fatG,
     fiberG,
-    strategyKey: strategy.key,
-    strategyLabel: strategy.label,
-    strategyRationale: strategy.rationale,
-    strategyWarning: strategy.warning ?? null,
+    goalLabel: strategy.label,
     rationale: {
       bmr: {
         en: `Your body burns about ${Math.round(bmr)} kcal a day just to exist — breathing, organs, brain.`,
@@ -111,13 +120,13 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
       target: {
         en:
           delta === 0
-            ? `To stay the same, you eat what you burn: ${calories} kcal a day.`
+            ? `${strategy.label.en}: you eat what you burn — ${calories} kcal a day.`
             : delta < 0
               ? `${strategy.label.en}: we cut ${Math.abs(delta)} kcal from your maintenance — that's ${calories} kcal a day.`
               : `${strategy.label.en}: we add ${delta} kcal to your maintenance — that's ${calories} kcal a day.`,
         ar:
           delta === 0
-            ? `باش تبقى في نفس الوزن، تاكل قد ما تحرق: ${calories} سعرة في اليوم.`
+            ? `${strategy.label.ar}: تاكل قد ما تحرق — ${calories} سعرة في اليوم.`
             : delta < 0
               ? `${strategy.label.ar}: ننقصو ${Math.abs(delta)} سعرة من الثبات متاعك — يعني ${calories} سعرة في اليوم.`
               : `${strategy.label.ar}: نزيدو ${delta} سعرة على الثبات متاعك — يعني ${calories} سعرة في اليوم.`,

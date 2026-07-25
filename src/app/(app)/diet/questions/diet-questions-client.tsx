@@ -4,182 +4,186 @@ import { useRouter } from "next/navigation";
 import { QuestionWizard, type WizardStep } from "@/components/shared/question-wizard";
 import { OptionCardGroup } from "@/components/shared/option-card";
 import { Input } from "@/components/ui/input";
-import { FoodSearch, type FoodResult } from "@/components/diet/food-search";
 import { submitDietQuestions, type DietAnswers } from "@/app/actions/diet";
-import { t, type Locale } from "@/lib/i18n";
+import { t, type Locale, type StringKey } from "@/lib/i18n";
 
-type WizardAnswers = Omit<DietAnswers, "dislikedFoodIds"> & { dislikedFoods: FoodResult[] };
+type WizardAnswers = DietAnswers;
 
 export function DietQuestionsClient({ locale }: { locale: Locale }) {
   const router = useRouter();
+  const tr = (k: StringKey) => t(locale, k);
+
+  const numberStep = (
+    key: "age" | "heightCm" | "weightKg" | "targetWeightKg",
+    titleKey: StringKey,
+    mode: "numeric" | "decimal" = "numeric",
+  ): WizardStep<WizardAnswers> => ({
+    key,
+    title: tr(titleKey),
+    isValid: (a) => !!a[key] && (a[key] as number) > 0,
+    render: ({ answers, setAnswer }) => (
+      <Input
+        type="number"
+        inputMode={mode}
+        value={(answers[key] as number) ?? ""}
+        onChange={(e) => setAnswer(key, Number(e.target.value) as never)}
+        className="text-center text-2xl"
+      />
+    ),
+  });
+
+  const choice = <K extends keyof WizardAnswers>(
+    key: K,
+    titleKey: StringKey,
+    options: { value: string; label: string }[],
+    opts?: { multi?: boolean; optional?: boolean; visibleIf?: (a: Partial<WizardAnswers>) => boolean },
+  ): WizardStep<WizardAnswers> => ({
+    key: key as keyof WizardAnswers & string,
+    title: tr(titleKey),
+    optional: opts?.optional,
+    visibleIf: opts?.visibleIf,
+    isValid: opts?.optional ? () => true : undefined,
+    render: ({ answers, setAnswer }) => (
+      <OptionCardGroup
+        multi={opts?.multi}
+        options={options}
+        value={
+          opts?.multi
+            ? ((answers[key] as string[]) ?? [])
+            : answers[key] != null
+              ? String(answers[key])
+              : undefined
+        }
+        onChange={(v) => setAnswer(key, v as never)}
+      />
+    ),
+  });
+
+  const opt = (values: [string, StringKey][]) => values.map(([value, k]) => ({ value, label: tr(k) }));
 
   const steps: WizardStep<WizardAnswers>[] = [
-    {
-      key: "gender",
-      title: t(locale, "diet.q_gender"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "male", label: t(locale, "diet.gender_male") },
-            { value: "female", label: t(locale, "diet.gender_female") },
-          ]}
-          value={answers.gender}
-          onChange={(v) => setAnswer("gender", v as WizardAnswers["gender"])}
-        />
-      ),
-    },
-    {
-      key: "age",
-      title: t(locale, "diet.q_birthdate"),
-      isValid: (a) => !!a.age && a.age > 0,
-      render: ({ answers, setAnswer }) => (
-        <Input
-          type="number"
-          inputMode="numeric"
-          value={answers.age ?? ""}
-          onChange={(e) => setAnswer("age", Number(e.target.value))}
-          className="text-center text-2xl"
-        />
-      ),
-    },
-    {
-      key: "heightCm",
-      title: t(locale, "diet.q_height"),
-      isValid: (a) => !!a.heightCm && a.heightCm > 0,
-      render: ({ answers, setAnswer }) => (
-        <Input
-          type="number"
-          inputMode="numeric"
-          value={answers.heightCm ?? ""}
-          onChange={(e) => setAnswer("heightCm", Number(e.target.value))}
-          className="text-center text-2xl"
-        />
-      ),
-    },
-    {
-      key: "weightKg",
-      title: t(locale, "diet.q_weight"),
-      isValid: (a) => !!a.weightKg && a.weightKg > 0,
-      render: ({ answers, setAnswer }) => (
-        <Input
-          type="number"
-          inputMode="decimal"
-          value={answers.weightKg ?? ""}
-          onChange={(e) => setAnswer("weightKg", Number(e.target.value))}
-          className="text-center text-2xl"
-        />
-      ),
-    },
-    {
-      key: "goal",
-      title: t(locale, "diet.q_goal"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "lose_fat", label: t(locale, "diet.goal_lose_fat") },
-            { value: "maintain", label: t(locale, "diet.goal_maintain") },
-            { value: "build_muscle", label: t(locale, "diet.goal_build_muscle") },
-            { value: "recomp", label: t(locale, "diet.goal_recomp") },
-          ]}
-          value={answers.goal}
-          onChange={(v) => setAnswer("goal", v as WizardAnswers["goal"])}
-        />
-      ),
-    },
-    {
-      key: "activityLevel",
-      title: t(locale, "diet.q_activity"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "sedentary", label: t(locale, "diet.activity_sedentary") },
-            { value: "light", label: t(locale, "diet.activity_light") },
-            { value: "moderate", label: t(locale, "diet.activity_moderate") },
-            { value: "active", label: t(locale, "diet.activity_active") },
-            { value: "very_active", label: t(locale, "diet.activity_very_active") },
-          ]}
-          value={answers.activityLevel}
-          onChange={(v) => setAnswer("activityLevel", v as WizardAnswers["activityLevel"])}
-        />
-      ),
-    },
-    {
-      key: "mealsPerDay",
-      title: t(locale, "diet.q_meals"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[2, 3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))}
-          value={answers.mealsPerDay ? String(answers.mealsPerDay) : undefined}
-          onChange={(v) => setAnswer("mealsPerDay", Number(v))}
-        />
-      ),
-    },
-    {
-      key: "budgetLevel",
-      title: t(locale, "diet.q_budget"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "low", label: t(locale, "diet.budget_low") },
-            { value: "medium", label: t(locale, "diet.budget_medium") },
-            { value: "high", label: t(locale, "diet.budget_high") },
-          ]}
-          value={answers.budgetLevel}
-          onChange={(v) => setAnswer("budgetLevel", v as WizardAnswers["budgetLevel"])}
-        />
-      ),
-    },
-    {
-      key: "allergies",
-      title: t(locale, "diet.q_allergies"),
-      optional: true,
-      isValid: () => true,
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          multi
-          options={["lactose", "gluten", "nuts", "shellfish", "eggs"].map((a) => ({ value: a, label: a }))}
-          value={answers.allergies ?? []}
-          onChange={(v) => setAnswer("allergies", v as string[])}
-        />
-      ),
-    },
-    {
-      key: "dietaryRestriction",
-      title: t(locale, "diet.q_restriction"),
-      render: ({ answers, setAnswer }) => (
-        <OptionCardGroup
-          options={[
-            { value: "none", label: t(locale, "diet.restriction_none") },
-            { value: "vegetarian", label: t(locale, "diet.restriction_vegetarian") },
-            { value: "pescatarian", label: t(locale, "diet.restriction_pescatarian") },
-            { value: "halal", label: t(locale, "diet.restriction_halal") },
-          ]}
-          value={answers.dietaryRestriction}
-          onChange={(v) => setAnswer("dietaryRestriction", v as string)}
-        />
-      ),
-    },
-    {
-      key: "dislikedFoods",
-      title: t(locale, "diet.q_disliked"),
-      optional: true,
-      isValid: () => true,
-      render: ({ answers, setAnswer }) => (
-        <FoodSearch
-          locale={locale}
-          selected={answers.dislikedFoods ?? []}
-          onChange={(foods) => setAnswer("dislikedFoods", foods)}
-          placeholder={locale === "tn" ? "لوّج على ماكلة…" : "Search foods…"}
-        />
-      ),
-    },
+    choice("goal", "diet.q_goal", opt([
+      ["lose_fat", "diet.goal_lose_fat"],
+      ["build_muscle", "diet.goal_build_muscle"],
+      ["maintain", "diet.goal_maintain"],
+      ["recomp", "diet.goal_recomp"],
+    ])),
+    choice("gender", "diet.q_gender", opt([
+      ["male", "diet.gender_male"],
+      ["female", "diet.gender_female"],
+    ])),
+    numberStep("age", "diet.q_birthdate"),
+    numberStep("heightCm", "diet.q_height"),
+    numberStep("weightKg", "diet.q_weight", "decimal"),
+    numberStep("targetWeightKg", "diet.q_target_weight", "decimal"),
+    choice("bodyFatLevel", "diet.q_bodyfat", opt([
+      ["very_lean", "diet.bodyfat_very_lean"],
+      ["normal", "diet.bodyfat_normal"],
+      ["a_little_fat", "diet.bodyfat_a_little_fat"],
+      ["high", "diet.bodyfat_high"],
+      ["unknown", "diet.bodyfat_unknown"],
+    ])),
+    choice("dailySteps", "diet.q_steps", opt([
+      ["under_4k", "diet.steps_under_4k"],
+      ["4k_7k", "diet.steps_4k_7k"],
+      ["7k_10k", "diet.steps_7k_10k"],
+      ["over_10k", "diet.steps_over_10k"],
+      ["unknown", "diet.steps_unknown"],
+    ])),
+    choice("activityLevel", "diet.q_activity", opt([
+      ["sedentary", "diet.activity_sedentary"],
+      ["light", "diet.activity_light"],
+      ["moderate", "diet.activity_moderate"],
+      ["active", "diet.activity_active"],
+      ["very_active", "diet.activity_very_active"],
+    ])),
+    choice("trainingDays", "diet.q_training_days", opt([
+      ["0", "diet.td_0"],
+      ["1_2", "diet.td_1_2"],
+      ["3_4", "diet.td_3_4"],
+      ["5_6", "diet.td_5_6"],
+      ["7", "diet.td_7"],
+    ])),
+    choice("mealsPerDay", "diet.q_meals", [3, 4, 5].map((n) => ({ value: String(n), label: String(n) }))),
+    choice("trainingTime", "diet.q_training_time", opt([
+      ["morning", "diet.tt_morning"],
+      ["afternoon", "diet.tt_afternoon"],
+      ["evening", "diet.tt_evening"],
+      ["night", "diet.tt_night"],
+      ["changes", "diet.tt_changes"],
+    ]), { visibleIf: (a) => a.trainingDays !== "0" }),
+    choice("budgetLevel", "diet.q_budget", opt([
+      ["low", "diet.budget_low"],
+      ["medium", "diet.budget_medium"],
+      ["high", "diet.budget_high"],
+      ["no_pref", "diet.budget_no_pref"],
+    ])),
+    choice("foodRestrictions", "diet.q_restrictions", opt([
+      ["none", "diet.restr_none"],
+      ["no_red_meat", "diet.restr_no_red_meat"],
+      ["no_fish", "diet.restr_no_fish"],
+      ["no_dairy", "diet.restr_no_dairy"],
+      ["no_eggs", "diet.restr_no_eggs"],
+      ["vegetarian", "diet.restr_vegetarian"],
+    ]), { multi: true }),
+    choice("avoidFoods", "diet.q_avoid", opt([
+      ["chicken", "diet.avoid_chicken"],
+      ["eggs", "diet.avoid_eggs"],
+      ["tuna", "diet.avoid_tuna"],
+      ["fish", "diet.avoid_fish"],
+      ["dairy", "diet.avoid_dairy"],
+      ["rice", "diet.avoid_rice"],
+      ["pasta", "diet.avoid_pasta"],
+      ["bread", "diet.avoid_bread"],
+      ["oats", "diet.avoid_oats"],
+      ["legumes", "diet.avoid_legumes"],
+      ["vegetables", "diet.avoid_vegetables"],
+    ]), { multi: true, optional: true }),
+    choice("cookingPref", "diet.q_cooking", opt([
+      ["fast", "diet.cook_fast"],
+      ["normal", "diet.cook_normal"],
+      ["mealprep", "diet.cook_mealprep"],
+      ["no_pref", "diet.cook_no_pref"],
+    ])),
+    choice("digestion", "diet.q_digestion", opt([
+      ["none", "diet.dig_none"],
+      ["bloating", "diet.dig_bloating"],
+      ["lactose", "diet.dig_lactose"],
+      ["high_fiber", "diet.dig_high_fiber"],
+      ["heavy_preworkout", "diet.dig_heavy_pre"],
+    ]), { multi: true, optional: true }),
+    choice("waterIntake", "diet.q_water", opt([
+      ["lt1", "diet.water_lt1"],
+      ["1_2", "diet.water_1_2"],
+      ["2_3", "diet.water_2_3"],
+      ["gt3", "diet.water_gt3"],
+      ["unknown", "diet.water_unknown"],
+    ]), { optional: true }),
+    choice("supplements", "diet.q_supplements", opt([
+      ["none", "diet.supp_none"],
+      ["whey", "diet.supp_whey"],
+      ["creatine", "diet.supp_creatine"],
+      ["multivitamin", "diet.supp_multivitamin"],
+      ["omega3", "diet.supp_omega3"],
+    ]), { multi: true, optional: true }),
+    choice("trackingExperience", "diet.q_tracking", opt([
+      ["never", "diet.track_never"],
+      ["sometimes", "diet.track_sometimes"],
+      ["expert", "diet.track_expert"],
+    ]), { optional: true }),
   ];
 
-  async function handleComplete(answers: WizardAnswers) {
+  async function handleComplete(raw: WizardAnswers) {
+    // "No preference" budget lets any ingredient through.
+    const budgetLevel = (raw.budgetLevel as string) === "no_pref" ? "high" : raw.budgetLevel;
     const result = await submitDietQuestions({
-      ...answers,
-      allergies: answers.allergies ?? [],
-      dislikedFoodIds: (answers.dislikedFoods ?? []).map((f) => f.id),
+      ...raw,
+      mealsPerDay: Number(raw.mealsPerDay),
+      budgetLevel: budgetLevel as DietAnswers["budgetLevel"],
+      foodRestrictions: raw.foodRestrictions ?? [],
+      avoidFoods: raw.avoidFoods ?? [],
+      digestion: raw.digestion ?? [],
+      supplements: raw.supplements ?? [],
     });
     if (!result.ok) throw new Error(result.error);
     router.push("/diet/rationale");
@@ -190,7 +194,21 @@ export function DietQuestionsClient({ locale }: { locale: Locale }) {
       steps={steps}
       onComplete={handleComplete}
       locale={locale}
-      initialAnswers={{ mealsPerDay: 3, dietaryRestriction: "none", allergies: [], dislikedFoods: [] }}
+      initialAnswers={{
+        mealsPerDay: 3,
+        foodRestrictions: [],
+        avoidFoods: [],
+        digestion: [],
+        supplements: [],
+        bodyFatLevel: "unknown",
+        dailySteps: "unknown",
+        trainingDays: "3_4",
+        trainingTime: "evening",
+        cookingPref: "normal",
+        budgetLevel: "medium",
+        waterIntake: "unknown",
+        trackingExperience: "never",
+      }}
     />
   );
 }

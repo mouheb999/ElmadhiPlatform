@@ -1,13 +1,12 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore, useTransition, useEffect } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Copy, Plus, Search, Star, Trash2, X } from "lucide-react";
 import { MacroRing } from "@/components/diet/macro-ring";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { cn } from "@/lib/utils";
 import { pick, t, type Locale, type StringKey } from "@/lib/i18n";
 import { nutritionFeedback } from "@/lib/algorithms/nutrition-feedback";
@@ -58,7 +57,7 @@ function FoodThumb({ src, size = "h-10 w-10" }: { src: string | null; size?: str
 
 export type DiaryPlanMeal = {
   id: string;
-  mealType: string; // plan meal_type: breakfast/lunch/dinner/snack_1/snack_2
+  mealType: string; // template meal_key: meal_1/snack/meal_2/meal_3/pre_workout/post_workout/last_meal
   items: { food: DiaryFood; quantityG: number }[];
 };
 
@@ -70,16 +69,20 @@ const SLOTS: { key: MealSlot; en: string; ar: string }[] = [
 ];
 
 const PLAN_MEAL_LABELS: Record<string, { en: string; ar: string }> = {
-  breakfast: { en: "Breakfast", ar: "الفطور" },
-  lunch: { en: "Lunch", ar: "الغدا" },
-  dinner: { en: "Dinner", ar: "العشا" },
-  snack_1: { en: "Snack", ar: "وجبة خفيفة" },
-  snack_2: { en: "Snack 2", ar: "وجبة خفيفة ٢" },
+  meal_1: { en: "Meal 1", ar: "الوجبة 1" },
+  snack: { en: "Snack", ar: "وجبة خفيفة" },
+  meal_2: { en: "Meal 2", ar: "الوجبة 2" },
+  meal_3: { en: "Meal 3", ar: "الوجبة 3" },
+  pre_workout: { en: "Pre-workout", ar: "قبل التمرين" },
+  post_workout: { en: "Post-workout", ar: "بعد التمرين" },
+  last_meal: { en: "Last meal", ar: "آخر وجبة" },
 };
 
-/** Same slot mapping as the server action: snack_1/snack_2 → snack. */
+/** Same slot mapping as the server action. */
 function planTypeToSlot(mealType: string): MealSlot {
-  if (mealType === "breakfast" || mealType === "lunch" || mealType === "dinner") return mealType;
+  if (mealType === "meal_1" || mealType === "breakfast") return "breakfast";
+  if (mealType === "meal_2" || mealType === "lunch") return "lunch";
+  if (mealType === "meal_3" || mealType === "last_meal" || mealType === "dinner") return "dinner";
   return "snack";
 }
 
@@ -104,6 +107,7 @@ export function FoodDiary({
   entries,
   recents,
   favorites,
+  ingredients,
   planMeals,
   hasPreviousDay,
   isToday,
@@ -116,6 +120,7 @@ export function FoodDiary({
   entries: DiaryEntry[];
   recents: DiaryFood[];
   favorites: DiaryFood[];
+  ingredients: DiaryFood[];
   planMeals: DiaryPlanMeal[];
   hasPreviousDay: boolean;
   isToday: boolean;
@@ -343,6 +348,7 @@ export function FoodDiary({
           slot={sheetSlot}
           recents={recents}
           favorites={favorites}
+          ingredients={ingredients}
           planMeals={planMeals.filter(
             (meal) => planTypeToSlot(meal.mealType) === sheetSlot && meal.items.length > 0,
           )}
@@ -359,35 +365,12 @@ export function FoodDiary({
 
 // ---------------------------------------------------------------------------
 
-type ApiFood = {
-  id: string;
-  name_ar: string;
-  name_en: string | null;
-  calories_per_100g: number;
-  protein_per_100g: number;
-  carbs_per_100g: number;
-  fat_per_100g: number;
-  image_url: string | null;
-};
-
-function apiToDiaryFood(f: ApiFood): DiaryFood {
-  return {
-    id: f.id,
-    nameEn: f.name_en,
-    nameAr: f.name_ar,
-    caloriesPer100g: f.calories_per_100g,
-    proteinPer100g: f.protein_per_100g,
-    carbsPer100g: f.carbs_per_100g,
-    fatPer100g: f.fat_per_100g,
-    imageUrl: f.image_url,
-  };
-}
-
 function AddFoodSheet({
   locale,
   slot,
   recents,
   favorites,
+  ingredients,
   planMeals,
   onClose,
   onLogged,
@@ -396,6 +379,7 @@ function AddFoodSheet({
   slot: MealSlot;
   recents: DiaryFood[];
   favorites: DiaryFood[];
+  ingredients: DiaryFood[];
   planMeals: DiaryPlanMeal[];
   onClose: () => void;
   onLogged: () => void;
@@ -404,9 +388,6 @@ function AddFoodSheet({
     planMeals.length > 0 ? "plan" : recents.length > 0 ? "recents" : "search",
   );
   const [query, setQuery] = useState("");
-  const debounced = useDebouncedValue(query, 300);
-  const [results, setResults] = useState<DiaryFood[]>([]);
-  const [resultsFor, setResultsFor] = useState<string | null>(null);
   const [favIds, setFavIds] = useState<Set<string>>(() => new Set(favorites.map((f) => f.id)));
   const [selected, setSelected] = useState<DiaryFood | null>(null);
   const [quantity, setQuantity] = useState("100");
@@ -414,24 +395,15 @@ function AddFoodSheet({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const searchTooShort = debounced.trim().length < 2;
-  const loading = tab === "search" && !searchTooShort && resultsFor !== debounced;
-
-  useEffect(() => {
-    if (searchTooShort) return;
-    let cancelled = false;
-    fetch(`/api/foods/search?q=${encodeURIComponent(debounced)}`)
-      .then((r) => r.json())
-      .then((data: { foods: ApiFood[] }) => {
-        if (cancelled) return;
-        setResults((data.foods ?? []).map(apiToDiaryFood));
-        setResultsFor(debounced);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [debounced, searchTooShort]);
+  // The catalog is ~40 items, so search filters it client-side.
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return ingredients.slice(0, 12);
+    return ingredients
+      .filter((f) => (f.nameEn ?? "").toLowerCase().includes(q) || f.nameAr.includes(query.trim()))
+      .slice(0, 20);
+  }, [query, ingredients]);
+  const loading = false;
 
   function toggleFav(food: DiaryFood) {
     const isFav = favIds.has(food.id);
@@ -453,7 +425,7 @@ function AddFoodSheet({
     startTransition(async () => {
       const result = await logFood({
         slot,
-        foodId: selected.id,
+        ingredientId: selected.id,
         quantityG: grams,
         entryMethod:
           tab === "plan"
@@ -506,7 +478,7 @@ function AddFoodSheet({
   const grams = parseFloat(quantity);
   const factor = Number.isFinite(grams) && grams > 0 ? grams / 100 : 0;
 
-  const listForTab = tab === "recents" ? recents : tab === "favorites" ? favorites : searchTooShort ? [] : results;
+  const listForTab = tab === "recents" ? recents : tab === "favorites" ? favorites : results;
 
   const TABS: { key: SheetTab; label: StringKey }[] = [
     ...(planMeals.length > 0 ? ([{ key: "plan", label: "diary.tab_plan" }] as const) : []),
