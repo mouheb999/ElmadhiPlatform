@@ -249,6 +249,7 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
   try {
     await buildAndSaveMealPlan(supabase, user.id, dietProfile.id, answers, macros);
   } catch (e) {
+    console.error("[submitDietQuestions] meal plan build failed:", e);
     return fail(e instanceof Error ? e.message : "Could not generate your meal plan.");
   }
 

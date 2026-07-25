@@ -70,8 +70,10 @@ export function QuestionWizard<A extends Record<string, unknown>>({
     setError(null);
     try {
       await onComplete(answers as A);
-    } catch {
-      setError(t(locale, "common.error"));
+    } catch (e) {
+      // Surface the real reason (server action's fail() message) instead of a
+      // blank "something went wrong" — the generic string only if we have none.
+      setError(e instanceof Error && e.message ? e.message : t(locale, "common.error"));
       setIsSubmitting(false);
     }
   }
