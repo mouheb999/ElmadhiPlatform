@@ -145,9 +145,9 @@ async function estimateWithClaude(input: {
 }
 
 /**
- * Deterministic fallback: match description words against the foods catalog
- * and assume a default 150g portion per matched food. Low confidence by
- * design — the UI shows everything as editable before logging.
+ * Deterministic fallback: match description words against the canonical
+ * ingredient catalog and assume a default 150g portion per matched food. Low
+ * confidence by design — the UI shows everything as editable before logging.
  */
 async function estimateSimulated(supabase: Supa, description: string): Promise<MealEstimate> {
   const tokens = [
@@ -164,7 +164,7 @@ async function estimateSimulated(supabase: Supa, description: string): Promise<M
 
   for (const token of tokens) {
     const { data: foods } = await supabase
-      .from("foods")
+      .from("nutrition_ingredients")
       .select("id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
       .or(`name_en.ilike.%${token}%,name_ar.ilike.%${token}%`)
       .limit(1);

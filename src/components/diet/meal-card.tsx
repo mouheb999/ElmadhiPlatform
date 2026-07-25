@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, NotebookPen, Plus, Trash2 } from "lucide-react";
 import { pick, t, type Locale } from "@/lib/i18n";
-import { FoodSearch, type FoodResult } from "@/components/diet/food-search";
+import { IngredientPicker, type IngredientOption } from "@/components/diet/ingredient-picker";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 export type EditorItem = {
   id: string;
-  foodId: string;
+  ingredientId: string;
   nameEn: string | null;
   nameAr: string;
   quantityG: number;
@@ -20,7 +20,15 @@ export type EditorItem = {
   imageUrl: string | null;
 };
 
-const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+export const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
+  meal_1: { en: "Meal 1", ar: "الوجبة 1" },
+  snack: { en: "Snack", ar: "وجبة خفيفة" },
+  meal_2: { en: "Meal 2", ar: "الوجبة 2" },
+  meal_3: { en: "Meal 3", ar: "الوجبة 3" },
+  pre_workout: { en: "Pre-workout", ar: "قبل التمرين" },
+  post_workout: { en: "Post-workout", ar: "بعد التمرين" },
+  last_meal: { en: "Last meal", ar: "آخر وجبة" },
+  // legacy diary slot keys
   breakfast: { en: "Breakfast", ar: "الفطور" },
   lunch: { en: "Lunch", ar: "الغدا" },
   dinner: { en: "Dinner", ar: "العشا" },
@@ -32,6 +40,7 @@ export function MealCard({
   locale,
   mealType,
   items,
+  ingredients,
   onQuantityChange,
   onRemove,
   onAdd,
@@ -44,9 +53,10 @@ export function MealCard({
   locale: Locale;
   mealType: string;
   items: EditorItem[];
+  ingredients: IngredientOption[];
   onQuantityChange: (itemId: string, quantityG: number) => void;
   onRemove: (itemId: string) => void;
-  onAdd: (food: FoodResult) => void;
+  onAdd: (ingredient: IngredientOption) => void;
   /** Bridge to the food diary: log this planned meal as eaten today. */
   onLogMeal?: () => void;
   logStatus?: "idle" | "pending" | "done";
@@ -146,15 +156,12 @@ export function MealCard({
           )}
 
           {adding ? (
-            <FoodSearch
+            <IngredientPicker
               locale={locale}
-              selected={[]}
-              onChange={(foods) => {
-                const last = foods[foods.length - 1];
-                if (last) {
-                  onAdd(last);
-                  setAdding(false);
-                }
+              ingredients={ingredients}
+              onPick={(ing) => {
+                onAdd(ing);
+                setAdding(false);
               }}
               placeholder={locale === "tn" ? "لوّج على ماكلة…" : "Search foods…"}
             />

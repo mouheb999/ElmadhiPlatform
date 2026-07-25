@@ -3,22 +3,40 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
-import { calculateMacros, type ActivityLevel } from "@/lib/algorithms/macros";
-import type { Goal, DietIntensity } from "@/lib/algorithms/diet-strategy";
-import { generateMealPlan, type FoodCandidate } from "@/lib/algorithms/meal-plan-gen";
+import { calculateMacros, type ActivityLevel, type DailySteps } from "@/lib/algorithms/macros";
+import type { Goal, BodyFatLevel } from "@/lib/algorithms/diet-strategy";
+import {
+  fillTemplate,
+  type DietConstraints,
+  type Ingredient,
+  type Slot,
+  type TemplateSlot,
+} from "@/lib/algorithms/meal-template-fill";
+import { selectTemplate, type MealTemplate } from "@/lib/algorithms/meal-template-select";
+
+type Supa = Awaited<ReturnType<typeof createClient>>;
 
 export type DietAnswers = {
+  goal: Goal;
   gender: "male" | "female";
   age: number;
   heightCm: number;
   weightKg: number;
-  goal: Goal;
+  targetWeightKg: number;
+  bodyFatLevel: BodyFatLevel;
+  dailySteps: DailySteps;
   activityLevel: ActivityLevel;
-  mealsPerDay: number;
+  trainingDays: string; // "0" | "1_2" | "3_4" | "5_6" | "7"
+  mealsPerDay: number; // 3 | 4 | 5
+  trainingTime: string; // "morning" | "afternoon" | "evening" | "night" | "changes"
   budgetLevel: "low" | "medium" | "high";
-  allergies: string[];
-  dietaryRestriction: string;
-  dislikedFoodIds: string[];
+  foodRestrictions: string[];
+  avoidFoods: string[];
+  cookingPref: string; // "fast" | "normal" | "mealprep" | "no_pref"
+  digestion: string[];
+  waterIntake: string;
+  supplements: string[];
+  trackingExperience: string;
 };
 
 function approximateBirthDate(age: number): string {
@@ -26,66 +44,127 @@ function approximateBirthDate(age: number): string {
   return `${year}-01-01`;
 }
 
+/** Load the whole template catalog into the shapes the engine consumes. */
+async function loadCatalog(supabase: Supa) {
+  const [{ data: ingredients }, { data: templates }, { data: slots }] = await Promise.all([
+    supabase
+      .from("nutrition_ingredients")
+      .select(
+        "id, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, typical_serving_g, budget_tier, tags, is_slot_default",
+      ),
+    supabase.from("meal_templates").select("id, cooking_tier, budget_tier"),
+    supabase
+      .from("meal_template_slots")
+      .select("template_id, meal_key, order_index, ingredient_id, role, is_optional")
+      .order("order_index", { ascending: true }),
+  ]);
+
+  const ingList: Ingredient[] = (ingredients ?? []).map((i) => ({
+    id: i.id,
+    slot: i.slot as Slot,
+    caloriesPer100g: i.calories_per_100g,
+    proteinPer100g: i.protein_per_100g,
+    carbsPer100g: i.carbs_per_100g,
+    fatPer100g: i.fat_per_100g,
+    typicalServingG: i.typical_serving_g,
+    budgetTier: i.budget_tier as Ingredient["budgetTier"],
+    tags: i.tags ?? [],
+    isSlotDefault: i.is_slot_default,
+  }));
+
+  const byId = new Map<string, Ingredient>(ingList.map((i) => [i.id, i]));
+  const bySlot = new Map<Slot, Ingredient[]>();
+  for (const i of ingList) {
+    const arr = bySlot.get(i.slot) ?? [];
+    arr.push(i);
+    bySlot.set(i.slot, arr);
+  }
+
+  const slotsByTemplate = new Map<string, TemplateSlot[]>();
+  for (const s of slots ?? []) {
+    const arr = slotsByTemplate.get(s.template_id) ?? [];
+    arr.push({
+      mealKey: s.meal_key as TemplateSlot["mealKey"],
+      orderIndex: s.order_index,
+      ingredientId: s.ingredient_id,
+      role: s.role as TemplateSlot["role"],
+      isOptional: s.is_optional,
+    });
+    slotsByTemplate.set(s.template_id, arr);
+  }
+
+  const templateList: MealTemplate[] = (templates ?? []).map((t) => ({
+    id: t.id,
+    cookingTier: t.cooking_tier as MealTemplate["cookingTier"],
+    budgetTier: t.budget_tier as MealTemplate["budgetTier"],
+  }));
+
+  return { byId, bySlot, slotsByTemplate, templateList };
+}
+
 async function buildAndSaveMealPlan(
-  supabase: Awaited<ReturnType<typeof createClient>>,
+  supabase: Supa,
   userId: string,
   dietProfileId: string,
   answers: DietAnswers,
   macros: ReturnType<typeof calculateMacros>,
-) {
-  const { data: foods, error: foodsError } = await supabase
-    .from("foods")
-    .select("id, category, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, allergens, tags, price_tier, is_common");
-  if (foodsError) throw new Error(foodsError.message);
+): Promise<string> {
+  const { byId, bySlot, slotsByTemplate, templateList } = await loadCatalog(supabase);
+  if (templateList.length === 0) throw new Error("No meal templates found — apply migration 028 first.");
 
-  const meals = generateMealPlan(
+  const constraints: DietConstraints = {
+    budgetLevel: answers.budgetLevel,
+    restrictions: answers.foodRestrictions.filter((r) => r !== "none"),
+    avoidFoods: answers.avoidFoods,
+    digestion: answers.digestion.filter((d) => d !== "none"),
+    mealsPerDay: answers.mealsPerDay,
+    trainingDays: answers.trainingDays,
+  };
+
+  const template = selectTemplate(templateList, slotsByTemplate, byId, constraints, answers.cookingPref);
+  if (!template) throw new Error("Could not select a meal template.");
+
+  const meals = fillTemplate(
+    slotsByTemplate.get(template.id) ?? [],
     { calories: macros.calories, proteinG: macros.proteinG, carbsG: macros.carbsG, fatG: macros.fatG },
-    answers.mealsPerDay,
-    (foods ?? []) as FoodCandidate[],
-    {
-      allergies: answers.allergies,
-      dietaryRestriction: answers.dietaryRestriction === "none" ? null : answers.dietaryRestriction,
-      budgetLevel: answers.budgetLevel,
-      dislikedFoodIds: answers.dislikedFoodIds,
-      favoriteFoodIds: [],
-    },
+    byId,
+    bySlot,
+    constraints,
   );
-
-  // An all-empty plan means the food catalog can't satisfy the constraints;
-  // saving it would leave the plan/diary screens showing nothing.
-  if (meals.every((meal) => meal.items.length === 0)) {
-    throw new Error("No foods in the catalog match your constraints — the plan could not be generated.");
+  if (meals.every((m) => m.items.length === 0)) {
+    throw new Error("The template could not be adapted to your constraints.");
   }
+
+  await supabase.from("diet_profiles").update({ selected_template_code: template.id }).eq("id", dietProfileId);
 
   const { data: plan, error: planError } = await supabase
     .from("meal_plans")
-    .insert({ user_id: userId, diet_profile_id: dietProfileId })
+    .insert({ user_id: userId, diet_profile_id: dietProfileId, template_code: template.id })
     .select("id")
     .single();
   if (planError || !plan) throw new Error(planError?.message ?? "Failed to create meal plan.");
 
   try {
-    for (const [index, meal] of meals.entries()) {
+    for (const meal of meals) {
       const { data: mealRow, error: mealError } = await supabase
         .from("meal_plan_meals")
-        .insert({ meal_plan_id: plan.id, meal_type: meal.mealType, order_index: index })
+        .insert({ meal_plan_id: plan.id, meal_type: meal.mealKey, order_index: meal.orderIndex })
         .select("id")
         .single();
       if (mealError || !mealRow) throw new Error(mealError?.message ?? "Failed to create meal.");
 
-      if (meal.items.length > 0) {
-        const { error: itemsError } = await supabase.from("meal_plan_items").insert(
-          meal.items.map((item) => ({
-            meal_id: mealRow.id,
-            food_id: item.foodId,
-            quantity_g: item.quantityG,
-          })),
-        );
-        if (itemsError) throw new Error(itemsError.message);
-      }
+      const { error: itemsError } = await supabase.from("meal_plan_items").insert(
+        meal.items.map((item) => ({
+          meal_id: mealRow.id,
+          ingredient_id: item.ingredientId,
+          quantity_g: item.quantityG,
+          role: item.role,
+          is_optional: item.isOptional,
+        })),
+      );
+      if (itemsError) throw new Error(itemsError.message);
     }
   } catch (e) {
-    // Don't leave a half-written active plan behind (cascade removes meals/items).
     await supabase.from("meal_plans").delete().eq("id", plan.id);
     throw e;
   }
@@ -100,7 +179,7 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
   } = await supabase.auth.getUser();
   if (!user) return fail("Not signed in.");
 
-  // Archive any existing active plan (versioned, never deleted).
+  // Archive any existing active profile + plan (versioned, never deleted).
   const { data: previous } = await supabase
     .from("diet_profiles")
     .select("id, version")
@@ -122,12 +201,22 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
       birth_date: approximateBirthDate(answers.age),
       height_cm: answers.heightCm,
       weight_kg: answers.weightKg,
+      target_weight_kg: answers.targetWeightKg,
       goal: answers.goal,
+      body_fat_level: answers.bodyFatLevel,
+      daily_steps: answers.dailySteps,
       activity_level: answers.activityLevel,
+      training_days: answers.trainingDays,
+      training_time: answers.trainingTime,
       meals_per_day: answers.mealsPerDay,
       budget_level: answers.budgetLevel,
-      allergies: answers.allergies,
-      dietary_restriction: answers.dietaryRestriction,
+      food_restrictions: answers.foodRestrictions,
+      avoid_foods: answers.avoidFoods,
+      cooking_pref: answers.cookingPref,
+      digestion: answers.digestion,
+      water_intake: answers.waterIntake,
+      supplements: answers.supplements,
+      tracking_experience: answers.trackingExperience,
     })
     .select("id")
     .single();
@@ -141,7 +230,8 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
     weightKg: answers.weightKg,
     activityLevel: answers.activityLevel,
     goal: answers.goal,
-    dietIntensity: "normal",
+    bodyFatLevel: answers.bodyFatLevel,
+    dailySteps: answers.dailySteps,
   });
 
   await supabase.from("macro_targets").insert({
@@ -159,61 +249,14 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
   try {
     await buildAndSaveMealPlan(supabase, user.id, dietProfile.id, answers, macros);
   } catch (e) {
+    console.error("[submitDietQuestions] meal plan build failed:", e);
     return fail(e instanceof Error ? e.message : "Could not generate your meal plan.");
   }
 
   return ok({ dietProfileId: dietProfile.id });
 }
 
-/** Rule D1 — recompute the calorie target at a different intensity, opt-in only. */
-export async function updateDietIntensity(dietProfileId: string, intensity: DietIntensity): Promise<ActionResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return fail("Not signed in.");
-
-  const { data: profile } = await supabase
-    .from("diet_profiles")
-    .select("*")
-    .eq("id", dietProfileId)
-    .eq("user_id", user.id)
-    .single();
-  if (!profile) return fail("Plan not found.");
-
-  await supabase.from("diet_profiles").update({ diet_intensity: intensity }).eq("id", dietProfileId);
-
-  const macros = calculateMacros({
-    gender: (profile.gender as "male" | "female") ?? "male",
-    birthDate: new Date(profile.birth_date ?? "2000-01-01"),
-    heightCm: profile.height_cm ?? 170,
-    weightKg: profile.weight_kg ?? 70,
-    activityLevel: (profile.activity_level as ActivityLevel) ?? "moderate",
-    goal: (profile.goal as Goal) ?? "maintain",
-    dietIntensity: intensity,
-  });
-
-  await supabase
-    .from("macro_targets")
-    .update({
-      bmr: macros.bmr,
-      tdee: macros.tdee,
-      calories: macros.calories,
-      protein_g: macros.proteinG,
-      carbs_g: macros.carbsG,
-      fat_g: macros.fatG,
-      fiber_g: macros.fiberG,
-      rationale_json: macros.rationale,
-    })
-    .eq("diet_profile_id", dietProfileId);
-
-  return ok(undefined);
-}
-
-export async function saveMealPlanItemEdit(
-  itemId: string,
-  quantityG: number,
-): Promise<ActionResult> {
+export async function saveMealPlanItemEdit(itemId: string, quantityG: number): Promise<ActionResult> {
   const supabase = await createClient();
   const { error } = await supabase
     .from("meal_plan_items")
@@ -232,13 +275,13 @@ export async function removeMealPlanItem(itemId: string): Promise<ActionResult> 
 
 export async function addMealPlanItem(
   mealId: string,
-  foodId: string,
+  ingredientId: string,
   quantityG: number,
 ): Promise<ActionResult<{ id: string }>> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("meal_plan_items")
-    .insert({ meal_id: mealId, food_id: foodId, quantity_g: quantityG, is_user_modified: true })
+    .insert({ meal_id: mealId, ingredient_id: ingredientId, quantity_g: quantityG, is_user_modified: true })
     .select("id")
     .single();
   if (error || !data) return fail(error?.message ?? "Could not add food.");

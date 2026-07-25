@@ -127,12 +127,12 @@ export default async function DashboardPage() {
     id: string;
     meal_type: string;
     order_index: number;
-    meal_plan_items: { quantity_g: number | null; foods: { calories_per_100g: number | null } | null }[];
+    meal_plan_items: { quantity_g: number | null; nutrition_ingredients: { calories_per_100g: number | null } | null }[];
   };
   const { data: mealRowsRaw } = mealPlan
     ? await supabase
         .from("meal_plan_meals")
-        .select("id, meal_type, order_index, meal_plan_items(quantity_g, foods(calories_per_100g))")
+        .select("id, meal_type, order_index, meal_plan_items(quantity_g, nutrition_ingredients(calories_per_100g))")
         .eq("meal_plan_id", mealPlan.id)
         .order("order_index", { ascending: true })
     : { data: null };
@@ -140,7 +140,7 @@ export default async function DashboardPage() {
     id: m.id,
     mealType: m.meal_type,
     kcal: (m.meal_plan_items ?? []).reduce(
-      (sum, item) => sum + ((item.foods?.calories_per_100g ?? 0) * (item.quantity_g ?? 0)) / 100,
+      (sum, item) => sum + ((item.nutrition_ingredients?.calories_per_100g ?? 0) * (item.quantity_g ?? 0)) / 100,
       0,
     ),
   }));

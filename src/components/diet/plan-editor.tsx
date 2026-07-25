@@ -7,7 +7,7 @@ import { WarningBanner } from "@/components/shared/warning-banner";
 import { validateMealPlan } from "@/lib/algorithms/validation";
 import { saveMealPlanItemEdit, removeMealPlanItem, addMealPlanItem, markMealPlanModified } from "@/app/actions/diet";
 import { logFood, logPlanMeal, type MealSlot } from "@/app/actions/meal-logs";
-import type { FoodResult } from "@/components/diet/food-search";
+import type { IngredientOption } from "@/components/diet/ingredient-picker";
 import { pick, type Locale } from "@/lib/i18n";
 
 export type EditorMeal = {
@@ -21,11 +21,13 @@ export function PlanEditor({
   planId,
   target,
   initialMeals,
+  ingredients,
 }: {
   locale: Locale;
   planId: string;
   target: { calories: number; proteinG: number; carbsG: number; fatG: number };
   initialMeals: EditorMeal[];
+  ingredients: IngredientOption[];
 }) {
   const [meals, setMeals] = useState(initialMeals);
   const [logStatuses, setLogStatuses] = useState<Record<string, "pending" | "done">>({});
@@ -78,8 +80,8 @@ export function PlanEditor({
     });
   }
 
-  function handleAdd(mealId: string, food: FoodResult) {
-    const tempId = `temp-${food.id}-${tempIdCounter.current++}`;
+  function handleAdd(mealId: string, ing: IngredientOption) {
+    const tempId = `temp-${ing.id}-${tempIdCounter.current++}`;
     const quantityG = 100;
     setMeals((prev) =>
       prev.map((m) =>
@@ -90,15 +92,15 @@ export function PlanEditor({
                 ...m.items,
                 {
                   id: tempId,
-                  foodId: food.id,
-                  nameEn: food.name_en,
-                  nameAr: food.name_ar,
+                  ingredientId: ing.id,
+                  nameEn: ing.nameEn,
+                  nameAr: ing.nameAr,
                   quantityG,
-                  caloriesPer100g: food.calories_per_100g,
-                  proteinPer100g: food.protein_per_100g,
-                  carbsPer100g: food.carbs_per_100g,
-                  fatPer100g: food.fat_per_100g,
-                  imageUrl: food.image_url,
+                  caloriesPer100g: ing.caloriesPer100g,
+                  proteinPer100g: ing.proteinPer100g,
+                  carbsPer100g: ing.carbsPer100g,
+                  fatPer100g: ing.fatPer100g,
+                  imageUrl: ing.imageUrl,
                 },
               ],
             }
@@ -106,7 +108,7 @@ export function PlanEditor({
       ),
     );
     startTransition(async () => {
-      const result = await addMealPlanItem(mealId, food.id, quantityG);
+      const result = await addMealPlanItem(mealId, ing.id, quantityG);
       if (result.ok) {
         setMeals((prev) =>
           prev.map((m) =>
@@ -119,7 +121,9 @@ export function PlanEditor({
   }
 
   function planTypeToSlot(mealType: string): MealSlot {
-    if (mealType === "breakfast" || mealType === "lunch" || mealType === "dinner") return mealType;
+    if (mealType === "meal_1" || mealType === "breakfast") return "breakfast";
+    if (mealType === "meal_2" || mealType === "lunch") return "lunch";
+    if (mealType === "meal_3" || mealType === "last_meal" || mealType === "dinner") return "dinner";
     return "snack";
   }
 
@@ -128,7 +132,7 @@ export function PlanEditor({
     startTransition(async () => {
       const result = await logFood({
         slot: planTypeToSlot(mealType),
-        foodId: item.foodId,
+        ingredientId: item.ingredientId,
         quantityG: item.quantityG,
         entryMethod: "plan",
       });
@@ -179,6 +183,7 @@ export function PlanEditor({
             locale={locale}
             mealType={meal.mealType}
             items={meal.items}
+            ingredients={ingredients}
             defaultOpen={i === 0}
             onQuantityChange={(itemId, qty) => handleQuantityChange(meal.id, itemId, qty)}
             onRemove={(itemId) => handleRemove(meal.id, itemId)}
