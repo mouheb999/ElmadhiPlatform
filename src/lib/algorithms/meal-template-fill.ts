@@ -191,7 +191,7 @@ export function fillTemplate(
 ): FilledMeal[] {
   const keptMeals = new Set(mealPlanForDay(c.mealsPerDay, c.trainingDays));
 
-  type Resolved = { mealKey: MealKey; orderIndex: number; ing: Ingredient; role: SlotRole; isOptional: boolean; grams: number };
+  type Resolved = { mealKey: MealKey; orderIndex: number; ing: Ingredient; role: SlotRole; isOptional: boolean; grams: number; fixed: boolean };
   const resolved: Resolved[] = [];
 
   for (const s of slots) {
@@ -199,7 +199,7 @@ export function fillTemplate(
     if (s.isOptional) continue; // whey/protein-bar are food-first optionals; skip by default
     const ing = resolveIngredient(s.ingredientId, s.role, byId, bySlot, c);
     if (!ing) continue;
-    resolved.push({ mealKey: s.mealKey, orderIndex: s.orderIndex, ing, role: s.role, isOptional: s.isOptional, grams: 0 });
+    resolved.push({ mealKey: s.mealKey, orderIndex: s.orderIndex, ing, role: s.role, isOptional: s.isOptional, grams: 0, fixed: false });
   }
 
   // Lean-protein guard. On a fat-tight target (an aggressive cut with high
@@ -226,20 +226,29 @@ export function fillTemplate(
   const pickList = withinBudget.length > 0 ? withinBudget : leanChoices;
   let leanCursor = 0;
   for (const r of resolved) {
-    if (r.role !== "protein" || pickList.length === 0) continue;
+    // Breakfast stays egg-based (spec: Meal 1 = egg protein + carb + fat +
+    // coffee) — never swap a dinner protein like turkey/fish into meal_1.
+    if (r.role !== "protein" || r.mealKey === "meal_1" || pickList.length === 0) continue;
     if (fatRatio(r.ing) > fatPerProtein * 1.2) {
       r.ing = pickList[leanCursor % pickList.length];
       leanCursor++;
     }
   }
 
-  // Fixed-serving items first (vegetables, coffee).
+  // Fixed-serving items: vegetables, coffee, and the breakfast protein. The
+  // breakfast protein is pinned to a normal portion (~2-3 eggs) rather than
+  // scaled — otherwise the solver dumps the whole day's protein (and its fat)
+  // into breakfast eggs. The leaner lunch/dinner proteins carry the rest.
   for (const r of resolved) {
     if (r.role === "vegetable") r.grams = clampG(r.ing.typicalServingG ?? 150);
     if (r.role === "caffeine") r.grams = r.ing.typicalServingG ?? 200;
+    if (r.role === "protein" && r.mealKey === "meal_1") {
+      r.grams = clampG(r.ing.typicalServingG ?? 120);
+      r.fixed = true;
+    }
   }
 
-  const proteinPool = resolved.filter((r) => r.role === "protein" || r.role === "legume");
+  const proteinPool = resolved.filter((r) => (r.role === "protein" || r.role === "legume") && !r.fixed);
   const carbPool = resolved.filter((r) => r.role === "carb" || r.role === "fruit");
   const fatPool = resolved.filter((r) => r.role === "fat");
 
@@ -267,8 +276,10 @@ export function fillTemplate(
     solvePool(proteinPool, resolved, target.proteinG, pPer);
     const proteinKcal = macroTotal(resolved, pPer) * KCAL_PER_G_PROTEIN;
     const fatKcal = macroTotal(resolved, fPer) * KCAL_PER_G_FAT;
+    // Carbs fill whatever calories remain after protein and fat. Droppable so a
+    // low-carb cut can shed filler carbs (fruit) instead of overshooting kcal.
     const carbTargetG = Math.max(0, (target.calories - proteinKcal - fatKcal) / KCAL_PER_G_CARBS);
-    solvePool(carbPool, resolved, carbTargetG, cPer);
+    solvePool(carbPool, resolved, carbTargetG, cPer, true);
   }
 
   // Drop any added-fat item the solver shrank to a negligible amount.
