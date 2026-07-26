@@ -3,8 +3,18 @@
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, Copy, Plus, Search, Star, Trash2, X } from "lucide-react";
-import { MacroRing } from "@/components/diet/macro-ring";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Copy,
+  Plus,
+  Search,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -149,8 +159,6 @@ export function FoodDiary({
       ? nutritionFeedback(consumed, targets, new Date().getHours())
       : [];
 
-  const remainingKcal = targets ? Math.round(targets.calories - consumed.calories) : 0;
-
   function copyDay() {
     setError(null);
     startTransition(async () => {
@@ -179,7 +187,7 @@ export function FoodDiary({
 
       <div className="flex items-center justify-between rounded-2xl border border-hairline bg-surface px-2 py-1.5">
         <Link
-          href={`/diet/log?date=${prevDate}`}
+          href={`/diet?view=today&date=${prevDate}`}
           aria-label="Previous day"
           className="grid h-9 w-9 place-items-center rounded-full text-muted hover:text-ink"
         >
@@ -188,7 +196,7 @@ export function FoodDiary({
         <span className="text-sm font-bold">{isToday ? t(locale, "diary.today_target") : dateLabel}</span>
         {nextDate ? (
           <Link
-            href={`/diet/log?date=${nextDate}`}
+            href={`/diet?view=today&date=${nextDate}`}
             aria-label="Next day"
             className="grid h-9 w-9 place-items-center rounded-full text-muted hover:text-ink"
           >
@@ -200,40 +208,7 @@ export function FoodDiary({
       </div>
 
       {targets ? (
-        <>
-          {/* MyFitnessPal-style equation: Goal − Food = Remaining */}
-          <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-1 rounded-2xl border border-hairline bg-surface p-4 text-center">
-            <div>
-              <div className="text-lg font-extrabold tabular-nums">{Math.round(targets.calories)}</div>
-              <div className="text-[11px] text-muted">{t(locale, "diary.goal")}</div>
-            </div>
-            <span className="text-muted">−</span>
-            <div>
-              <div className="text-lg font-extrabold tabular-nums">{Math.round(consumed.calories)}</div>
-              <div className="text-[11px] text-muted">{t(locale, "diary.food_label")}</div>
-            </div>
-            <span className="text-muted">=</span>
-            <div>
-              <div className={cn("text-lg font-extrabold tabular-nums", remainingKcal < 0 && "text-red-400")}>
-                {remainingKcal}
-              </div>
-              <div className="text-[11px] text-muted">{t(locale, "diary.remaining")}</div>
-            </div>
-          </div>
-
-          <MacroRing
-            variant="neutral"
-            calories={Math.round(consumed.calories)}
-            caloriesTarget={targets.calories}
-            proteinG={consumed.proteinG}
-            proteinTargetG={targets.proteinG}
-            carbsG={consumed.carbsG}
-            carbsTargetG={targets.carbsG}
-            fatG={consumed.fatG}
-            fatTargetG={targets.fatG}
-            dailyTargetLabel={t(locale, "diary.today_target")}
-          />
-        </>
+        <DiaryHero locale={locale} targets={targets} consumed={consumed} />
       ) : (
         <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-sm text-muted">
           {t(locale, "diary.no_target")}
@@ -311,37 +286,6 @@ export function FoodDiary({
         );
       })}
 
-      {targets && (
-        <div className="rounded-2xl border border-hairline bg-surface p-4">
-          <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-bold uppercase tracking-wide text-muted">
-            <span className="text-start" />
-            <span>{t(locale, "diary.totals")}</span>
-            <span>{t(locale, "diary.goal")}</span>
-            <span>{t(locale, "diary.remaining")}</span>
-          </div>
-          {(
-            [
-              { label: "kcal", value: consumed.calories, goal: targets.calories },
-              { label: t(locale, "diary.quick_protein"), value: consumed.proteinG, goal: targets.proteinG },
-              { label: t(locale, "diary.quick_carbs"), value: consumed.carbsG, goal: targets.carbsG },
-              { label: t(locale, "diary.quick_fat"), value: consumed.fatG, goal: targets.fatG },
-            ] as const
-          ).map((row) => (
-            <div
-              key={row.label}
-              className="grid grid-cols-4 gap-2 border-t border-hairline py-2 text-center text-sm tabular-nums first:border-t-0"
-            >
-              <span className="text-start text-xs font-bold text-muted">{row.label}</span>
-              <span className="font-semibold">{Math.round(row.value)}</span>
-              <span className="text-muted">{Math.round(row.goal)}</span>
-              <span className={cn("font-semibold", row.goal - row.value < 0 && "text-red-400")}>
-                {Math.round(row.goal - row.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {sheetSlot && (
         <AddFoodSheet
           locale={locale}
@@ -358,6 +302,131 @@ export function FoodDiary({
             router.refresh();
           }}
         />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * The day's single readout. Replaces what used to be three overlapping views of
+ * the same numbers (a Goal−Food=Remaining strip, a calorie ring, and a totals
+ * table): one hero answers "what do I have left today", and the exact
+ * Totals/Goal/Remaining grid is a tap away for anyone who wants the detail.
+ */
+function DiaryHero({
+  locale,
+  targets,
+  consumed,
+}: {
+  locale: Locale;
+  targets: DiaryTargets;
+  consumed: { calories: number; proteinG: number; carbsG: number; fatG: number };
+}) {
+  const [showDetails, setShowDetails] = useState(false);
+
+  const remainingKcal = Math.round(targets.calories - consumed.calories);
+  const over = remainingKcal < 0;
+  const caloriePct = targets.calories > 0 ? Math.min((consumed.calories / targets.calories) * 100, 100) : 0;
+
+  const macros = [
+    {
+      label: t(locale, "diary.macro_protein"),
+      detailLabel: t(locale, "diary.quick_protein"),
+      value: consumed.proteinG,
+      goal: targets.proteinG,
+    },
+    {
+      label: t(locale, "diary.macro_carbs"),
+      detailLabel: t(locale, "diary.quick_carbs"),
+      value: consumed.carbsG,
+      goal: targets.carbsG,
+    },
+    {
+      label: t(locale, "diary.macro_fat"),
+      detailLabel: t(locale, "diary.quick_fat"),
+      value: consumed.fatG,
+      goal: targets.fatG,
+    },
+  ];
+
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface p-5">
+      <div className="text-center">
+        <div className={cn("text-5xl font-extrabold tabular-nums", over && "text-red-400")}>
+          {Math.abs(remainingKcal)}
+        </div>
+        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-muted">
+          {over ? t(locale, "diary.over_by") : `kcal ${t(locale, "tile.left")}`}
+        </div>
+      </div>
+
+      <div>
+        <div className="h-2 overflow-hidden rounded-full bg-white/5">
+          <div
+            className={cn("h-full rounded-full transition-all duration-500", over ? "bg-red-400" : "bg-accent")}
+            style={{ width: `${caloriePct}%` }}
+          />
+        </div>
+        <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-muted">
+          <span>{Math.round(consumed.calories)}</span>
+          <span>{Math.round(targets.calories)} kcal</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        {macros.map((macro) => (
+          <div key={macro.label} className="flex items-center gap-2">
+            <span className="w-16 shrink-0 text-[11px] font-bold text-muted">{macro.label}</span>
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
+              <div
+                className="h-full rounded-full bg-white/85 transition-all duration-500"
+                style={{ width: `${macro.goal > 0 ? Math.min((macro.value / macro.goal) * 100, 100) : 0}%` }}
+              />
+            </div>
+            <span className="w-16 shrink-0 text-end text-[11px] tabular-nums text-muted">
+              {Math.round(macro.value)}/{Math.round(macro.goal)}g
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setShowDetails((s) => !s)}
+        aria-expanded={showDetails}
+        className="flex items-center justify-center gap-1 text-xs font-bold text-muted hover:text-ink"
+      >
+        {t(locale, "diary.details")}
+        {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+      </button>
+
+      {showDetails && (
+        <div className="border-t border-hairline pt-3">
+          <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-bold uppercase tracking-wide text-muted">
+            <span className="text-start" />
+            <span>{t(locale, "diary.totals")}</span>
+            <span>{t(locale, "diary.goal")}</span>
+            <span>{t(locale, "diary.remaining")}</span>
+          </div>
+          {[
+            { label: "kcal", value: consumed.calories, goal: targets.calories },
+            ...macros.map((m) => ({ label: m.detailLabel, value: m.value, goal: m.goal })),
+          ].map((row) => (
+            <div
+              key={row.label}
+              className="grid grid-cols-4 gap-2 border-t border-hairline py-2 text-center text-sm tabular-nums first:border-t-0"
+            >
+              <span className="text-start text-xs font-bold text-muted">{row.label}</span>
+              <span className="font-semibold">{Math.round(row.value)}</span>
+              <span className="text-muted">{Math.round(row.goal)}</span>
+              <span className={cn("font-semibold", row.goal - row.value < 0 && "text-red-400")}>
+                {Math.round(row.goal - row.value)}
+              </span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -480,11 +549,13 @@ function AddFoodSheet({
 
   const listForTab = tab === "recents" ? recents : tab === "favorites" ? favorites : results;
 
+  // Ordered by how often each path actually gets used: logging straight from
+  // the plan is the common case, ad-hoc entry the rare one.
   const TABS: { key: SheetTab; label: StringKey }[] = [
     ...(planMeals.length > 0 ? ([{ key: "plan", label: "diary.tab_plan" }] as const) : []),
     { key: "recents", label: "diary.tab_recents" },
-    { key: "favorites", label: "diary.tab_favorites" },
     { key: "search", label: "diary.tab_search" },
+    { key: "favorites", label: "diary.tab_favorites" },
     { key: "quick", label: "diary.tab_quick" },
   ];
 

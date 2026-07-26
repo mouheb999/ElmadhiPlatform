@@ -610,7 +610,6 @@ const STRINGS = {
   "today.week_label": { en: "This week", tn: "هالجمعة" },
   "today.sessions_label": { en: "workouts", tn: "حصص" },
   "today.streak_label": { en: "day check-in streak", tn: "يوم تسجيل متتالي" },
-  "today.meals_title": { en: "Today's meals", tn: "ماكلة اليوم" },
   "today.open_plan": { en: "Open plan", tn: "حلّ البرنامج" },
   "today.qa_answered": { en: "Your question was answered!", tn: "سؤالك تجاوب!" },
   "today.rest_day": {
@@ -618,6 +617,18 @@ const STRINGS = {
     tn: "اليوم راحة — الجسم يكبر وقت الراحة.",
   },
   "today.exercises": { en: "exercises", tn: "تمارين" },
+
+  // ---- plan food swap ----
+  "plan.swap_food": { en: "Swap this food", tn: "بدّل الماكلة هاذي" },
+  "plan.swap_for": { en: "Swap for", tn: "بدّلها بـ" },
+  "plan.no_alternatives": {
+    en: "No alternatives for this food yet.",
+    tn: "مازال ما فماش بدائل للماكلة هاذي.",
+  },
+
+  // ---- nutrition section tabs ----
+  "nutrition.tab_today": { en: "Today", tn: "اليوم" },
+  "nutrition.tab_plan": { en: "Plan", tn: "البرنامج" },
 
   // ---- food diary ----
   "diary.title": { en: "Food diary", tn: "دفتر الماكلة" },
@@ -647,9 +658,12 @@ const STRINGS = {
   "diary.quantity": { en: "Quantity (grams)", tn: "الكمية (غرام)" },
   "diary.log_cta": { en: "Log it", tn: "سجّلها" },
   "diary.log_meal": { en: "Log the whole meal", tn: "سجّل الوجبة الكل" },
-  "plan.log_meal": { en: "Log this meal as eaten", tn: "سجّل الوجبة هاذي كليتها" },
-  "plan.meal_logged": { en: "Logged in your diary", tn: "تسجلت في دفتر الماكلة" },
-  "plan.log_item": { en: "Log this food as eaten", tn: "سجّل الماكلة هاذي كليتها" },
+  "diary.details": { en: "Details", tn: "التفاصيل" },
+  // Bar labels — the value beside them already carries the unit, so no "(g)".
+  "diary.macro_protein": { en: "Protein", tn: "بروتين" },
+  "diary.macro_carbs": { en: "Carbs", tn: "كربوهيدرات" },
+  "diary.macro_fat": { en: "Fat", tn: "دهون" },
+  "diary.over_by": { en: "kcal over", tn: "كيلوكالوري زيادة" },
   "diary.goal": { en: "Goal", tn: "الهدف" },
   "diary.food_label": { en: "Food", tn: "الماكلة" },
   "diary.remaining": { en: "Remaining", tn: "الباقي" },

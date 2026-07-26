@@ -9,6 +9,8 @@ export type IngredientOption = {
   id: string;
   nameEn: string | null;
   nameAr: string;
+  /** Catalog slot (protein/carb/fat/…) — drives same-slot swap alternatives. */
+  slot: string;
   caloriesPer100g: number;
   proteinPer100g: number;
   carbsPer100g: number;

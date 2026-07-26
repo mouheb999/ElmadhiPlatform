@@ -5,8 +5,14 @@ import { MacroRing } from "@/components/diet/macro-ring";
 import { MealCard, type EditorItem } from "@/components/diet/meal-card";
 import { WarningBanner } from "@/components/shared/warning-banner";
 import { validateMealPlan } from "@/lib/algorithms/validation";
-import { saveMealPlanItemEdit, removeMealPlanItem, addMealPlanItem, markMealPlanModified } from "@/app/actions/diet";
-import { logFood, logPlanMeal, type MealSlot } from "@/app/actions/meal-logs";
+import {
+  saveMealPlanItemEdit,
+  removeMealPlanItem,
+  addMealPlanItem,
+  markMealPlanModified,
+  swapMealPlanItem,
+} from "@/app/actions/diet";
+import { swapQuantityG } from "@/lib/algorithms/meal-swap";
 import type { IngredientOption } from "@/components/diet/ingredient-picker";
 import { pick, type Locale } from "@/lib/i18n";
 
@@ -30,8 +36,6 @@ export function PlanEditor({
   ingredients: IngredientOption[];
 }) {
   const [meals, setMeals] = useState(initialMeals);
-  const [logStatuses, setLogStatuses] = useState<Record<string, "pending" | "done">>({});
-  const [itemLogStatuses, setItemLogStatuses] = useState<Record<string, "pending" | "done">>({});
   const [, startTransition] = useTransition();
   const tempIdCounter = useRef(0);
 
@@ -95,6 +99,7 @@ export function PlanEditor({
                   ingredientId: ing.id,
                   nameEn: ing.nameEn,
                   nameAr: ing.nameAr,
+                  slot: ing.slot,
                   quantityG,
                   caloriesPer100g: ing.caloriesPer100g,
                   proteinPer100g: ing.proteinPer100g,
@@ -120,41 +125,50 @@ export function PlanEditor({
     });
   }
 
-  function planTypeToSlot(mealType: string): MealSlot {
-    if (mealType === "meal_1" || mealType === "breakfast") return "breakfast";
-    if (mealType === "meal_2" || mealType === "lunch") return "lunch";
-    if (mealType === "meal_3" || mealType === "last_meal" || mealType === "dinner") return "dinner";
-    return "snack";
-  }
-
-  function handleLogItem(mealType: string, item: EditorItem) {
-    setItemLogStatuses((prev) => ({ ...prev, [item.id]: "pending" }));
+  /**
+   * Swap optimistically at the same portion the server will compute (both sides
+   * call swapQuantityG), then reconcile with the authoritative grams it returns.
+   */
+  function handleSwap(mealId: string, item: EditorItem, replacement: IngredientOption) {
+    const quantityG = swapQuantityG(item, item.quantityG, replacement);
+    setMeals((prev) =>
+      prev.map((m) =>
+        m.id === mealId
+          ? {
+              ...m,
+              items: m.items.map((i) =>
+                i.id === item.id
+                  ? {
+                      ...i,
+                      ingredientId: replacement.id,
+                      nameEn: replacement.nameEn,
+                      nameAr: replacement.nameAr,
+                      slot: replacement.slot,
+                      quantityG,
+                      caloriesPer100g: replacement.caloriesPer100g,
+                      proteinPer100g: replacement.proteinPer100g,
+                      carbsPer100g: replacement.carbsPer100g,
+                      fatPer100g: replacement.fatPer100g,
+                      imageUrl: replacement.imageUrl,
+                    }
+                  : i,
+              ),
+            }
+          : m,
+      ),
+    );
     startTransition(async () => {
-      const result = await logFood({
-        slot: planTypeToSlot(mealType),
-        ingredientId: item.ingredientId,
-        quantityG: item.quantityG,
-        entryMethod: "plan",
-      });
-      setItemLogStatuses((prev) => {
-        const next = { ...prev };
-        if (result.ok) next[item.id] = "done";
-        else delete next[item.id];
-        return next;
-      });
-    });
-  }
-
-  function handleLogMeal(mealId: string) {
-    setLogStatuses((prev) => ({ ...prev, [mealId]: "pending" }));
-    startTransition(async () => {
-      const result = await logPlanMeal(mealId);
-      setLogStatuses((prev) => {
-        const next = { ...prev };
-        if (result.ok) next[mealId] = "done";
-        else delete next[mealId];
-        return next;
-      });
+      const result = await swapMealPlanItem(item.id, replacement.id);
+      if (result.ok && result.data.quantityG !== quantityG) {
+        setMeals((prev) =>
+          prev.map((m) =>
+            m.id === mealId
+              ? { ...m, items: m.items.map((i) => (i.id === item.id ? { ...i, quantityG: result.data.quantityG } : i)) }
+              : m,
+          ),
+        );
+      }
+      markMealPlanModified(planId);
     });
   }
 
@@ -188,10 +202,7 @@ export function PlanEditor({
             onQuantityChange={(itemId, qty) => handleQuantityChange(meal.id, itemId, qty)}
             onRemove={(itemId) => handleRemove(meal.id, itemId)}
             onAdd={(food) => handleAdd(meal.id, food)}
-            onLogMeal={() => handleLogMeal(meal.id)}
-            logStatus={logStatuses[meal.id] ?? "idle"}
-            onLogItem={(item) => handleLogItem(meal.mealType, item)}
-            itemLogStatuses={itemLogStatuses}
+            onSwap={(item, replacement) => handleSwap(meal.id, item, replacement)}
           />
         ))}
       </div>

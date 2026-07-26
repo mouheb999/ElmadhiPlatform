@@ -6,9 +6,6 @@ const MACRO_COLORS = {
   fat: "#B76CFF",
 } as const;
 
-/** Monochrome fill for the diary's progress look (fills as meals get logged). */
-const NEUTRAL_FILL = "rgba(255,255,255,0.85)";
-
 function Bar({ label, value, target, color }: { label: string; value: number; target: number; color: string }) {
   const pct = target > 0 ? Math.min((value / target) * 100, 100) : 0;
   return (
@@ -39,7 +36,6 @@ export function MacroRing({
   fatG,
   fatTargetG,
   dailyTargetLabel,
-  variant = "colored",
 }: {
   calories: number;
   caloriesTarget: number;
@@ -50,10 +46,7 @@ export function MacroRing({
   fatG: number;
   fatTargetG: number;
   dailyTargetLabel: string;
-  /** "neutral" renders the ring and bars monochrome — pure progress, no hue. */
-  variant?: "colored" | "neutral";
 }) {
-  const neutral = variant === "neutral";
   const pct = caloriesTarget > 0 ? Math.min(calories / caloriesTarget, 1) : 0;
   const radius = 70;
   const circumference = 2 * Math.PI * radius;
@@ -69,7 +62,7 @@ export function MacroRing({
             cy="80"
             r={radius}
             fill="none"
-            stroke={neutral ? NEUTRAL_FILL : "#5DD62C"}
+            stroke="#5DD62C"
             strokeWidth="12"
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -84,9 +77,9 @@ export function MacroRing({
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4">
-        <Bar label="Protein" value={proteinG} target={proteinTargetG} color={neutral ? NEUTRAL_FILL : MACRO_COLORS.protein} />
-        <Bar label="Carbs" value={carbsG} target={carbsTargetG} color={neutral ? NEUTRAL_FILL : MACRO_COLORS.carbs} />
-        <Bar label="Fats" value={fatG} target={fatTargetG} color={neutral ? NEUTRAL_FILL : MACRO_COLORS.fat} />
+        <Bar label="Protein" value={proteinG} target={proteinTargetG} color={MACRO_COLORS.protein} />
+        <Bar label="Carbs" value={carbsG} target={carbsTargetG} color={MACRO_COLORS.carbs} />
+        <Bar label="Fats" value={fatG} target={fatTargetG} color={MACRO_COLORS.fat} />
       </div>
     </div>
   );

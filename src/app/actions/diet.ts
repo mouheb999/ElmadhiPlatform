@@ -13,6 +13,7 @@ import {
   type TemplateSlot,
 } from "@/lib/algorithms/meal-template-fill";
 import { selectTemplate, type MealTemplate } from "@/lib/algorithms/meal-template-select";
+import { swapQuantityG, type SwapFood } from "@/lib/algorithms/meal-swap";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
@@ -286,6 +287,66 @@ export async function addMealPlanItem(
     .single();
   if (error || !data) return fail(error?.message ?? "Could not add food.");
   return ok({ id: data.id });
+}
+
+/**
+ * Swap a planned food for a same-slot alternative, rescaling the portion so the
+ * meal keeps its nutrition (see meal-swap.ts for what "same value" means here).
+ * Grams are computed server-side from the catalog so a client can't post a
+ * portion that doesn't match the food it claims to be swapping in.
+ */
+export async function swapMealPlanItem(
+  itemId: string,
+  newIngredientId: string,
+): Promise<ActionResult<{ quantityG: number }>> {
+  const supabase = await createClient();
+
+  type MacroRow = {
+    calories_per_100g: number;
+    protein_per_100g: number;
+    carbs_per_100g: number;
+    fat_per_100g: number;
+  };
+
+  const { data: itemRaw, error: itemError } = await supabase
+    .from("meal_plan_items")
+    .select(
+      "quantity_g, nutrition_ingredients(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)",
+    )
+    .eq("id", itemId)
+    .maybeSingle();
+  if (itemError) return fail(itemError.message);
+  const item = itemRaw as unknown as { quantity_g: number; nutrition_ingredients: MacroRow | null } | null;
+  if (!item?.nutrition_ingredients) return fail("Could not find the food to swap.");
+
+  const { data: replacement, error: replacementError } = await supabase
+    .from("nutrition_ingredients")
+    .select("calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
+    .eq("id", newIngredientId)
+    .maybeSingle();
+  if (replacementError) return fail(replacementError.message);
+  if (!replacement) return fail("Could not find the replacement food.");
+
+  const toSwapFood = (row: MacroRow): SwapFood => ({
+    caloriesPer100g: row.calories_per_100g,
+    proteinPer100g: row.protein_per_100g,
+    carbsPer100g: row.carbs_per_100g,
+    fatPer100g: row.fat_per_100g,
+  });
+
+  const quantityG = swapQuantityG(
+    toSwapFood(item.nutrition_ingredients),
+    item.quantity_g,
+    toSwapFood(replacement),
+  );
+
+  const { error } = await supabase
+    .from("meal_plan_items")
+    .update({ ingredient_id: newIngredientId, quantity_g: quantityG, is_user_modified: true })
+    .eq("id", itemId);
+  if (error) return fail(error.message);
+
+  return ok({ quantityG });
 }
 
 export async function markMealPlanModified(planId: string): Promise<void> {

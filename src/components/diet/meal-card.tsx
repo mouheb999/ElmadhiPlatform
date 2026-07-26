@@ -1,17 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, NotebookPen, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Repeat2, Trash2 } from "lucide-react";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { IngredientPicker, type IngredientOption } from "@/components/diet/ingredient-picker";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { swapQuantityG } from "@/lib/algorithms/meal-swap";
 
 export type EditorItem = {
   id: string;
   ingredientId: string;
   nameEn: string | null;
   nameAr: string;
+  /** Catalog slot of the current food — swap offers alternatives from it. */
+  slot: string;
   quantityG: number;
   caloriesPer100g: number;
   proteinPer100g: number;
@@ -36,6 +39,11 @@ export const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
   snack_2: { en: "Snack", ar: "وجبة خفيفة" },
 };
 
+/**
+ * One meal of the plan template. Pure reference + editing: adjust grams, remove
+ * or add a food. Logging lives entirely in the Today view (including its "from
+ * my plan" tab), so this card carries no diary affordances.
+ */
 export function MealCard({
   locale,
   mealType,
@@ -44,10 +52,7 @@ export function MealCard({
   onQuantityChange,
   onRemove,
   onAdd,
-  onLogMeal,
-  logStatus = "idle",
-  onLogItem,
-  itemLogStatuses,
+  onSwap,
   defaultOpen = false,
 }: {
   locale: Locale;
@@ -57,16 +62,13 @@ export function MealCard({
   onQuantityChange: (itemId: string, quantityG: number) => void;
   onRemove: (itemId: string) => void;
   onAdd: (ingredient: IngredientOption) => void;
-  /** Bridge to the food diary: log this planned meal as eaten today. */
-  onLogMeal?: () => void;
-  logStatus?: "idle" | "pending" | "done";
-  /** Bridge to the food diary: log a single planned food as eaten today. */
-  onLogItem?: (item: EditorItem) => void;
-  itemLogStatuses?: Record<string, "pending" | "done">;
+  /** Exchange a food for a same-slot alternative at an equivalent portion. */
+  onSwap: (item: EditorItem, replacement: IngredientOption) => void;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [adding, setAdding] = useState(false);
+  const [swappingId, setSwappingId] = useState<string | null>(null);
   const label = MEAL_LABELS[mealType] ?? { en: mealType, ar: mealType };
   const totalKcal = items.reduce((sum, i) => sum + (i.caloriesPer100g * i.quantityG) / 100, 0);
 
@@ -87,73 +89,55 @@ export function MealCard({
       {open && (
         <div className="flex flex-col gap-2 border-t border-hairline p-4">
           {items.map((item) => (
-            <div key={item.id} className="flex items-center gap-3">
-              {item.imageUrl && (
-                // eslint-disable-next-line @next/next/no-img-element -- admin-hosted content URL
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="h-9 w-9 shrink-0 rounded-lg border border-hairline object-cover"
+            <div key={item.id} className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                {item.imageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-hosted content URL
+                  <img
+                    src={item.imageUrl}
+                    alt=""
+                    className="h-9 w-9 shrink-0 rounded-lg border border-hairline object-cover"
+                  />
+                )}
+                <span className="flex-1 text-sm font-semibold">{pick(locale, item.nameEn, item.nameAr)}</span>
+                <Input
+                  type="number"
+                  value={item.quantityG}
+                  onChange={(e) => onQuantityChange(item.id, Number(e.target.value))}
+                  className={cn("h-10 w-20 text-center text-sm")}
                 />
-              )}
-              <span className="flex-1 text-sm font-semibold">{pick(locale, item.nameEn, item.nameAr)}</span>
-              <Input
-                type="number"
-                value={item.quantityG}
-                onChange={(e) => onQuantityChange(item.id, Number(e.target.value))}
-                className={cn("h-10 w-20 text-center text-sm")}
-              />
-              <span className="w-6 text-xs text-muted">g</span>
-              {onLogItem && (
+                <span className="w-6 text-xs text-muted">g</span>
                 <button
                   type="button"
-                  onClick={() => onLogItem(item)}
-                  disabled={!!itemLogStatuses?.[item.id]}
-                  aria-label={t(locale, "plan.log_item")}
-                  title={t(locale, "plan.log_item")}
+                  onClick={() => setSwappingId((id) => (id === item.id ? null : item.id))}
+                  aria-label={t(locale, "plan.swap_food")}
+                  title={t(locale, "plan.swap_food")}
+                  aria-expanded={swappingId === item.id}
                   className={cn(
-                    "text-muted transition-colors hover:text-accent disabled:pointer-events-none",
-                    itemLogStatuses?.[item.id] === "done" && "text-accent",
+                    "text-muted transition-colors hover:text-accent",
+                    swappingId === item.id && "text-accent",
                   )}
                 >
-                  {itemLogStatuses?.[item.id] === "done" ? (
-                    <CheckCircle2 className="h-4 w-4" />
-                  ) : (
-                    <NotebookPen className="h-4 w-4" />
-                  )}
+                  <Repeat2 className="h-4 w-4" />
                 </button>
+                <button type="button" onClick={() => onRemove(item.id)} aria-label="Remove" className="text-muted hover:text-ink">
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              {swappingId === item.id && (
+                <SwapOptions
+                  locale={locale}
+                  item={item}
+                  ingredients={ingredients}
+                  onPick={(replacement) => {
+                    onSwap(item, replacement);
+                    setSwappingId(null);
+                  }}
+                />
               )}
-              <button type="button" onClick={() => onRemove(item.id)} aria-label="Remove" className="text-muted hover:text-ink">
-                <Trash2 className="h-4 w-4" />
-              </button>
             </div>
           ))}
-
-          {onLogMeal && items.length > 0 && (
-            <button
-              type="button"
-              onClick={onLogMeal}
-              disabled={logStatus !== "idle"}
-              className={cn(
-                "flex items-center justify-center gap-1.5 rounded-xl border py-2 text-sm font-semibold transition-colors",
-                logStatus === "done"
-                  ? "border-accent/40 bg-accent/10 text-accent"
-                  : "border-hairline text-accent hover:bg-white/5 disabled:opacity-60",
-              )}
-            >
-              {logStatus === "done" ? (
-                <>
-                  <CheckCircle2 className="h-4 w-4" />
-                  {t(locale, "plan.meal_logged")}
-                </>
-              ) : (
-                <>
-                  <NotebookPen className="h-4 w-4" />
-                  {t(locale, "plan.log_meal")}
-                </>
-              )}
-            </button>
-          )}
 
           {adding ? (
             <IngredientPicker
@@ -177,6 +161,54 @@ export function MealCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Same-slot alternatives for one planned food, each shown at the portion that
+ * keeps the meal's nutrition (computed with the same function the server uses,
+ * so the preview matches what actually gets saved).
+ */
+function SwapOptions({
+  locale,
+  item,
+  ingredients,
+  onPick,
+}: {
+  locale: Locale;
+  item: EditorItem;
+  ingredients: IngredientOption[];
+  onPick: (replacement: IngredientOption) => void;
+}) {
+  const alternatives = ingredients.filter((i) => i.slot === item.slot && i.id !== item.ingredientId);
+
+  if (alternatives.length === 0) {
+    return (
+      <p className="rounded-xl border border-hairline bg-bg/40 px-3 py-2 text-xs text-muted">
+        {t(locale, "plan.no_alternatives")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1 rounded-xl border border-hairline bg-bg/40 p-2">
+      <span className="px-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted">
+        {t(locale, "plan.swap_for")}
+      </span>
+      <div className="flex max-h-56 flex-col divide-y divide-hairline overflow-y-auto">
+        {alternatives.map((alt) => (
+          <button
+            key={alt.id}
+            type="button"
+            onClick={() => onPick(alt)}
+            className="flex items-center gap-3 px-1 py-2 text-start hover:bg-white/5"
+          >
+            <span className="flex-1 truncate text-sm font-semibold">{pick(locale, alt.nameEn, alt.nameAr)}</span>
+            <span className="shrink-0 text-xs tabular-nums text-muted">{swapQuantityG(item, item.quantityG, alt)}g</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

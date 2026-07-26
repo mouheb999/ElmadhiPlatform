@@ -5,7 +5,6 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
 import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/components/dashboard/today-workout";
-import { MealsTile, type MealsTileMeal } from "@/components/dashboard/meals-tile";
 import { NutritionLiveTile } from "@/components/dashboard/nutrition-live-tile";
 import { QaSpark, type QaSparkCard } from "@/components/dashboard/qa-spark";
 import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
@@ -87,8 +86,8 @@ export default async function DashboardPage() {
       .is("answered_seen_at", null),
   ]);
 
-  // ---- Nutrition: targets + today's plan meals + today's logged intake ----
-  const [{ data: macros }, { data: mealPlan }, { data: todayLogs }] = await Promise.all([
+  // ---- Nutrition: targets vs. today's logged intake ----
+  const [{ data: macros }, { data: todayLogs }] = await Promise.all([
     dietProfile
       ? supabase
           .from("macro_targets")
@@ -98,14 +97,6 @@ export default async function DashboardPage() {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from("meal_plans")
-      .select("id")
-      .eq("user_id", user!.id)
-      .eq("is_active", true)
-      .order("generated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
     supabase
       .from("meal_logs")
       .select("calories, protein_g, carbs_g, fat_g")
@@ -122,28 +113,6 @@ export default async function DashboardPage() {
     }),
     { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   );
-
-  type MealRow = {
-    id: string;
-    meal_type: string;
-    order_index: number;
-    meal_plan_items: { quantity_g: number | null; nutrition_ingredients: { calories_per_100g: number | null } | null }[];
-  };
-  const { data: mealRowsRaw } = mealPlan
-    ? await supabase
-        .from("meal_plan_meals")
-        .select("id, meal_type, order_index, meal_plan_items(quantity_g, nutrition_ingredients(calories_per_100g))")
-        .eq("meal_plan_id", mealPlan.id)
-        .order("order_index", { ascending: true })
-    : { data: null };
-  const meals: MealsTileMeal[] = ((mealRowsRaw ?? []) as unknown as MealRow[]).map((m) => ({
-    id: m.id,
-    mealType: m.meal_type,
-    kcal: (m.meal_plan_items ?? []).reduce(
-      (sum, item) => sum + ((item.nutrition_ingredients?.calories_per_100g ?? 0) * (item.quantity_g ?? 0)) / 100,
-      0,
-    ),
-  }));
 
   // ---- Training: what does today look like? ----
   let workoutState: TodayWorkoutState = "none";
@@ -317,10 +286,7 @@ export default async function DashboardPage() {
       </Reveal>
 
       <Reveal delay={0.15}>
-        <div className="grid grid-cols-2 gap-3">
-          <NutritionLiveTile locale={locale} target={nutritionTarget} consumed={consumed} />
-          <MealsTile locale={locale} meals={meals} />
-        </div>
+        <NutritionLiveTile locale={locale} target={nutritionTarget} consumed={consumed} />
       </Reveal>
 
       <Reveal delay={0.2}>

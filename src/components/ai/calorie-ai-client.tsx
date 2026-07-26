@@ -187,7 +187,7 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
           <p className="mt-1 text-muted">{t(locale, "ai.logged_sub")}</p>
         </div>
         <Button asChild className="w-full max-w-sm">
-          <Link href="/diet/log">{t(locale, "ai.open_diary")}</Link>
+          <Link href="/diet?view=today">{t(locale, "ai.open_diary")}</Link>
         </Button>
         <button type="button" onClick={reset} className="text-sm font-bold text-accent hover:underline">
           {t(locale, "ai.again")}
