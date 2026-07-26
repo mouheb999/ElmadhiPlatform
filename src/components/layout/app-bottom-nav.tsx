@@ -62,7 +62,11 @@ export function AppBottomNav({ locale }: { locale: Locale }) {
             <Link
               key={href}
               href={href}
-              prefetch
+              // Every tab renders live data (today's logs, targets, sessions).
+              // `prefetch` would opt them into the client cache's 5-minute
+              // "static" stale time and show yesterday's numbers; the pending
+              // state below is what keeps the nav feeling instant instead.
+              prefetch={false}
               aria-current={active ? "page" : undefined}
               aria-label={t(locale, label)}
               className="rounded-full outline-none transition-transform active:scale-90"

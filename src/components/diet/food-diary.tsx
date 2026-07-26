@@ -71,13 +71,6 @@ export type DiaryPlanMeal = {
   items: { food: DiaryFood; quantityG: number }[];
 };
 
-const SLOTS: { key: MealSlot; en: string; ar: string }[] = [
-  { key: "breakfast", en: "Breakfast", ar: "الفطور" },
-  { key: "lunch", en: "Lunch", ar: "الغدا" },
-  { key: "dinner", en: "Dinner", ar: "العشا" },
-  { key: "snack", en: "Snack", ar: "وجبة خفيفة" },
-];
-
 const PLAN_MEAL_LABELS: Record<string, { en: string; ar: string }> = {
   meal_1: { en: "Meal 1", ar: "الوجبة 1" },
   snack: { en: "Snack", ar: "وجبة خفيفة" },
@@ -86,14 +79,35 @@ const PLAN_MEAL_LABELS: Record<string, { en: string; ar: string }> = {
   pre_workout: { en: "Pre-workout", ar: "قبل التمرين" },
   post_workout: { en: "Post-workout", ar: "بعد التمرين" },
   last_meal: { en: "Last meal", ar: "آخر وجبة" },
+  other: { en: "Other", ar: "أخرى" },
+  // legacy slots, for days logged before the diary mirrored the plan
+  breakfast: { en: "Breakfast", ar: "الفطور" },
+  lunch: { en: "Lunch", ar: "الغدا" },
+  dinner: { en: "Dinner", ar: "العشا" },
 };
 
-/** Same slot mapping as the server action. */
-function planTypeToSlot(mealType: string): MealSlot {
-  if (mealType === "meal_1" || mealType === "breakfast") return "breakfast";
-  if (mealType === "meal_2" || mealType === "lunch") return "lunch";
-  if (mealType === "meal_3" || mealType === "last_meal" || mealType === "dinner") return "dinner";
-  return "snack";
+function slotLabel(locale: Locale, key: string): string {
+  const label = PLAN_MEAL_LABELS[key];
+  return label ? pick(locale, label.en, label.ar) : key;
+}
+
+/** The label map's keys are exactly the slots the DB constraint permits. */
+function isMealSlot(key: string): key is MealSlot {
+  return key in PLAN_MEAL_LABELS;
+}
+
+/**
+ * The day's rows: every meal in the user's plan, in plan order, plus "Other"
+ * for anything eaten off-plan. Any legacy slot that still holds entries on the
+ * viewed day is appended so old days stay readable.
+ */
+function diarySlots(planMeals: DiaryPlanMeal[], entries: DiaryEntry[]): MealSlot[] {
+  const slots = planMeals.map((m) => m.mealType).filter(isMealSlot);
+  for (const entry of entries) {
+    if (isMealSlot(entry.slot) && !slots.includes(entry.slot)) slots.push(entry.slot);
+  }
+  if (!slots.includes("other")) slots.push("other");
+  return slots;
 }
 
 function planMealKcal(meal: DiaryPlanMeal): number {
@@ -153,6 +167,8 @@ export function FoodDiary({
     }),
     [entries],
   );
+
+  const slots = useMemo(() => diarySlots(planMeals, entries), [planMeals, entries]);
 
   const coachKeys =
     mounted && targets && isToday
@@ -233,14 +249,23 @@ export function FoodDiary({
 
       {error && <p className="text-sm text-red-400">{error}</p>}
 
-      {SLOTS.map((slot) => {
-        const slotEntries = entries.filter((e) => e.slot === slot.key);
+      {slots.map((slotKey) => {
+        const slotEntries = entries.filter((e) => e.slot === slotKey);
         const slotKcal = slotEntries.reduce((s, e) => s + e.calories, 0);
+        // What the plan says to eat at this occasion — shown as the target
+        // beside what was actually logged, so the two are directly comparable.
+        const planned = planMeals.find((m) => m.mealType === slotKey);
+        const plannedKcal = planned ? planMealKcal(planned) : 0;
+        // An empty "Other" bucket is noise; it only appears once used.
+        if (slotKey === "other" && slotEntries.length === 0) return null;
         return (
-          <div key={slot.key} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4">
+          <div key={slotKey} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4">
             <div className="flex items-center justify-between">
-              <div className="font-bold">{pick(locale, slot.en, slot.ar)}</div>
-              <span className="text-xs tabular-nums text-muted">{Math.round(slotKcal)} kcal</span>
+              <div className="font-bold">{slotLabel(locale, slotKey)}</div>
+              <span className="text-xs tabular-nums text-muted">
+                {Math.round(slotKcal)}
+                {plannedKcal > 0 && ` / ${Math.round(plannedKcal)}`} kcal
+              </span>
             </div>
 
             {slotEntries.length === 0 ? (
@@ -275,7 +300,7 @@ export function FoodDiary({
             {isToday && (
               <button
                 type="button"
-                onClick={() => setSheetSlot(slot.key)}
+                onClick={() => setSheetSlot(slotKey)}
                 className="flex items-center gap-1.5 self-start text-sm font-bold text-accent hover:underline"
               >
                 <Plus className="h-4 w-4" />
@@ -293,9 +318,7 @@ export function FoodDiary({
           recents={recents}
           favorites={favorites}
           ingredients={ingredients}
-          planMeals={planMeals.filter(
-            (meal) => planTypeToSlot(meal.mealType) === sheetSlot && meal.items.length > 0,
-          )}
+          planMeals={planMeals.filter((meal) => meal.mealType === sheetSlot && meal.items.length > 0)}
           onClose={() => setSheetSlot(null)}
           onLogged={() => {
             setSheetSlot(null);
@@ -326,8 +349,7 @@ function DiaryHero({
 }) {
   const [showDetails, setShowDetails] = useState(false);
 
-  const remainingKcal = Math.round(targets.calories - consumed.calories);
-  const over = remainingKcal < 0;
+  const over = consumed.calories > targets.calories;
   const caloriePct = targets.calories > 0 ? Math.min((consumed.calories / targets.calories) * 100, 100) : 0;
 
   const macros = [
@@ -353,26 +375,27 @@ function DiaryHero({
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface p-5">
+      {/* Eaten vs. goal — one plain reading of the day, no "remaining" or
+          "over" arithmetic for the user to do in their head. */}
       <div className="text-center">
-        <div className={cn("text-5xl font-extrabold tabular-nums", over && "text-red-400")}>
-          {Math.abs(remainingKcal)}
+        <div className="flex items-baseline justify-center gap-1.5">
+          <span className={cn("text-5xl font-extrabold tabular-nums", over && "text-red-400")}>
+            {Math.round(consumed.calories)}
+          </span>
+          <span className="text-xl font-bold tabular-nums text-muted">
+            / {Math.round(targets.calories)}
+          </span>
         </div>
         <div className="mt-1 text-xs font-bold uppercase tracking-wide text-muted">
-          {over ? t(locale, "diary.over_by") : `kcal ${t(locale, "tile.left")}`}
+          {t(locale, "diary.kcal_eaten")}
         </div>
       </div>
 
-      <div>
-        <div className="h-2 overflow-hidden rounded-full bg-white/5">
-          <div
-            className={cn("h-full rounded-full transition-all duration-500", over ? "bg-red-400" : "bg-accent")}
-            style={{ width: `${caloriePct}%` }}
-          />
-        </div>
-        <div className="mt-1.5 flex justify-between text-[11px] tabular-nums text-muted">
-          <span>{Math.round(consumed.calories)}</span>
-          <span>{Math.round(targets.calories)} kcal</span>
-        </div>
+      <div className="h-2 overflow-hidden rounded-full bg-white/5">
+        <div
+          className={cn("h-full rounded-full transition-all duration-500", over ? "bg-red-400" : "bg-accent")}
+          style={{ width: `${caloriePct}%` }}
+        />
       </div>
 
       <div className="flex flex-col gap-2">

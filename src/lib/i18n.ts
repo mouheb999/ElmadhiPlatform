@@ -663,7 +663,7 @@ const STRINGS = {
   "diary.macro_protein": { en: "Protein", tn: "بروتين" },
   "diary.macro_carbs": { en: "Carbs", tn: "كربوهيدرات" },
   "diary.macro_fat": { en: "Fat", tn: "دهون" },
-  "diary.over_by": { en: "kcal over", tn: "كيلوكالوري زيادة" },
+  "diary.kcal_eaten": { en: "kcal eaten", tn: "كيلوكالوري تاكلو" },
   "diary.goal": { en: "Goal", tn: "الهدف" },
   "diary.food_label": { en: "Food", tn: "الماكلة" },
   "diary.remaining": { en: "Remaining", tn: "الباقي" },
@@ -711,7 +711,6 @@ const STRINGS = {
   },
 
   // ---- live nutrition tile ----
-  "tile.left": { en: "left", tn: "باقي" },
   "tile.log_food": { en: "Log food", tn: "سجّل ماكلة" },
 
   // ---- weekly review ----

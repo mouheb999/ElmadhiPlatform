@@ -66,7 +66,6 @@ export async function applyDietAdaptation(): Promise<ActionResult> {
 
   revalidatePath("/review");
   revalidatePath("/dashboard");
-  revalidatePath("/diet/plan");
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   return ok(undefined);
 }

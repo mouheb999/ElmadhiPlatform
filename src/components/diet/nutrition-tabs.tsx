@@ -25,7 +25,10 @@ export function NutritionTabs({ current, locale }: { current: NutritionView; loc
           <Link
             key={tab.view}
             href={tab.href}
-            prefetch
+            // No prefetch: `prefetch` opts a route into the client cache's
+            // 5-minute "static" stale time, which served stale targets and
+            // stale logged meals. These views must always render live data.
+            prefetch={false}
             role="tab"
             aria-selected={active}
             className={cn(

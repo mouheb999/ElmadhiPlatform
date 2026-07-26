@@ -104,7 +104,7 @@ export async function logEstimate(input: {
     payload: { slot: input.slot, entry_method: entryMethod, count: items.length },
   });
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok({ logged: items.length });
 }

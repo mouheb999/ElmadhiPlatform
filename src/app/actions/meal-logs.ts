@@ -4,8 +4,38 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
-export type MealSlot = "breakfast" | "lunch" | "dinner" | "snack";
-const MEAL_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
+/**
+ * An eating occasion. Normally a template meal_key so the diary lines up 1:1
+ * with the meal plan; "other" catches off-plan food. The breakfast/lunch/dinner
+ * values are legacy (pre-migration 029) and stay accepted so historical rows and
+ * any plan still using them keep working.
+ */
+export type MealSlot =
+  | "meal_1"
+  | "snack"
+  | "meal_2"
+  | "meal_3"
+  | "pre_workout"
+  | "post_workout"
+  | "last_meal"
+  | "other"
+  | "breakfast"
+  | "lunch"
+  | "dinner";
+
+const MEAL_SLOTS: MealSlot[] = [
+  "meal_1",
+  "snack",
+  "meal_2",
+  "meal_3",
+  "pre_workout",
+  "post_workout",
+  "last_meal",
+  "other",
+  "breakfast",
+  "lunch",
+  "dinner",
+];
 
 /** Entry paths a user can trigger today (barcode/voice/camera are V3).
  *  "plan" = a single item taken from the generated meal plan; it's stored as
@@ -69,17 +99,9 @@ export async function logFood(input: {
     payload: { slot: input.slot, entry_method: input.entryMethod },
   });
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok(undefined);
-}
-
-/** Template meal_key → diary slot. Pre/post-workout + snack land in "snack". */
-function planTypeToSlot(mealType: string): MealSlot {
-  if (mealType === "meal_1" || mealType === "breakfast") return "breakfast";
-  if (mealType === "meal_2" || mealType === "lunch") return "lunch";
-  if (mealType === "meal_3" || mealType === "last_meal" || mealType === "dinner") return "dinner";
-  return "snack";
 }
 
 /**
@@ -126,7 +148,11 @@ export async function logPlanMeal(
   const items = (meal.meal_plan_items ?? []).filter((i) => i.nutrition_ingredients);
   if (items.length === 0) return fail("This meal has no foods yet.");
 
-  const slot = planTypeToSlot(meal.meal_type);
+  // Log against the plan's own occasion, so the diary entry sits under the
+  // very meal the plan told the user to eat.
+  const slot = (MEAL_SLOTS as string[]).includes(meal.meal_type)
+    ? (meal.meal_type as MealSlot)
+    : "other";
   const today = serverToday();
 
   const { error } = await supabase.from("meal_logs").insert(
@@ -155,7 +181,7 @@ export async function logPlanMeal(
     payload: { slot, entry_method: "template", count: items.length },
   });
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok({ logged: items.length });
 }
@@ -200,7 +226,7 @@ export async function logQuick(input: {
     payload: { slot: input.slot, entry_method: "quick" },
   });
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok(undefined);
 }
@@ -254,7 +280,7 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
     payload: { entry_method: "copy_yesterday", count: entries.length },
   });
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok({ copied: entries.length });
 }
@@ -273,7 +299,7 @@ export async function removeMealLog(logId: string): Promise<ActionResult> {
     .eq("user_id", user.id);
   if (error) return fail(error.message);
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok(undefined);
 }
@@ -303,6 +329,6 @@ export async function toggleFavoriteFood(
       );
   if (error) return fail(error.message);
 
-  revalidatePath("/diet/log");
+  revalidatePath("/diet");
   return ok(undefined);
 }

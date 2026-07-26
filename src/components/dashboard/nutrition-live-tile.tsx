@@ -50,9 +50,8 @@ export function NutritionLiveTile({
     );
   }
 
-  // Mirrors the diary hero: past target reads as "over", never a clamped zero.
-  const remainingKcal = Math.round(target.calories - consumed.calories);
-  const over = remainingKcal < 0;
+  // Mirrors the diary hero: eaten vs. goal, tinted red once past target.
+  const over = consumed.calories > target.calories;
   const caloriePct = target.calories > 0 ? Math.min((consumed.calories / target.calories) * 100, 100) : 0;
   const coachKey = mounted ? nutritionFeedback(consumed, target, new Date().getHours(), 1)[0] : undefined;
 
@@ -76,11 +75,12 @@ export function NutritionLiveTile({
 
       <div className="mt-3 flex items-baseline gap-1.5">
         <span className={cn("text-3xl font-extrabold tabular-nums", over && "text-red-400")}>
-          {Math.abs(remainingKcal)}
+          {Math.round(consumed.calories)}
         </span>
-        <span className="text-xs text-muted">
-          {over ? t(locale, "diary.over_by") : `kcal ${t(locale, "tile.left")}`}
+        <span className="text-sm font-bold tabular-nums text-muted">
+          / {Math.round(target.calories)}
         </span>
+        <span className="text-xs text-muted">{t(locale, "diary.kcal_eaten")}</span>
       </div>
 
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
