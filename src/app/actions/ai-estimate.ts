@@ -43,6 +43,17 @@ export async function estimateMealAction(input: {
       has_image: !!input.imageBase64,
       simulated: estimate.simulated,
       item_count: estimate.items.length,
+      // Which model actually answered. Lets a provider bake-off be measured
+      // from real usage — and shows when a provider silently fell back.
+      provider: estimate.provider,
+      avg_confidence:
+        estimate.items.length > 0
+          ? Math.round(
+              (estimate.items.reduce((sum, i) => sum + i.confidence, 0) /
+                estimate.items.length) *
+                100,
+            ) / 100
+          : null,
     },
   });
 

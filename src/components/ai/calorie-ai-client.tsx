@@ -2,11 +2,21 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Camera, CheckCircle2, ImageIcon, RefreshCw, Sparkles, Trash2, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Camera,
+  CheckCircle2,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { t, type Locale } from "@/lib/i18n";
+import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { estimateMealAction, logEstimate } from "@/app/actions/ai-estimate";
 import type { EstimatedItem } from "@/lib/ai/meal-estimator";
 import type { MealSlot } from "@/app/actions/meal-logs";
@@ -20,11 +30,17 @@ const SLOTS: { key: MealSlot; en: string; ar: string }[] = [
 
 const MAX_EDGE = 1024;
 
-type Photo = { base64: string; mediaType: "image/jpeg"; previewUrl: string };
+type Photo = {
+  base64: string;
+  mediaType: "image/jpeg";
+  previewUrl: string;
+  /** Where it came from, so "retake" reopens the same input. */
+  source: "camera" | "file";
+};
 
-function canvasToPhoto(canvas: HTMLCanvasElement): Photo {
+function canvasToPhoto(canvas: HTMLCanvasElement, source: Photo["source"]): Photo {
   const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-  return { base64: dataUrl.split(",")[1], mediaType: "image/jpeg", previewUrl: dataUrl };
+  return { base64: dataUrl.split(",")[1], mediaType: "image/jpeg", previewUrl: dataUrl, source };
 }
 
 /** Downscale a picked file to ≤1024px JPEG (camera-permission fallback path). */
@@ -35,7 +51,7 @@ async function fileToPhoto(file: File): Promise<Photo> {
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
   canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  return canvasToPhoto(canvas);
+  return canvasToPhoto(canvas, "file");
 }
 
 /**
@@ -44,10 +60,22 @@ async function fileToPhoto(file: File): Promise<Photo> {
  * saved to the device gallery or stored on the server; only the resulting
  * nutrition estimate is logged.
  */
+/** Maps a getUserMedia rejection to something the user can act on. */
+export function cameraErrorKey(error: unknown): StringKey {
+  const name = (error as DOMException | undefined)?.name;
+  if (name === "NotAllowedError" || name === "SecurityError") return "ai.camera_denied";
+  if (name === "NotFoundError" || name === "OverconstrainedError") return "ai.camera_missing";
+  if (name === "NotReadableError" || name === "AbortError") return "ai.camera_busy";
+  return "ai.camera_error";
+}
+
+type CameraState = "idle" | "starting" | "live";
+
 export function CalorieAiClient({ locale }: { locale: Locale }) {
   const [photo, setPhoto] = useState<Photo | null>(null);
-  const [cameraOn, setCameraOn] = useState(false);
-  const [cameraFailed, setCameraFailed] = useState(false);
+  const [camera, setCamera] = useState<CameraState>("idle");
+  /** True once the stream reports real dimensions — capture needs them. */
+  const [videoReady, setVideoReady] = useState(false);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<EstimatedItem[] | null>(null);
   const [simulated, setSimulated] = useState(false);
@@ -63,29 +91,70 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   function stopCamera() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-    setCameraOn(false);
+    setCamera("idle");
+    setVideoReady(false);
   }
 
-  // Never leave the camera running when navigating away.
-  useEffect(() => stopCamera, []);
+  // Never leave the camera running when navigating away. Touches only the ref,
+  // so it can't set state on an unmounted component.
+  useEffect(
+    () => () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    },
+    [],
+  );
+
+  /**
+   * Attach the stream once the <video> is actually in the DOM.
+   *
+   * This used to run in a requestAnimationFrame right after setState, which is
+   * a race: React may commit after the frame callback, leaving videoRef null,
+   * and the old code silently skipped the assignment. The camera then showed a
+   * permanently black frame after the user granted permission. An effect keyed
+   * on the state runs after commit, so the ref is always populated.
+   */
+  useEffect(() => {
+    if (camera !== "live") return;
+    const video = videoRef.current;
+    const stream = streamRef.current;
+    if (!video || !stream) return;
+
+    video.srcObject = stream;
+    // Safari (and iOS in particular) does not always autoplay a stream that
+    // was assigned after mount. Rejection is harmless — muted+playsInline
+    // means the browser will start it on its own.
+    void video.play().catch(() => {});
+  }, [camera]);
 
   async function openCamera() {
     setError(null);
     setPhoto(null);
+    setVideoReady(false);
+
+    // getUserMedia only exists in a secure context. Over plain http on a LAN
+    // address — the usual way of testing on a real phone — mediaDevices is
+    // undefined, which previously failed silently.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(t(locale, window.isSecureContext ? "ai.camera_error" : "ai.camera_insecure"));
+      return;
+    }
+
+    setCamera("starting");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment", width: { ideal: 1280 } },
         audio: false,
       });
       streamRef.current = stream;
-      setCameraOn(true);
-      // The <video> mounts on the state flip; attach on the next frame.
-      requestAnimationFrame(() => {
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      });
-    } catch {
-      setCameraFailed(true);
-      fileRef.current?.click();
+      setCamera("live");
+    } catch (cameraError) {
+      streamRef.current = null;
+      setCamera("idle");
+      // Say what went wrong instead of silently opening the file picker — a
+      // programmatic click after an await is blocked by most browsers anyway,
+      // so the old fallback usually did nothing at all.
+      setError(t(locale, cameraErrorKey(cameraError)));
     }
   }
 
@@ -97,7 +166,7 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
     canvas.width = Math.round(video.videoWidth * scale);
     canvas.height = Math.round(video.videoHeight * scale);
     canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
-    setPhoto(canvasToPhoto(canvas));
+    setPhoto(canvasToPhoto(canvas, "camera"));
     stopCamera();
   }
 
@@ -112,10 +181,13 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   }
 
   function retake() {
+    const cameFromFile = photo?.source === "file";
     setPhoto(null);
     setItems(null);
-    if (cameraFailed) fileRef.current?.click();
-    else openCamera();
+    // Reopen whichever input produced the photo, so a user without a working
+    // camera isn't bounced back into a permission error every retake.
+    if (cameFromFile) fileRef.current?.click();
+    else void openCamera();
   }
 
   function estimate() {
@@ -166,6 +238,8 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
     setLogged(false);
     setError(null);
   }
+
+  const showIdleState = !photo && camera === "idle";
 
   const totals = (items ?? []).reduce(
     (acc, i) => ({
@@ -218,37 +292,81 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
         />
 
         {photo ? (
-          <div className="relative overflow-hidden rounded-2xl border border-hairline">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-hairline bg-black">
             {/* eslint-disable-next-line @next/next/no-img-element -- in-memory data URL, never persisted */}
-            <img src={photo.previewUrl} alt="Meal" className="max-h-72 w-full object-cover" />
+            <img src={photo.previewUrl} alt="Meal" className="h-full w-full object-cover" />
             <button
               type="button"
               onClick={retake}
-              className="absolute bottom-2 end-2 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs font-bold text-white"
+              className="absolute bottom-3 end-3 flex items-center gap-1.5 rounded-full bg-black/70 px-3.5 py-2 text-xs font-bold text-white backdrop-blur transition-colors hover:bg-black/85"
             >
               <RefreshCw className="h-3.5 w-3.5" />
               {t(locale, "ai.retake")}
             </button>
           </div>
-        ) : cameraOn ? (
-          <div className="relative overflow-hidden rounded-2xl border border-hairline">
-            <video ref={videoRef} autoPlay playsInline muted className="max-h-72 w-full object-cover" />
-            <div className="absolute inset-x-0 bottom-3 flex items-center justify-center gap-4">
+        ) : camera !== "idle" ? (
+          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-hairline bg-black">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              onLoadedMetadata={() => setVideoReady(true)}
+              className={cn(
+                "h-full w-full object-cover transition-opacity duration-300",
+                videoReady ? "opacity-100" : "opacity-0",
+              )}
+            />
+
+            {/* Framing guides — help the user fill the frame, which is the
+                single biggest lever on portion-estimate accuracy. */}
+            {videoReady && (
+              <div aria-hidden className="pointer-events-none absolute inset-6">
+                {[
+                  "left-0 top-0 border-l-2 border-t-2 rounded-tl-lg",
+                  "right-0 top-0 border-r-2 border-t-2 rounded-tr-lg",
+                  "left-0 bottom-0 border-l-2 border-b-2 rounded-bl-lg",
+                  "right-0 bottom-0 border-r-2 border-b-2 rounded-br-lg",
+                ].map((corner) => (
+                  <span key={corner} className={cn("absolute h-7 w-7 border-white/70", corner)} />
+                ))}
+              </div>
+            )}
+
+            {!videoReady && (
+              <div className="absolute inset-0 grid place-items-center gap-2 text-white/80">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                  <span className="text-xs font-bold">{t(locale, "ai.camera_starting")}</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={stopCamera}
+              aria-label={t(locale, "media.close")}
+              className="absolute end-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition-colors hover:bg-black/80"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            {/* Shutter. Disabled until the stream reports dimensions, so a tap
+                can never silently no-op on a not-yet-ready video. */}
+            <div className="absolute inset-x-0 bottom-4 grid place-items-center">
               <button
                 type="button"
                 onClick={capture}
+                disabled={!videoReady}
                 aria-label={t(locale, "ai.capture")}
-                className="grid h-14 w-14 place-items-center rounded-full border-4 border-white bg-white/30 backdrop-blur"
+                className={cn(
+                  "grid h-16 w-16 place-items-center rounded-full ring-4 ring-white/90 transition-transform",
+                  videoReady
+                    ? "bg-white/25 backdrop-blur active:scale-90"
+                    : "cursor-not-allowed bg-white/10 opacity-50",
+                )}
               >
-                <Camera className="h-6 w-6 text-white" />
-              </button>
-              <button
-                type="button"
-                onClick={stopCamera}
-                aria-label={t(locale, "media.close")}
-                className="absolute end-4 grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white"
-              >
-                <X className="h-4 w-4" />
+                <span className="h-11 w-11 rounded-full bg-white/95" />
               </button>
             </div>
           </div>
@@ -256,19 +374,23 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
           <button
             type="button"
             onClick={openCamera}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-accent/50 bg-accent/5 py-10 text-accent hover:bg-accent/10"
+            className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-accent/40 bg-gradient-to-b from-accent/10 to-accent/[0.02] py-12 transition-colors hover:border-accent/70 hover:from-accent/15"
           >
-            <Camera className="h-9 w-9" />
-            <span className="font-bold">{t(locale, "ai.open_camera")}</span>
-            <span className="text-xs text-muted">{t(locale, "ai.no_save_note")}</span>
+            <span className="grid h-16 w-16 place-items-center rounded-full bg-accent/15 text-accent transition-transform group-hover:scale-105">
+              <Camera className="h-8 w-8" />
+            </span>
+            <span className="font-bold text-accent">{t(locale, "ai.open_camera")}</span>
+            <span className="max-w-[16rem] text-center text-xs text-muted">
+              {t(locale, "ai.no_save_note")}
+            </span>
           </button>
         )}
 
-        {!photo && !cameraOn && (
+        {showIdleState && (
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex items-center justify-center gap-1.5 text-xs font-bold text-muted hover:text-ink"
+            className="flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-muted transition-colors hover:bg-white/5 hover:text-ink"
           >
             <ImageIcon className="h-4 w-4" />
             {t(locale, "ai.pick_instead")}
@@ -281,7 +403,32 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
           placeholder={t(locale, "ai.notes_ph")}
         />
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && (
+          <div className="flex items-start gap-2.5 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <div className="flex flex-1 flex-col gap-2">
+              <p className="text-sm">{error}</p>
+              {showIdleState && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={openCamera}
+                    className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+                  >
+                    {t(locale, "ai.camera_retry")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+                  >
+                    {t(locale, "ai.pick_instead")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <Button onClick={estimate} disabled={isPending || !photo}>
           {isPending && !items ? t(locale, "ai.estimating") : t(locale, "ai.estimate_cta")}

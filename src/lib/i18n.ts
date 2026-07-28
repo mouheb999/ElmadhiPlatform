@@ -833,6 +833,24 @@ const STRINGS = {
     en: "Camera unavailable — pick a photo instead.",
     tn: "الكاميرا موش متوفرة — اختار تصويرة.",
   },
+  "ai.camera_denied": {
+    en: "Camera permission was blocked. Allow it in your browser settings, or pick a photo instead.",
+    tn: "منع الكاميرا. سمحلها من إعدادات المتصفح، ولا اختار تصويرة.",
+  },
+  "ai.camera_missing": {
+    en: "No camera found on this device — pick a photo instead.",
+    tn: "ما لقيناش كاميرا في الجهاز هذا — اختار تصويرة.",
+  },
+  "ai.camera_insecure": {
+    en: "The camera only works over HTTPS. Open the app on localhost or an https:// address, or pick a photo instead.",
+    tn: "الكاميرا تخدم برك على HTTPS. حلّ التطبيق على localhost ولا على عنوان https://، ولا اختار تصويرة.",
+  },
+  "ai.camera_busy": {
+    en: "The camera is being used by another app. Close it and try again.",
+    tn: "الكاميرا مستعملة في تطبيق آخر. سكّرو وعاود جرّب.",
+  },
+  "ai.camera_starting": { en: "Starting camera…", tn: "قاعدة تحل الكاميرا…" },
+  "ai.camera_retry": { en: "Try again", tn: "عاود جرّب" },
   "ai.estimate_cta": { en: "Estimate calories", tn: "قدّر السعرات" },
   "ai.estimating": { en: "Estimating…", tn: "قاعد يقدّر…" },
   "ai.results_title": { en: "Detected foods — edit anything", tn: "الماكلة المتعرّف عليها — بدّل اللي تحب" },
@@ -875,6 +893,43 @@ const STRINGS = {
   "admin.qa_answer_long_ar": { en: "Full answer (Tunisian, Markdown)", tn: "إجابة كاملة (تونسي، Markdown)" },
   "admin.qa_publish": { en: "Publish answer", tn: "انشر الإجابة" },
   "admin.qa_dismiss": { en: "Dismiss", tn: "تجاهل" },
+
+  // ---- admin: user records ----
+  "admin.nav_users": { en: "Users", tn: "المستخدمين" },
+  "admin.users_title": { en: "User records", tn: "سجلات المستخدمين" },
+  "admin.users_sub": {
+    en: "Look up an account by email to reset its logged workout history. The training plan stays as it is.",
+    tn: "لوّج على حساب بالإيميل باش تصفّر سجل التمارين. برنامج التدريب يبقى كيما هو.",
+  },
+  "admin.users_email_placeholder": { en: "user@example.com", tn: "user@example.com" },
+  "admin.users_lookup": { en: "Look up", tn: "لوّج" },
+  "admin.users_sessions": { en: "Sessions", tn: "حصص" },
+  "admin.users_sets": { en: "Sets", tn: "سيريات" },
+  "admin.users_events": { en: "Events", tn: "أحداث" },
+  "admin.users_open": { en: "In progress", tn: "مازالت تخدم" },
+  "admin.users_day": { en: "Day", tn: "النهار" },
+  "admin.users_started": { en: "Started", tn: "بدات" },
+  "admin.users_finished": { en: "Finished", tn: "كملت" },
+  "admin.users_in_progress": { en: "In progress", tn: "مازالت تخدم" },
+  "admin.users_plan_safe": {
+    en: "The training plan is not touched. Active program:",
+    tn: "برنامج التدريب ما يتبدّلش. البرنامج الفعّال:",
+  },
+  "admin.users_no_program": { en: "none", tn: "ما فماش" },
+  "admin.users_nothing": {
+    en: "This account has no workout history — nothing to reset.",
+    tn: "الحساب هذا ما عندوش سجل تمارين — ما فماش شنوة تصفّر.",
+  },
+  "admin.users_warning": {
+    en: "This permanently deletes every session, every logged set and the completion events. It cannot be undone. Check-ins, meal logs and the program are kept.",
+    tn: "هذا يمسح نهائيًا كل الحصص وكل السيريات المسجلة وأحداث الإكمال. ما تنجمش ترجّعهم. المتابعة اليومية وسجل الماكلة والبرنامج يتحفظوا.",
+  },
+  "admin.users_confirm_label": {
+    en: "Type the email to confirm",
+    tn: "اكتب الإيميل باش تأكّد",
+  },
+  "admin.users_reset": { en: "Reset workout history", tn: "صفّر سجل التمارين" },
+  "admin.users_reset_done": { en: "Workout history reset.", tn: "تصفّر سجل التمارين." },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;
