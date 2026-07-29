@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Flame, MessageCircleQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
@@ -44,17 +45,20 @@ function checkinStreak(datesDesc: string[]): number {
  * answer to "what does ELMADHI want from me today, and what did it notice?"
  */
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, locale, user] = await Promise.all([
+    createClient(),
+    getLocale(),
+    getCurrentUser(),
+  ]);
 
   // "Today" and "this week" in Africa/Tunis — never server-local time.
   const today = tunisDateKey();
   const todayStart = tunisDayStartUtc();
   const weekStart = tunisWeekStartUtc();
 
+  // Round 1: everything that depends on nothing but the user id. This page
+  // used to run five sequential round-trips; anything not genuinely waiting on
+  // an earlier id belongs here.
   const [
     { data: profile },
     { data: dietProfile },
@@ -62,6 +66,9 @@ export default async function DashboardPage() {
     { data: qaCardsRaw },
     { data: checkins },
     { data: answeredRequests },
+    { data: todayLogs },
+    { data: openSession },
+    { data: weekSessionsRaw },
   ] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user!.id).maybeSingle(),
     supabase.from("diet_profiles").select("id").eq("user_id", user!.id).eq("is_active", true).maybeSingle(),
@@ -84,10 +91,31 @@ export default async function DashboardPage() {
       .eq("user_id", user!.id)
       .eq("status", "published")
       .is("answered_seen_at", null),
+    supabase
+      .from("meal_logs")
+      .select("calories, protein_g, carbs_g, fat_g")
+      .eq("user_id", user!.id)
+      .eq("log_date", today),
+    supabase
+      .from("workout_sessions")
+      .select("id, user_program_day_id")
+      .eq("user_id", user!.id)
+      .is("completed_at", null)
+      .maybeSingle(),
+    // Every session finished this week. Narrowing it to the active program's
+    // days needs those day ids, which arrive in round 2 — so that filter moves
+    // to the intersection below instead of holding this query back a round.
+    supabase
+      .from("workout_sessions")
+      .select("id, completed_at, user_program_day_id")
+      .eq("user_id", user!.id)
+      .not("completed_at", "is", null)
+      .gte("completed_at", weekStart.toISOString()),
   ]);
 
-  // ---- Nutrition: targets vs. today's logged intake ----
-  const [{ data: macros }, { data: todayLogs }] = await Promise.all([
+  // Round 2: the two lookups that genuinely needed an id from round 1. They
+  // don't depend on each other, so they go together.
+  const [{ data: macros }, { data: program }] = await Promise.all([
     dietProfile
       ? supabase
           .from("macro_targets")
@@ -97,13 +125,17 @@ export default async function DashboardPage() {
           .limit(1)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase
-      .from("meal_logs")
-      .select("calories, protein_g, carbs_g, fat_g")
-      .eq("user_id", user!.id)
-      .eq("log_date", today),
+    trainingProfile
+      ? supabase
+          .from("user_programs")
+          .select("id")
+          .eq("training_profile_id", trainingProfile.id)
+          .eq("is_active", true)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
+  // ---- Nutrition: targets vs. today's logged intake ----
   const consumed = (todayLogs ?? []).reduce(
     (acc, log) => ({
       calories: acc.calories + log.calories,
@@ -121,13 +153,6 @@ export default async function DashboardPage() {
   const weekTarget = trainingProfile?.days_per_week ?? 0;
 
   if (trainingProfile) {
-    const { data: program } = await supabase
-      .from("user_programs")
-      .select("id")
-      .eq("training_profile_id", trainingProfile.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
     if (program) {
       type ProgramDayRow = {
         id: string;
@@ -148,29 +173,19 @@ export default async function DashboardPage() {
       }));
 
       if (days.length > 0) {
-        const dayIds = days.map((d) => d.id);
-        const [{ data: weekSessions }, { data: openSession }] = await Promise.all([
-          supabase
-            .from("workout_sessions")
-            .select("id, completed_at, user_program_day_id")
-            .eq("user_id", user!.id)
-            .in("user_program_day_id", dayIds)
-            .not("completed_at", "is", null)
-            .gte("completed_at", weekStart.toISOString()),
-          supabase
-            .from("workout_sessions")
-            .select("id, user_program_day_id")
-            .eq("user_id", user!.id)
-            .is("completed_at", null)
-            .maybeSingle(),
-        ]);
+        // The day filter the query above deferred: sessions belonging to a
+        // program the user has since replaced still don't count.
+        const dayIds = new Set(days.map((d) => d.id));
+        const weekSessions = (weekSessionsRaw ?? []).filter(
+          (s) => s.user_program_day_id && dayIds.has(s.user_program_day_id),
+        );
 
         // Weekly gate: each day counts once per Tunis week, any order.
         const doneDayIds = new Set(
-          (weekSessions ?? []).map((s) => s.user_program_day_id).filter(Boolean),
+          weekSessions.map((s) => s.user_program_day_id).filter(Boolean),
         );
         weekDone = doneDayIds.size;
-        const doneToday = (weekSessions ?? []).some(
+        const doneToday = weekSessions.some(
           (s) => s.completed_at && new Date(s.completed_at) >= todayStart,
         );
         const openDay = openSession?.user_program_day_id

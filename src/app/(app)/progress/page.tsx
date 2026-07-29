@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { pick, t, type StringKey } from "@/lib/i18n";
 import { tunisDateKey, tunisDaysAgoKey, tunisWeekKey, tunisWeekStartUtc } from "@/lib/dates";
@@ -28,9 +29,7 @@ export default async function ProgressPage({
   const range: 30 | 90 = rangeParam === "90" ? 90 : 30;
   const supabase = await createClient();
   const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   // 12 Tunis week buckets, oldest first, keyed by their Monday.

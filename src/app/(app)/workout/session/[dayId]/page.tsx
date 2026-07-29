@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { tunisWeekStartUtc } from "@/lib/dates";
 import { suggestNextWeight, type HistorySet } from "@/lib/algorithms/progression";
@@ -31,9 +32,7 @@ export default async function WorkoutSessionPage({
   const { dayId } = await params;
   const supabase = await createClient();
   const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) redirect("/login");
 
   type DayRow = {

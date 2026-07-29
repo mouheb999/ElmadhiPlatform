@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function WorkoutLandingPage() {
   const supabase = await createClient();
   const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const { data: trainingProfile } = await supabase
     .from("training_profiles")

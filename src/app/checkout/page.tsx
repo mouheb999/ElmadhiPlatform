@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { CheckoutClient } from "./checkout-client";
 
@@ -9,9 +10,7 @@ export default async function CheckoutPage() {
   const supabase = await createClient();
   const locale = await getLocale();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login?next=/checkout");
 

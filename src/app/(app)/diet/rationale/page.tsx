@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t, pick } from "@/lib/i18n";
 import { RationaleCard } from "@/components/shared/rationale-card";
@@ -18,9 +19,7 @@ function asBilingual(value: unknown): Bilingual {
 export default async function DietRationalePage() {
   const supabase = await createClient();
   const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const { data: dietProfile } = await supabase
     .from("diet_profiles")

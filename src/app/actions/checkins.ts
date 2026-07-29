@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { tunisDateKey } from "@/lib/dates";
 
@@ -14,9 +15,7 @@ export type CheckinInput = {
 /** Upserts today's morning check-in (one row per user per day). */
 export async function submitCheckin(input: CheckinInput): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   if (input.weightKg === null && input.energy === null && input.sleepHours === null) {

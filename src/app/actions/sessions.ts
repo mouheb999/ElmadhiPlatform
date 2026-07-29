@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { tunisWeekStartUtc } from "@/lib/dates";
 import { SESSION_ERR } from "@/lib/session-codes";
@@ -30,9 +31,7 @@ export async function startSession(
   userProgramDayId: string,
 ): Promise<ActionResult<StartSessionOk>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   // Day must belong to one of the user's programs.
@@ -147,9 +146,7 @@ async function getOpenSession(
  */
 export async function logSet(input: LogSetInput): Promise<ActionResult<{ setId: string }>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   if (!Number.isInteger(input.reps) || input.reps < 1 || input.reps > 100) {
@@ -205,9 +202,7 @@ export async function skipExercise(
   exerciseId: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const session = await getOpenSession(supabase, user.id, sessionId);
@@ -240,9 +235,7 @@ export async function finishSession(input: {
   prExerciseIds: string[];
 }): Promise<ActionResult<FinishSummary>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const { data: session } = await supabase
@@ -326,9 +319,7 @@ export async function finishSession(input: {
  */
 export async function discardEmptySession(sessionId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const session = await getOpenSession(supabase, user.id, sessionId);

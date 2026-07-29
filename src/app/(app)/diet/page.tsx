@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -21,11 +22,11 @@ export default async function DietPage({
 }: {
   searchParams: Promise<{ view?: string; date?: string }>;
 }) {
-  const supabase = await createClient();
-  const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, locale, user] = await Promise.all([
+    createClient(),
+    getLocale(),
+    getCurrentUser(),
+  ]);
 
   const { data: dietProfile } = await supabase
     .from("diet_profiles")
@@ -52,10 +53,18 @@ export default async function DietPage({
   return (
     <div className="flex flex-col gap-5">
       <NutritionTabs current={current} locale={locale} />
+      {/* The active diet profile is already in hand — hand it down so the view
+          doesn't re-query it and, worse, have to wait on that answer before it
+          can ask for the macro targets keyed to it. */}
       {current === "plan" ? (
-        <PlanView locale={locale} userId={user!.id} />
+        <PlanView locale={locale} userId={user!.id} dietProfileId={dietProfile.id} />
       ) : (
-        <TodayView locale={locale} userId={user!.id} dateParam={date} />
+        <TodayView
+          locale={locale}
+          userId={user!.id}
+          dietProfileId={dietProfile.id}
+          dateParam={date}
+        />
       )}
     </div>
   );

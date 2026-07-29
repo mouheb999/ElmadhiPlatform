@@ -1,9 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
+import { GATE_COOKIE } from "@/lib/paywall-gate";
 
 async function siteUrl() {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -65,5 +66,8 @@ export async function signInWithGoogle(): Promise<ActionResult<string>> {
 export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  // Drop the cached paywall pass too — it's user-bound and would fail
+  // verification anyway, but leaving it behind is just litter.
+  (await cookies()).delete(GATE_COOKIE);
   redirect("/login");
 }

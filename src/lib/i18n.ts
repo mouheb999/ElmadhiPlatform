@@ -259,6 +259,16 @@ const STRINGS = {
 
   // ---- common ----
   "common.error": { en: "Something went wrong.", tn: "صار مشكل." },
+  "common.error_title": {
+    en: "That didn't go through",
+    tn: "الطلب ما نجحش",
+  },
+  "common.error_body": {
+    en: "The connection dropped for a second. Nothing you saved was lost — try again.",
+    tn: "الكونيكسيون تقطعت ثانية. اللي سجّلته ما ضاعش — عاود جرّب.",
+  },
+  "common.retry": { en: "Try again", tn: "عاود جرّب" },
+  "common.go_home": { en: "Back to Home", tn: "ارجع للعيسية" },
 
   // ---- app bottom nav ----
   "nav.home": { en: "Home", tn: "الرئيسية" },

@@ -25,10 +25,13 @@ function shiftDate(date: string, days: number): string {
 export async function TodayView({
   locale,
   userId,
+  dietProfileId,
   dateParam,
 }: {
   locale: Locale;
   userId: string;
+  /** Active diet profile, already resolved by the /diet shell. */
+  dietProfileId: string;
   dateParam?: string;
 }) {
   const supabase = await createClient();
@@ -69,7 +72,7 @@ export async function TodayView({
   };
 
   const [
-    { data: dietProfile },
+    { data: macros },
     { data: todayLogsRaw },
     { data: favoritesRaw },
     { data: recentsRaw },
@@ -77,7 +80,13 @@ export async function TodayView({
     { data: previousRow },
     { data: mealPlan },
   ] = await Promise.all([
-    supabase.from("diet_profiles").select("id").eq("user_id", userId).eq("is_active", true).maybeSingle(),
+    supabase
+      .from("macro_targets")
+      .select("calories, protein_g, carbs_g, fat_g")
+      .eq("diet_profile_id", dietProfileId)
+      .order("computed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     supabase
       .from("meal_logs")
       .select(
@@ -174,16 +183,6 @@ export async function TodayView({
         quantityG: item.quantity_g,
       })),
   }));
-
-  const { data: macros } = dietProfile
-    ? await supabase
-        .from("macro_targets")
-        .select("calories, protein_g, carbs_g, fat_g")
-        .eq("diet_profile_id", dietProfile.id)
-        .order("computed_at", { ascending: false })
-        .limit(1)
-        .maybeSingle()
-    : { data: null };
 
   const targets: DiaryTargets | null = macros
     ? { calories: macros.calories, proteinG: macros.protein_g, carbsG: macros.carbs_g, fatG: macros.fat_g }

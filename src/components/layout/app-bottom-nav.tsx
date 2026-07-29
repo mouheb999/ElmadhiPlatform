@@ -62,11 +62,13 @@ export function AppBottomNav({ locale }: { locale: Locale }) {
             <Link
               key={href}
               href={href}
-              // Every tab renders live data (today's logs, targets, sessions).
-              // `prefetch` would opt them into the client cache's 5-minute
-              // "static" stale time and show yesterday's numbers; the pending
-              // state below is what keeps the nav feeling instant instead.
-              prefetch={false}
+              // Prefetching is safe here and it is what makes a tap feel
+              // instant. Every tab is `force-dynamic`, and Next only prefetches
+              // a dynamic route down to its first loading boundary — the page
+              // segment itself is always refetched on click, so today's logs,
+              // targets and sessions are never served stale. What gets warmed
+              // is the route's JS chunk and the skeleton, which is exactly the
+              // part the user was waiting on before.
               aria-current={active ? "page" : undefined}
               aria-label={t(locale, label)}
               className="rounded-full outline-none transition-transform active:scale-90"

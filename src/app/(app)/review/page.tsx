@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Dumbbell, Moon, Scale, Trophy, UtensilsCrossed } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { pick, t, type StringKey } from "@/lib/i18n";
 import { weeklySummary, type FocusArea } from "@/lib/algorithms/weekly-review";
@@ -27,9 +28,7 @@ const FOCUS_TO_SLUG: Record<Exclude<FocusArea, null>, string> = {
 export default async function WeeklyReviewPage() {
   const supabase = await createClient();
   const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const start = new Date();
   start.setHours(0, 0, 0, 0);

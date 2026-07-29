@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Bell } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
@@ -10,21 +10,18 @@ export const dynamic = "force-dynamic";
 /**
  * Shell for every signed-in pillar route (/dashboard, /diet, /workout, /qa,
  * /settings). `proxy.ts` already gates auth + payment_status before this
- * layout ever renders; the getUser() call here is defense-in-depth for
- * direct server-side rendering, not the primary gate.
+ * layout ever renders; the check here is defense-in-depth for direct
+ * server-side rendering, not the primary gate. `getCurrentUser` is
+ * request-deduped, so the page rendering inside this layout reuses the same
+ * verification rather than repeating it.
  */
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [user, locale] = await Promise.all([getCurrentUser(), getLocale()]);
   if (!user) redirect("/login");
-
-  const locale = await getLocale();
 
   return (
     <div className="flex min-h-dvh flex-col">

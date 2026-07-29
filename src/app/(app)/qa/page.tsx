@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { QaFeed } from "@/components/qa/qa-feed";
 import { AnsweredBanner, type AnsweredRequest } from "@/components/qa/answered-banner";
@@ -8,9 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function QaPage() {
   const supabase = await createClient();
   const locale = await getLocale();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const [{ data: categories }, { data: cards }, { data: answeredRaw }] = await Promise.all([
     supabase.from("qa_categories").select("id, slug, name_en, name_ar").order("order_index", { ascending: true }),

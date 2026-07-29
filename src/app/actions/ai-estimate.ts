@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { estimateMeal, type MealEstimate, type EstimatedItem } from "@/lib/ai/meal-estimator";
 import { type MealSlot } from "@/app/actions/meal-logs";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
@@ -16,9 +17,7 @@ export async function estimateMealAction(input: {
   imageMediaType?: "image/jpeg" | "image/png" | "image/webp";
 }): Promise<ActionResult<MealEstimate>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   if (!input.description.trim() && !input.imageBase64) {
@@ -71,9 +70,7 @@ export async function logEstimate(input: {
   items: EstimatedItem[];
 }): Promise<ActionResult<{ logged: number }>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   if (!MEAL_SLOTS.includes(input.slot)) return fail("Unknown meal slot.");

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
@@ -9,9 +10,7 @@ import { type ActionResult, ok, fail } from "@/lib/action-result";
 /** §8 — user-submitted questions an admin can triage and promote to a card. */
 export async function submitQaRequest(questionText: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
   if (!questionText.trim()) return fail("Question can't be empty.");
 
@@ -23,9 +22,7 @@ export async function submitQaRequest(questionText: string): Promise<ActionResul
 /** User clicked through to read their answered question — stop notifying. */
 export async function markQaAnswerSeen(requestId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const { error } = await supabase

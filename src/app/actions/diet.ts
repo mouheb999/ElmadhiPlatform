@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { calculateMacros, type ActivityLevel, type DailySteps } from "@/lib/algorithms/macros";
 import type { Goal, BodyFatLevel } from "@/lib/algorithms/diet-strategy";
@@ -175,9 +176,7 @@ async function buildAndSaveMealPlan(
 
 export async function submitDietQuestions(answers: DietAnswers): Promise<ActionResult<{ dietProfileId: string }>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   // Archive any existing active profile + plan (versioned, never deleted).

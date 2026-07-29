@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -59,9 +60,7 @@ export async function logFood(input: {
   entryMethod: ManualEntryMethod;
 }): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   if (!MEAL_SLOTS.includes(input.slot)) return fail("Unknown meal slot.");
@@ -113,9 +112,7 @@ export async function logPlanMeal(
   mealId: string,
 ): Promise<ActionResult<{ logged: number }>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   type PlanMealRow = {
@@ -196,9 +193,7 @@ export async function logQuick(input: {
   fatG: number | null;
 }): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   if (!MEAL_SLOTS.includes(input.slot)) return fail("Unknown meal slot.");
@@ -234,9 +229,7 @@ export async function logQuick(input: {
 /** Copy every entry from the most recent logged day (usually yesterday). */
 export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }>> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const today = serverToday();
@@ -287,9 +280,7 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
 
 export async function removeMealLog(logId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const { error } = await supabase
@@ -309,9 +300,7 @@ export async function toggleFavoriteFood(
   favorite: boolean,
 ): Promise<ActionResult> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
   const { error } = favorite
