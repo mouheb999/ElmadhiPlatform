@@ -847,6 +847,8 @@ export type Database = {
           name_en: string | null;
           name_ar: string | null;
           order_index: number | null;
+          icon: string | null;
+          accent_color: string | null;
         };
         Insert: {
           id?: string;
@@ -855,6 +857,8 @@ export type Database = {
           name_en?: string | null;
           name_ar?: string | null;
           order_index?: number | null;
+          icon?: string | null;
+          accent_color?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["qa_categories"]["Insert"]>;
         Relationships: [];
@@ -866,10 +870,26 @@ export type Database = {
           question_fr: string | null;
           question_en: string | null;
           question_ar: string | null;
-          answer_short: string;
+          answer_short: string | null;
           answer_long_md: string | null;
           answer_short_ar: string | null;
           answer_long_md_ar: string | null;
+          // migration 031: visual answer-card blocks
+          external_id: string | null;
+          science_explanation: string | null;
+          science_explanation_ar: string | null;
+          practical_application: string | null;
+          practical_application_ar: string | null;
+          common_mistake: string | null;
+          common_mistake_ar: string | null;
+          coach_tip: string | null;
+          coach_tip_ar: string | null;
+          warning: string | null;
+          warning_ar: string | null;
+          difficulty_level: string | null;
+          estimated_read_time: string | null;
+          icon: string | null;
+          accent_color: string | null;
           visual_type: string | null;
           visual_data: Json | null;
           scientific_sources: Json | null;
@@ -883,10 +903,25 @@ export type Database = {
           question_fr?: string | null;
           question_en?: string | null;
           question_ar?: string | null;
-          answer_short: string;
+          answer_short?: string | null;
           answer_long_md?: string | null;
           answer_short_ar?: string | null;
           answer_long_md_ar?: string | null;
+          external_id?: string | null;
+          science_explanation?: string | null;
+          science_explanation_ar?: string | null;
+          practical_application?: string | null;
+          practical_application_ar?: string | null;
+          common_mistake?: string | null;
+          common_mistake_ar?: string | null;
+          coach_tip?: string | null;
+          coach_tip_ar?: string | null;
+          warning?: string | null;
+          warning_ar?: string | null;
+          difficulty_level?: string | null;
+          estimated_read_time?: string | null;
+          icon?: string | null;
+          accent_color?: string | null;
           visual_type?: string | null;
           visual_data?: Json | null;
           scientific_sources?: Json | null;
@@ -917,6 +952,22 @@ export type Database = {
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["qa_requests"]["Insert"]>;
+        Relationships: [];
+      };
+
+      // ---- migration 031: how many questions a user may ask per month ----
+      qa_settings: {
+        Row: {
+          id: number;
+          monthly_question_limit: number;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: number;
+          monthly_question_limit?: number;
+          updated_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["qa_settings"]["Insert"]>;
         Relationships: [];
       };
 

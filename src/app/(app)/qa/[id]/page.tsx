@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import ReactMarkdown from "react-markdown";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { pick } from "@/lib/i18n";
+import { QaAnswerCard } from "@/components/qa/qa-answer-card";
+import type { Database } from "@/types/db";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +14,30 @@ export default async function QaDetailPage({ params }: { params: Promise<{ id: s
   const supabase = await createClient();
   const locale = await getLocale();
 
-  const { data: card } = await supabase
+  // db.ts declares no relationships, so an embedded select comes back untyped —
+  // same cast the admin triage page uses for `profiles(email)`. One query
+  // rather than two: the category only carries the card's colour and label.
+  type CardRow = Database["public"]["Tables"]["qa_cards"]["Row"] & {
+    qa_categories: {
+      slug: string;
+      name_en: string | null;
+      name_ar: string | null;
+      icon: string | null;
+      accent_color: string | null;
+    } | null;
+  };
+
+  const { data } = await supabase
     .from("qa_cards")
-    .select("*")
+    .select("*, qa_categories(slug, name_en, name_ar, icon, accent_color)")
     .eq("id", id)
     .eq("is_published", true)
     .maybeSingle();
 
+  const card = data as CardRow | null;
   if (!card) notFound();
-
-  const body = pick(locale, card.answer_long_md, card.answer_long_md_ar);
+  // A card can override its category's look; most just inherit it.
+  const category = card.qa_categories;
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-5">
@@ -31,14 +46,24 @@ export default async function QaDetailPage({ params }: { params: Promise<{ id: s
         {locale === "tn" ? "لوراء" : "Back"}
       </Link>
 
-      <h1 className="text-2xl font-extrabold tracking-tight">{pick(locale, card.question_en, card.question_ar)}</h1>
-      <p className="text-lg text-accent">{pick(locale, card.answer_short, card.answer_short_ar)}</p>
-
-      {body && (
-        <div className="prose prose-invert max-w-none text-sm leading-relaxed text-muted">
-          <ReactMarkdown>{body}</ReactMarkdown>
-        </div>
-      )}
+      <QaAnswerCard
+        locale={locale}
+        card={{
+          question: pick(locale, card.question_en, card.question_ar),
+          shortAnswer: pick(locale, card.answer_short, card.answer_short_ar),
+          science: pick(locale, card.science_explanation, card.science_explanation_ar) || null,
+          practical: pick(locale, card.practical_application, card.practical_application_ar) || null,
+          mistake: pick(locale, card.common_mistake, card.common_mistake_ar) || null,
+          tip: pick(locale, card.coach_tip, card.coach_tip_ar) || null,
+          warning: pick(locale, card.warning, card.warning_ar) || null,
+          longMd: pick(locale, card.answer_long_md, card.answer_long_md_ar) || null,
+          difficultyLevel: card.difficulty_level,
+          readTime: card.estimated_read_time,
+          categoryLabel: category ? pick(locale, category.name_en, category.name_ar) : null,
+          icon: card.icon ?? category?.icon ?? category?.slug ?? null,
+          accentColor: card.accent_color ?? category?.accent_color ?? null,
+        }}
+      />
     </div>
   );
 }

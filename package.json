@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:qa": "node scripts/seed-qa-cards.mjs",
     "test": "vitest run",
     "test:watch": "vitest"
   },

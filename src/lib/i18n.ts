@@ -463,6 +463,37 @@ const STRINGS = {
   "qa.answered_banner": { en: "We answered your question", tn: "جاوبنا على سؤالك" },
   "qa.answered_read": { en: "Read the answer", tn: "اقرا الإجابة" },
 
+  // ---- q&a: the visual answer card (blocks are labelled, never a wall of text) ----
+  "qa.block_question": { en: "The question", tn: "السؤال" },
+  "qa.block_short_answer": { en: "Quick answer", tn: "الجواب السريع" },
+  "qa.block_science": { en: "Why?", tn: "علاش؟" },
+  "qa.block_practical": { en: "What to do", tn: "شنو تعمل؟" },
+  "qa.block_mistake": { en: "Common mistake", tn: "غلط شائع" },
+  "qa.block_tip": { en: "ELMADHI tip", tn: "نصيحة ELMADHI" },
+  "qa.block_warning": { en: "Heads up", tn: "تنبيه" },
+  "qa.block_more": { en: "More detail", tn: "تفاصيل زيادة" },
+  "qa.level": { en: "Level", tn: "المستوى" },
+  "qa.level_beginner": { en: "Beginner", tn: "مبتدئ" },
+  "qa.level_intermediate": { en: "Intermediate", tn: "متوسط" },
+  "qa.level_advanced": { en: "Advanced", tn: "متقدم" },
+  "qa.level_safety": { en: "Safety", tn: "سلامة" },
+  "qa.read_time": { en: "Read time", tn: "وقت القراءة" },
+  "qa.seconds": { en: "sec", tn: "ثانية" },
+
+  // ---- q&a: monthly ask quota ----
+  "qa.quota_left": {
+    en: "{n} of {total} questions left this month",
+    tn: "باقي {n} من {total} أسئلة هالشهر",
+  },
+  "qa.quota_none": {
+    en: "You've used your {total} questions for this month. The counter resets on the 1st.",
+    tn: "استهلكت {total} أسئلة متاع هالشهر. العداد يتصفّر في 1 من الشهر الجاي.",
+  },
+  "qa.quota_blocked": {
+    en: "No questions left this month.",
+    tn: "ما باقيش أسئلة هالشهر.",
+  },
+
   // ---- workout: start session ----
   "workout.start_day": { en: "Start this workout", tn: "ابدا الحصّة" },
   "workout.continue_day": { en: "Continue workout", tn: "كمّل الحصّة" },
@@ -903,6 +934,23 @@ const STRINGS = {
   "admin.qa_answer_long_ar": { en: "Full answer (Tunisian, Markdown)", tn: "إجابة كاملة (تونسي، Markdown)" },
   "admin.qa_publish": { en: "Publish answer", tn: "انشر الإجابة" },
   "admin.qa_dismiss": { en: "Dismiss", tn: "تجاهل" },
+
+  // ---- admin: monthly ask quota ----
+  "admin.qa_quota_title": { en: "Monthly question allowance", tn: "حصة الأسئلة الشهرية" },
+  "admin.qa_quota_sub": {
+    en: "How many questions each user may ask per calendar month, and who has used theirs.",
+    tn: "قداش سؤال ينجم كل مستخدم يسأل في الشهر، وشكون استهلك حصتو.",
+  },
+  "admin.qa_quota_limit": { en: "Questions per user / month", tn: "أسئلة لكل مستخدم / شهر" },
+  "admin.qa_quota_save": { en: "Save", tn: "سجّل" },
+  "admin.qa_quota_saved": { en: "Saved.", tn: "تسجّل." },
+  "admin.qa_quota_usage": { en: "This month's usage", tn: "استهلاك هالشهر" },
+  "admin.qa_quota_none": { en: "Nobody has asked a question this month.", tn: "حتى حد ما سألش هالشهر." },
+  "admin.qa_quota_user": { en: "User", tn: "المستخدم" },
+  "admin.qa_quota_used": { en: "Asked", tn: "سأل" },
+  "admin.qa_quota_pending": { en: "Waiting", tn: "في الانتظار" },
+  "admin.qa_quota_published": { en: "Answered", tn: "تجاوب" },
+  "admin.qa_quota_last": { en: "Last question", tn: "آخر سؤال" },
 
   // ---- admin: user records ----
   "admin.nav_users": { en: "Users", tn: "المستخدمين" },

@@ -1,0 +1,1356 @@
+{
+  "note": "English companion to qa_visual_faq_cards_v1.json, keyed by the same card ids. Loaded by scripts/seed-qa-cards.mjs into the English columns.",
+  "language": "English",
+  "cards": {
+    "faq_001": {
+      "question": "How much protein do I need?",
+      "short_answer": "Most trainees need roughly 1.6–2.2 g/kg per day. Go higher when cutting, mid-range when bulking.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_002": {
+      "question": "Does protein alone build muscle?",
+      "short_answer": "No — you need resistance training, the right calories and sleep. Protein is the building material; training is the signal.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_003": {
+      "question": "Are carbs the problem?",
+      "short_answer": "Carbs alone aren't the problem; a calorie surplus is what adds fat. Keep them measured, especially around training.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_004": {
+      "question": "Should I cut carbs hard to get lean?",
+      "short_answer": "The scale drops fast because of water, but performance and hunger suffer. A calorie deficit matters more than cutting carbs out.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_005": {
+      "question": "Do I have to cut fats?",
+      "short_answer": "You need enough fat for health and fullness. Usually don't go below 0.5 g/kg.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_006": {
+      "question": "What order do I set my macros in?",
+      "short_answer": "Calories → protein → fats → carbs from the calories left → fibre. That keeps the maths clear.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_007": {
+      "question": "How much fibre do I need?",
+      "short_answer": "A practical rule: about 14 g of fibre per 1000 calories. Add it gradually so you don't get bloated.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_008": {
+      "question": "3 meals or 5?",
+      "short_answer": "Pick what fits your routine. Total calories and macros matter most.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_009": {
+      "question": "Is breakfast essential?",
+      "short_answer": "No, it isn't magic. Keep it if it helps your energy and hunger; if not, organise the rest of the day.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_010": {
+      "question": "What do I eat before training?",
+      "short_answer": "Easy carbs plus coffee: banana, dates, apple or watermelon. Keep it light so digestion doesn't weigh you down.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_011": {
+      "question": "What do I eat after training?",
+      "short_answer": "Protein plus carbs. For example: optional whey with dates, or tuna, eggs or chicken with rice or potato.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_012": {
+      "question": "Do I need whey?",
+      "short_answer": "No, it's optional. It's just an easy way to top up your protein — real food is enough.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_013": {
+      "question": "Do I need creatine?",
+      "short_answer": "It isn't required, but it can help strength and performance. 3–5 g a day is enough for most people.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_014": {
+      "question": "Is rice every day bad?",
+      "short_answer": "Not if it fits your calories. Rotate sometimes with potato, couscous, oats, bulgur or pasta.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_015": {
+      "question": "Is potato good for cutting?",
+      "short_answer": "Yes — it's filling and relatively low in calories. The problem is usually the oil and the portion.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_016": {
+      "question": "Why are oats a good choice?",
+      "short_answer": "They give slow carbs, fibre and fullness. They work well with eggs and peanut butter in Meal 1.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_017": {
+      "question": "Are lentils useful?",
+      "short_answer": "Yes — slow carbs, fibre, some protein and minerals. Great as a last meal if your digestion handles them.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_018": {
+      "question": "Olive oil is healthy — can I use plenty?",
+      "short_answer": "It's healthy but calorie-dense. Use a measured amount: one tablespoon can change the whole plan.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_019": {
+      "question": "Does salad matter?",
+      "short_answer": "Yes, for fullness, fibre and vitamins. Count the oil on it more carefully than the vegetables themselves.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_020": {
+      "question": "How do I do a lean bulk?",
+      "short_answer": "Eat 10–15% above your TDEE, keep protein high, and let the weight climb slowly.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_021": {
+      "question": "Is a dirty bulk faster?",
+      "short_answer": "It adds weight faster, but most of it is fat. A lean bulk is cleaner and easier to cut from afterwards.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_022": {
+      "question": "I'm hungry on my diet — what do I do?",
+      "short_answer": "Add protein, vegetables and potato, split your meals, and drink water. Cut hidden oils before you cut protein.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_023": {
+      "question": "Can I eat bread and still lose fat?",
+      "short_answer": "Yes. Bread is a carb; the amount and your daily calories are what decide.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_024": {
+      "question": "How much water should I drink?",
+      "short_answer": "A simple target is 2–3 litres, closer to 3 with training and heat. Urine colour is an easy check.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_025": {
+      "question": "Dates before training?",
+      "short_answer": "Excellent — a fast, concentrated carb. Use a small amount that fits your calories.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_026": {
+      "question": "Banana before training?",
+      "short_answer": "Good and easy to digest. With coffee it gives simple energy without a complicated pre-workout.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_027": {
+      "question": "Fruit while dieting?",
+      "short_answer": "Yes — water, fibre and vitamins. Just keep it inside your calories.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_028": {
+      "question": "Lentils bloat me?",
+      "short_answer": "Reduce the amount, cook them well, and keep them away from training. If you need to, swap for rice or potato.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_029": {
+      "question": "Can I hit my protein without dairy?",
+      "short_answer": "Yes: eggs, chicken, tuna, fish, meat and lentils. Whey is only optional.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_030": {
+      "question": "Do cheat meals work?",
+      "short_answer": "They can help mentally, but keep it to a meal, not a whole day. Go straight back to the plan.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_031": {
+      "question": "Should I weigh my food?",
+      "short_answer": "At the start, yes — it teaches you what a portion looks like. Later you can eyeball it, though grams are more accurate.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_032": {
+      "question": "Cheapest protein sources?",
+      "short_answer": "Eggs, chicken, tuna, sardines and lentils. Pick by budget and digestion.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_033": {
+      "question": "Can I eat Tunisian food and build a physique?",
+      "short_answer": "Yes: eggs, rice, couscous, potato, chicken, tuna, olive oil, vegetables and fruit.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_034": {
+      "question": "How do I know the plan is working?",
+      "short_answer": "Watch your average weight, photos, measurements and energy. One day on the scale decides nothing.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Stay on the same plan and change the amounts to suit your goal — don't rebuild the whole diet every day.",
+      "common_mistake": "Fixating on one single food and forgetting total calories and macros.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_035": {
+      "question": "How do I lose fat without losing muscle?",
+      "short_answer": "A moderate deficit, high protein, resistance training and enough sleep. Don't slash your calories.",
+      "science_explanation": "Your body changes with calorie balance, protein quality, how carbs and fats are spread out, and consistency.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Keep it simple — clear protein, measured carbs, measured fats, and vegetables or fruit.",
+      "warning": null
+    },
+    "faq_036": {
+      "question": "How often should a beginner train?",
+      "short_answer": "Three full-body sessions a week is excellent. Learn the form and build up gradually.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_037": {
+      "question": "What's the best split?",
+      "short_answer": "The best split is the one you stick to. For a beginner: full body, or upper/lower.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_038": {
+      "question": "How long should a session be?",
+      "short_answer": "45–75 minutes is enough. If it runs much longer, the program probably has too much in it.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_039": {
+      "question": "Should I always train to failure?",
+      "short_answer": "No. Mostly stop 1–3 reps short of failure, especially on the heavy lifts.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_040": {
+      "question": "What is progressive overload?",
+      "short_answer": "Gradually adding weight, reps or sets. It's the heart of progress.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_041": {
+      "question": "How do I pick the weight?",
+      "short_answer": "The last reps should be hard while your form stays clean. If the form breaks down, the weight is too heavy.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_042": {
+      "question": "How long do I rest between sets?",
+      "short_answer": "Heavy: 2–3 minutes. Isolation: 60–90 seconds. Rest is what lets you work well.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_043": {
+      "question": "Weights or cardio first?",
+      "short_answer": "If the goal is muscle and strength, weights first. Cardio after, or on its own day.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_044": {
+      "question": "How do I train chest?",
+      "short_answer": "A press plus incline or fly work. A few exercises done well beat many with no progress.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_045": {
+      "question": "How do I train back?",
+      "short_answer": "A vertical pull for the lats, rows for the back, and rear delts for balance.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_046": {
+      "question": "My shoulder hurts on the bench?",
+      "short_answer": "Lighten the weight, change the angle or use a machine, and don't push into sharp pain. Recurring pain needs a professional.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_047": {
+      "question": "Are squats essential?",
+      "short_answer": "No — leg press, hack squat or split squats can cover it. What matters is a safe movement and gradual progress.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_048": {
+      "question": "What does the RDL work?",
+      "short_answer": "Hamstrings and glutes. The movement comes from the hips with the back held steady.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_049": {
+      "question": "Abs every day?",
+      "short_answer": "Not necessary. 2–4 times a week is enough; the fat comes off through the diet.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_050": {
+      "question": "Can I build at home?",
+      "short_answer": "Yes, to start with — push-ups, squats, lunges and bands. After that you need progression.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_051": {
+      "question": "Machines or free weights?",
+      "short_answer": "Both work. Machines are easier to control; free weights teach balance.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_052": {
+      "question": "What is a warm-up?",
+      "short_answer": "5–10 minutes of easy movement plus ramp-up sets. Prepare the joints and the muscles.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_053": {
+      "question": "Should I stretch before lifting?",
+      "short_answer": "Don't do long, hard stretching before heavy lifting. Keep the movement dynamic.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_054": {
+      "question": "How do I get stronger?",
+      "short_answer": "Compound lifts, enough rest, gradual progression, and suitable protein and calories.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_055": {
+      "question": "Is recomp possible?",
+      "short_answer": "It is, especially if you're a beginner, coming back, or carrying fat. High protein and a light deficit.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_056": {
+      "question": "I run out of energy in the session?",
+      "short_answer": "Check your sleep, your carbs, your rest between sets, and how much volume the program has.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_057": {
+      "question": "Should I change my program every week?",
+      "short_answer": "No. Stay on a program for 6–8 weeks so you can tell whether it works.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_058": {
+      "question": "How many sets per muscle?",
+      "short_answer": "Usually 10–20 sets a week, depending on your level and your recovery.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_059": {
+      "question": "Do light weights build muscle?",
+      "short_answer": "Yes, if you take the set close to failure with good form. Effort matters more than ego.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_060": {
+      "question": "Should women avoid weights?",
+      "short_answer": "No. Lifting strengthens the body, the bones and your shape. Technique and gradual progress are what count.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_061": {
+      "question": "I can't feel the muscle working?",
+      "short_answer": "Lighten the weight, slow the movement down, and adjust the angle. The feel improves with technique.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_062": {
+      "question": "Joint pain or muscle pain?",
+      "short_answer": "A muscular burn is normal; sharp pain in a joint is not. Stop and adjust.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_063": {
+      "question": "What is a deload?",
+      "short_answer": "A week where you cut the load or the volume so you come back stronger.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_064": {
+      "question": "Is training in the morning better?",
+      "short_answer": "The best time is the one you'll stick to. Performance improves with routine.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_065": {
+      "question": "Do I need a trainer?",
+      "short_answer": "Useful for technique, but not essential. Form videos and a clear plan help.",
+      "science_explanation": "Muscle progresses when you give it gradual load with clean form and enough recovery.",
+      "practical_application": "Log your weights and reps, and try to add something small week after week.",
+      "common_mistake": "Switching programs too quickly, or lifting heavy with sloppy form.",
+      "coach_tip": "Quality before quantity — a few correct sets beat a lot of messy ones.",
+      "warning": null
+    },
+    "faq_066": {
+      "question": "Does walking burn fat?",
+      "short_answer": "Yes — it raises your energy expenditure and helps you stay consistent. The diet is still the base.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_067": {
+      "question": "How many steps?",
+      "short_answer": "Start from where you are and build up. 7,000–10,000 steps is a practical target.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_068": {
+      "question": "Is running better than walking?",
+      "short_answer": "Running burns faster, but walking is easier and less stressful. Pick the one you'll keep doing.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_069": {
+      "question": "How do I start running?",
+      "short_answer": "One minute running, two minutes walking, for 20–30 minutes. Build the time before the speed.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_070": {
+      "question": "What is Zone 2?",
+      "short_answer": "A pace where you can still hold a conversation. It builds your heart and endurance without heavy fatigue.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_071": {
+      "question": "Do I need HIIT?",
+      "short_answer": "No. It's effective, but it taxes recovery. Once a week is plenty for most people.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_072": {
+      "question": "Best cardio after weights?",
+      "short_answer": "Brisk incline walking or an easy bike for 10–25 minutes.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_073": {
+      "question": "Does running kill muscle?",
+      "short_answer": "Not if your food and sleep are in order. The problem is high volume with a hard deficit.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_074": {
+      "question": "Belly fat: cardio or weights?",
+      "short_answer": "Both. Weights keep the muscle, cardio adds to what you burn.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_075": {
+      "question": "How much cardio per week?",
+      "short_answer": "2–4 times, depending on your goal and your recovery. Start on the low side.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_076": {
+      "question": "Walking after meals?",
+      "short_answer": "10–15 minutes of walking after a meal helps digestion and gets you moving.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_077": {
+      "question": "My knee hurts when I run?",
+      "short_answer": "Ease off, switch to walking or the bike, and check your shoes and your progression. Ongoing pain needs a professional.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_078": {
+      "question": "How do I judge cardio intensity?",
+      "short_answer": "The talk test: you can talk = moderate. You can't = high.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_079": {
+      "question": "Fasted cardio?",
+      "short_answer": "It's fine, but it isn't magic. Choose whatever doesn't hurt your performance.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_080": {
+      "question": "How do I build stamina?",
+      "short_answer": "Do base cardio plus intervals. The base builds endurance; the intervals build the top end.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_081": {
+      "question": "Is incline walking useful?",
+      "short_answer": "Yes — it raises the intensity without hammering your joints.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_082": {
+      "question": "How much activity for health?",
+      "short_answer": "Aim for 150 minutes of moderate activity a week plus two strength sessions.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_083": {
+      "question": "My heart rate goes very high?",
+      "short_answer": "That's normal under effort, but chest pain, dizziness or fainting means stop and get help.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_084": {
+      "question": "Should I eat before a run?",
+      "short_answer": "A light carb: banana, dates, a small piece of bread or an apple. Avoid a heavy meal.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_085": {
+      "question": "Should I eat after a run?",
+      "short_answer": "If the run was hard or long: protein, carbs and water. If it was easy, a normal meal is enough.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_086": {
+      "question": "Cardio on leg day?",
+      "short_answer": "You can, but keep it easy if legs are the priority.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_087": {
+      "question": "Walking on a rest day?",
+      "short_answer": "Excellent as active recovery, and it helps your circulation.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_088": {
+      "question": "A stitch in my side while running?",
+      "short_answer": "Slow down, breathe deeply, and don't eat heavy before you run.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_089": {
+      "question": "How do I measure running progress?",
+      "short_answer": "The same distance faster, or the same pace at a lower heart rate.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_090": {
+      "question": "Add speed or distance?",
+      "short_answer": "As a beginner, add time and distance before speed.",
+      "science_explanation": "Your heart and endurance improve step by step, not by jumping suddenly in speed or distance.",
+      "practical_application": "Add time or steps gradually, and keep the intensity in line with your recovery.",
+      "common_mistake": "Starting far too hard, burning out, then stopping altogether.",
+      "coach_tip": "Regular brisk walking does more for you than hard cardio you won't stick to.",
+      "warning": null
+    },
+    "faq_091": {
+      "question": "How much sleep do I need?",
+      "short_answer": "Most adults need 7 hours or more. For someone training, 7–9 is usually better.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_092": {
+      "question": "Should I train on little sleep?",
+      "short_answer": "Make the session easier. Poor sleep lowers performance and raises injury risk.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_093": {
+      "question": "Does resting waste my progress?",
+      "short_answer": "No — rest is part of building. Muscle grows during recovery.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_094": {
+      "question": "Is DOMS normal?",
+      "short_answer": "Yes, if it fades within a few days. Sharp pain, or joint pain, is not.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_095": {
+      "question": "How do I reduce DOMS?",
+      "short_answer": "Progress gradually, warm up, sleep, drink water, eat protein, and walk lightly.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_096": {
+      "question": "Should I train when I'm ill?",
+      "short_answer": "With mild symptoms above the neck, something light is fine. Fever or heavy fatigue means rest.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_097": {
+      "question": "Signs of overtraining?",
+      "short_answer": "Falling performance, poor sleep, constant fatigue, lingering aches, and dreading training.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_098": {
+      "question": "Can I train with a sore muscle?",
+      "short_answer": "If it's mild, yes. If it changes your form, lighten it or rest.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_099": {
+      "question": "My lower back hurts?",
+      "short_answer": "Check your bracing, your form and the weight. Pain running down the leg needs a professional.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_100": {
+      "question": "My knee hurts in lunges?",
+      "short_answer": "Shorten the range, try a stationary split squat, and lighten the weight.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_101": {
+      "question": "My shoulder clicks?",
+      "short_answer": "Without pain it's usually normal. With pain, weakness or instability, stop and get it checked.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_102": {
+      "question": "Do I need a lifting belt?",
+      "short_answer": "Useful on heavy work, but it doesn't replace bracing and technique.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_103": {
+      "question": "Ice or heat?",
+      "short_answer": "Swelling or an acute injury: ice can help. Stiffness: heat and gentle movement. If in doubt, see a professional.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_104": {
+      "question": "Does massage build muscle?",
+      "short_answer": "Not directly, but it helps you rest. The building comes from training, food and sleep.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_105": {
+      "question": "How do I come back after a break?",
+      "short_answer": "Start at half the volume and weight for the first two weeks. Building up gradually protects you.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_106": {
+      "question": "How do I avoid injury?",
+      "short_answer": "Progress gradually, keep good form, sleep, warm up, and don't ignore pain.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_107": {
+      "question": "An exercise hurts me?",
+      "short_answer": "Swap it for another with the same pattern. No exercise is sacred.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_108": {
+      "question": "How much water after training?",
+      "short_answer": "Drink to your thirst and to how much you sweated. With heavy sweating, salt or electrolytes help.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_109": {
+      "question": "Should a rest day be complete rest?",
+      "short_answer": "It depends how tired you are. It can be an easy walk or full rest.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_110": {
+      "question": "When should I see a doctor?",
+      "short_answer": "Chest pain, fainting, numbness, heavy swelling, sharp pain, or pain that keeps going.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_111": {
+      "question": "Should I train when I'm stressed?",
+      "short_answer": "An easy session helps, but don't go for a PR when your nervous system is tired.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_112": {
+      "question": "Do late nights ruin a cut?",
+      "short_answer": "They can raise hunger and lower your activity and recovery. Sleep is part of the diet.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_113": {
+      "question": "Does cortisol wreck the body?",
+      "short_answer": "Chronic stress does have an effect, but the answer isn't fear: sleep, walk, eat regularly, and breathe.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_114": {
+      "question": "Do I need mobility work?",
+      "short_answer": "If your range is limited or you have pain, yes. 5–10 minutes a day helps.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_115": {
+      "question": "Do I need a foam roller?",
+      "short_answer": "Not required, but it can improve how you feel and move for a while.",
+      "science_explanation": "Recovery is part of progress — muscles and joints need time to repair.",
+      "practical_application": "If pain changes your form or gets worse, lighten the load or swap the movement.",
+      "common_mistake": "Ignoring sharp pain and training at the same intensity anyway.",
+      "coach_tip": "Building up gradually and sleeping well protect your progress more than extra enthusiasm does.",
+      "warning": null
+    },
+    "faq_116": {
+      "question": "Can I train on my period?",
+      "short_answer": "Yes if you're up to it. Ease off the intensity if pain or fatigue is high.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_117": {
+      "question": "Does my cycle affect performance?",
+      "short_answer": "It can affect energy, water retention and mood. Track the pattern so you understand your body.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_118": {
+      "question": "What should I do on the first days of my period?",
+      "short_answer": "Walking, mobility, light upper body, or rest. Choose based on the pain.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_119": {
+      "question": "Can I lift heavy on my period?",
+      "short_answer": "Yes if your energy is good. If the pain increases, lighten it.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_120": {
+      "question": "My hunger spikes before my period?",
+      "short_answer": "That's normal. Prepare high-protein snacks with measured carbs so it doesn't turn into a binge.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_121": {
+      "question": "My weight goes up before my period?",
+      "short_answer": "That's usually water and bloating, not fat. Compare weekly averages.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_122": {
+      "question": "Severe period pain?",
+      "short_answer": "Don't ignore it. If it stops you functioning, or it isn't normal for you, see a doctor.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_123": {
+      "question": "Best training during PMS?",
+      "short_answer": "Light to moderate resistance work, walking, yoga or mobility.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_124": {
+      "question": "Should I cut calories on my period?",
+      "short_answer": "Don't make it stricter. Keep the deficit gentler if hunger and fatigue are high.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_125": {
+      "question": "Cardio on my period?",
+      "short_answer": "Fine, especially walking or the bike. Set the intensity by how you feel.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_126": {
+      "question": "Legs on my period?",
+      "short_answer": "You can, but if the cramps are strong, switch to upper body or mobility.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_127": {
+      "question": "Do women train differently?",
+      "short_answer": "The principles are the same, but we account for the cycle, the goal and recovery.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_128": {
+      "question": "My energy drops before my period?",
+      "short_answer": "Cut the volume by 10–20%, get more sleep, and keep the pre-workout light.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_129": {
+      "question": "Can I build glutes in a deficit?",
+      "short_answer": "It's possible, especially as a beginner, but growth is better at maintenance or a small surplus.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_130": {
+      "question": "Glute work hurts my knee?",
+      "short_answer": "Use hip thrusts, RDLs and abductions, and adjust your lunges and squats.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_131": {
+      "question": "Pregnancy and exercise?",
+      "short_answer": "For healthy women exercise is usually beneficial, but you need your doctor's approval.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "This is a sensitive situation. This content is educational only — it's better to follow up with a doctor or specialist before changing your training or your diet."
+    },
+    "faq_132": {
+      "question": "How do I come back after giving birth?",
+      "short_answer": "Gradually, and after your doctor clears you — especially with a C-section or pelvic floor issues.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "This is a sensitive situation. This content is educational only — it's better to follow up with a doctor or specialist before changing your training or your diet."
+    },
+    "faq_133": {
+      "question": "Signs I should stop training?",
+      "short_answer": "Unusual bleeding, dizziness, chest pain, strong pelvic pain, or shortness of breath.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "This is a sensitive situation. This content is educational only — it's better to follow up with a doctor or specialist before changing your training or your diet."
+    },
+    "faq_134": {
+      "question": "PCOS and exercise?",
+      "short_answer": "Walking and resistance training can help, but medical follow-up matters.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_135": {
+      "question": "My period stopped while dieting?",
+      "short_answer": "That's a red flag. It can come from a hard deficit or very low body fat; see a doctor.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "This is a sensitive situation. This content is educational only — it's better to follow up with a doctor or specialist before changing your training or your diet."
+    },
+    "faq_136": {
+      "question": "Can I train with a period headache?",
+      "short_answer": "If it's mild, try walking and water. If it's strong or new, rest and get advice.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_137": {
+      "question": "Is lifting good for women?",
+      "short_answer": "Yes — it strengthens bones and muscle, and improves your shape and your confidence.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_138": {
+      "question": "I'm afraid of getting bulky?",
+      "short_answer": "That's hard to do without years of work and a big surplus. Lifting gives you tone and strength.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Adjust the intensity to how you feel, and keep the plan flexible instead of forcing yourself through it.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_139": {
+      "question": "Should I plan training around my cycle?",
+      "short_answer": "You can: push the intensity on high-energy days and ease off on painful ones.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Judging your body from a single day on the scale before or during your period.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": "If the pain is sharp, keeps coming back, brings dizziness, numbness or chest pain, or stops you moving normally, see a professional."
+    },
+    "faq_140": {
+      "question": "Do women need less protein?",
+      "short_answer": "No — the requirement is set by body weight and goal, not by sex alone.",
+      "science_explanation": "Energy, pain, water retention and appetite can all shift across the phases of your cycle.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "Track your cycle alongside your training, so you learn your body's pattern and avoid injury.",
+      "warning": null
+    },
+    "faq_141": {
+      "question": "Do I need supplements to build?",
+      "short_answer": "No. Food, training and sleep are the base. Supplements are optional.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_142": {
+      "question": "Pre-workout or coffee?",
+      "short_answer": "Coffee plus a simple carb is enough for most people, and cheaper.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_143": {
+      "question": "When should I take caffeine?",
+      "short_answer": "30–60 minutes before training. Avoid it close to bedtime.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Put most of your carbs around training, and set the amount by your goal: less when cutting, more when bulking.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_144": {
+      "question": "Do I need BCAAs?",
+      "short_answer": "If your protein intake is adequate, usually no. Focus on complete protein.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Work out your daily target in grams and split it across your meals, so it doesn't all land at the end of the day.",
+      "common_mistake": "Leaning on whey alone instead of real sources like eggs, chicken, tuna and fish.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_145": {
+      "question": "Do fat burners work?",
+      "short_answer": "The effect is small and the marketing is big. Calories and steps are far stronger.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Pick one small habit and stay on it for a full week.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_146": {
+      "question": "Does a multivitamin replace vegetables?",
+      "short_answer": "No — it doesn't replace fibre and the benefits of whole food.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Pick one small habit and stay on it for a full week.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_147": {
+      "question": "Do I need omega 3?",
+      "short_answer": "Optional. If you eat fish regularly you may not need it.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Pick one small habit and stay on it for a full week.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_148": {
+      "question": "How do I stay consistent?",
+      "short_answer": "Shrink the plan and make it easy. Repetition beats motivation.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Pick one small habit and stay on it for a full week.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_149": {
+      "question": "I blew my diet for a day?",
+      "short_answer": "Get back on track at the next meal. Don't let one slip turn into a week.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Pick one small habit and stay on it for a full week.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    },
+    "faq_150": {
+      "question": "Should I compare myself to others?",
+      "short_answer": "Compare yourself to you a month ago. Circumstances and genetics differ.",
+      "science_explanation": "Results come from repeating the basics, not from quick fixes.",
+      "practical_application": "Pick one small habit and stay on it for a full week.",
+      "common_mistake": "Hunting for a supplement or a burst of motivation instead of building a daily routine.",
+      "coach_tip": "The simple plan you actually repeat is the one that wins.",
+      "warning": null
+    }
+  }
+}

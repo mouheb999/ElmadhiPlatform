@@ -5,18 +5,46 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
+import { getQaQuota } from "@/lib/qa";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
-/** §8 — user-submitted questions an admin can triage and promote to a card. */
-export async function submitQaRequest(questionText: string): Promise<ActionResult> {
+/**
+ * §8 — user-submitted questions an admin can triage and promote to a card.
+ *
+ * Each user gets `qa_settings.monthly_question_limit` questions per calendar
+ * month. The check here is what produces a readable message; the database
+ * trigger (migration 031) is what actually enforces it, since a Server Action
+ * is reachable by direct POST.
+ */
+export async function submitQaRequest(
+  questionText: string,
+): Promise<ActionResult<{ remaining: number }>> {
   const supabase = await createClient();
   const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
   if (!questionText.trim()) return fail("Question can't be empty.");
 
+  const locale = await getLocale();
+  const quota = await getQaQuota(supabase, user.id);
+  if (quota.remaining <= 0) {
+    return fail(
+      t(locale, "qa.quota_none").replace("{total}", String(quota.limit)),
+    );
+  }
+
   const { error } = await supabase.from("qa_requests").insert({ user_id: user.id, question_text: questionText.trim() });
-  if (error) return fail(error.message);
-  return ok(undefined);
+  if (error) {
+    // The trigger fires when two submissions race past the check above.
+    if (error.message.includes("qa_monthly_quota_exceeded")) {
+      return fail(t(locale, "qa.quota_blocked"));
+    }
+    return fail(error.message);
+  }
+
+  revalidatePath("/qa");
+  return ok({ remaining: quota.remaining - 1 });
 }
 
 /** User clicked through to read their answered question — stop notifying. */
@@ -99,6 +127,29 @@ export async function publishQaRequest(
     .update({ status: "published", promoted_qa_card_id: card.id })
     .eq("id", requestId);
   if (updateError) return fail(updateError.message);
+
+  revalidatePath("/admin/qa");
+  revalidatePath("/qa");
+  return ok(undefined);
+}
+
+/** Admin: change how many questions a user may ask per calendar month. */
+export async function setQaMonthlyLimit(limit: number): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+  } catch {
+    return fail("Not authorized.");
+  }
+  if (!Number.isInteger(limit) || limit < 0 || limit > 100) {
+    return fail("Pick a whole number between 0 and 100.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("qa_settings")
+    .update({ monthly_question_limit: limit, updated_at: new Date().toISOString() })
+    .eq("id", 1);
+  if (error) return fail(error.message);
 
   revalidatePath("/admin/qa");
   revalidatePath("/qa");

@@ -10,7 +10,7 @@ export type QaSparkCard = {
   id: string;
   questionEn: string | null;
   questionAr: string | null;
-  answerShort: string;
+  answerShort: string | null;
   answerShortAr: string | null;
 };
 

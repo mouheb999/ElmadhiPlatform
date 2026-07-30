@@ -149,12 +149,16 @@ INSERT INTO recipe_ingredients (recipe_id, food_id, quantity_g, order_index) VAL
 
 -- =====================================================================
 -- QA CATEGORIES (4)
+-- Migration 031 owns the full six-category set and its labels; these rows
+-- only exist so this seed's cards have something to point at, whichever
+-- order the two are run in. `mindset` was merged into `supplements` (032).
 -- =====================================================================
 INSERT INTO qa_categories (slug, name_en, name_ar, order_index) VALUES
 ('nutrition','Nutrition','التغذية',1),
 ('training','Training','التمرين',2),
 ('recovery','Recovery','الراحة',3),
-('mindset','Mindset','العقلية',4);
+('supplements','Supplements','المكملات الغذائية',4)
+ON CONFLICT (slug) DO NOTHING;
 
 -- =====================================================================
 -- QA CARDS (15)
@@ -176,6 +180,6 @@ INSERT INTO qa_cards (category_id, question_en, question_ar, answer_short, answe
 ((SELECT id FROM qa_categories WHERE slug='recovery'),'How much sleep do I need to recover?','قداش من النوم نحتاج باش نتعافى؟','Aim for seven to nine hours of quality sleep each night.','Sleep is when your body repairs and grows.\n\nMost people need **7-9 hours** for full recovery.\n\nPoor sleep slows progress and raises injury risk.','اهدف لـ7 حتى 9 سوايع من النوم المريح كل ليلة.','النوم هو الوقت اللي جسمك يصلح ويكبر فيه.\n\nأغلب الناس يحتاجو **7-9 سوايع** للتعافي الكامل.\n\nالنوم القليل يبطئ التقدم ويزيد خطر الإصابة.','illustration',NULL,'[]'::jsonb,11,TRUE),
 ((SELECT id FROM qa_categories WHERE slug='recovery'),'Are rest days really necessary?','أيام الراحة ضرورية فعلا؟','Yes, muscles grow during rest, not during the workout itself.','Rest days are part of training, not a break from it.\n\nMuscle repairs and grows **between sessions**.\n\nSkipping rest leads to fatigue and stalled progress.','إيه، العضلات تكبر في الراحة، موش في التمرين روحو.','أيام الراحة جزء من التدريب، موش بطلان منو.\n\nالعضلة تتصلح وتكبر **بين الحصص**.\n\nكان تفوت الراحة توصل للتعب وتوقف التقدم.','none',NULL,'[]'::jsonb,12,TRUE),
 ((SELECT id FROM qa_categories WHERE slug='recovery'),'Why am I so sore after working out?','علاش نحس بوجع برشة بعد التمرين؟','Muscle soreness is normal after new or harder training and fades in a few days.','Soreness, called DOMS, is normal.\n\nIt shows up after **new or harder workouts** and eases in 2-3 days.\n\nLight movement and good sleep help it pass.','وجع العضلات عادي بعد تمرين جديد ولا أصعب ويروح في كم نهار.','الوجع، اسمو DOMS، عادي.\n\nيجي بعد **تمارين جديدة ولا أصعب** ويخف في 2-3 أيام.\n\nالحركة الخفيفة والنوم المليح يعاونو يفوت.','none',NULL,'[]'::jsonb,13,TRUE),
--- mindset
-((SELECT id FROM qa_categories WHERE slug='mindset'),'How long until I see results?','قداش من وقت باش نشوف نتائج؟','Expect noticeable changes in about eight to twelve weeks of consistent effort.','Real change takes time and consistency.\n\nMost people see clear progress after **8-12 weeks**.\n\nTrust the process and track small wins along the way.','استنى تغييرات واضحة في حوالي 8 حتى 12 جمعة من المجهود المستمر.','التغيير الحقيقي يحتاج وقت واستمرارية.\n\nأغلب الناس يشوفو تقدم واضح بعد **8-12 جمعة**.\n\nاثق في المسار وسجل الانتصارات الصغيرة في الطريق.','chart',NULL,'[]'::jsonb,14,TRUE),
-((SELECT id FROM qa_categories WHERE slug='mindset'),'How do I stay motivated to keep training?','كيفاش نبقى متحمس باش نكمل نتمرن؟','Build small habits and track progress; consistency beats motivation.','Motivation comes and goes, so rely on habits.\n\nSet **small, clear goals** and log your workouts.\n\nSeeing progress keeps you coming back.','ابني عادات صغيرة وسجل تقدمك؛ الاستمرارية تغلب الحماس.','الحماس يجي ويمشي، اعتمد على العادات.\n\nحدد **أهداف صغيرة وواضحة** وسجل تمارينك.\n\nكي تشوف التقدم تكمل ترجع.','none',NULL,'[]'::jsonb,15,TRUE);
+-- mindset (merged into supplements, migration 032)
+((SELECT id FROM qa_categories WHERE slug='supplements'),'How long until I see results?','قداش من وقت باش نشوف نتائج؟','Expect noticeable changes in about eight to twelve weeks of consistent effort.','Real change takes time and consistency.\n\nMost people see clear progress after **8-12 weeks**.\n\nTrust the process and track small wins along the way.','استنى تغييرات واضحة في حوالي 8 حتى 12 جمعة من المجهود المستمر.','التغيير الحقيقي يحتاج وقت واستمرارية.\n\nأغلب الناس يشوفو تقدم واضح بعد **8-12 جمعة**.\n\nاثق في المسار وسجل الانتصارات الصغيرة في الطريق.','chart',NULL,'[]'::jsonb,14,TRUE),
+((SELECT id FROM qa_categories WHERE slug='supplements'),'How do I stay motivated to keep training?','كيفاش نبقى متحمس باش نكمل نتمرن؟','Build small habits and track progress; consistency beats motivation.','Motivation comes and goes, so rely on habits.\n\nSet **small, clear goals** and log your workouts.\n\nSeeing progress keeps you coming back.','ابني عادات صغيرة وسجل تقدمك؛ الاستمرارية تغلب الحماس.','الحماس يجي ويمشي، اعتمد على العادات.\n\nحدد **أهداف صغيرة وواضحة** وسجل تمارينك.\n\nكي تشوف التقدم تكمل ترجع.','none',NULL,'[]'::jsonb,15,TRUE);
