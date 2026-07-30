@@ -133,6 +133,69 @@ export async function publishQaRequest(
   return ok(undefined);
 }
 
+/**
+ * Admin: take a card out of the library, or put it back.
+ *
+ * The reversible half of removing a card — nothing is lost, the card just
+ * stops being served. Prefer this over deleting for the seeded cards, which
+ * `npm run seed:qa` would otherwise restore.
+ */
+export async function setQaCardPublished(
+  cardId: string,
+  isPublished: boolean,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+  } catch {
+    return fail("Not authorized.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("qa_cards")
+    .update({ is_published: isPublished })
+    .eq("id", cardId);
+  if (error) return fail(error.message);
+
+  revalidatePath("/admin/qa");
+  revalidatePath("/qa");
+  revalidatePath("/dashboard");
+  return ok(undefined);
+}
+
+/**
+ * Admin: delete a card outright.
+ *
+ * A card promoted from a user question is still referenced by that request
+ * (`qa_requests.promoted_qa_card_id`), and the foreign key would block the
+ * delete. So the request is unlinked first and dropped back to `dismissed`:
+ * its answer no longer exists, so it should stop showing the asker a
+ * "we answered your question" banner pointing at nothing.
+ */
+export async function deleteQaCard(cardId: string): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+  } catch {
+    return fail("Not authorized.");
+  }
+
+  const admin = createAdminClient();
+
+  const { error: unlinkError } = await admin
+    .from("qa_requests")
+    .update({ promoted_qa_card_id: null, status: "dismissed" })
+    .eq("promoted_qa_card_id", cardId);
+  if (unlinkError) return fail(unlinkError.message);
+
+  const { error } = await admin.from("qa_cards").delete().eq("id", cardId);
+  if (error) return fail(error.message);
+
+  revalidatePath("/admin/qa");
+  revalidatePath("/qa");
+  revalidatePath("/dashboard");
+  return ok(undefined);
+}
+
 /** Admin: change how many questions a user may ask per calendar month. */
 export async function setQaMonthlyLimit(limit: number): Promise<ActionResult> {
   try {

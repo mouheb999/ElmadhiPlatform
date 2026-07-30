@@ -110,6 +110,9 @@ const categoryRows = Object.entries(source.categories).map(([, value], index) =>
 }));
 
 const categoryIdBySlug = new Map(categoryRows.map((r) => [r.slug, `dry-run-${r.slug}`]));
+// Cards an admin hid in /admin/qa must stay hidden across a re-seed —
+// otherwise every content refresh silently republishes them.
+const publishedByExternalId = new Map();
 
 if (!dryRun) {
   for (const row of categoryRows) {
@@ -145,6 +148,16 @@ if (!dryRun) {
     console.error(`Missing categories: ${missing.join(", ")}. Apply migration 031 first.`);
     process.exit(1);
   }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("qa_cards")
+    .select("external_id, is_published")
+    .not("external_id", "is", null);
+  if (existingError) {
+    console.error(existingError.message);
+    process.exit(1);
+  }
+  for (const row of existing) publishedByExternalId.set(row.external_id, row.is_published);
 }
 
 // --- cards -----------------------------------------------------------
@@ -179,7 +192,7 @@ const cards = source.cards.map((card) => {
     accent_color: card.visual?.accent_color ?? null,
     visual_type: card.visual?.layout ?? null,
     order_index: Number.parseInt(String(card.id).replace(/\D/g, ""), 10) || 0,
-    is_published: true,
+    is_published: publishedByExternalId.get(card.id) ?? true,
   };
 });
 

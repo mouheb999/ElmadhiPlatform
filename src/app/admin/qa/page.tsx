@@ -2,8 +2,10 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { monthStart, QA_DEFAULT_MONTHLY_LIMIT } from "@/lib/qa";
+import { pick } from "@/lib/i18n";
 import { QaRequestsClient, type TriageRequest, type TriageCategory } from "./qa-requests-client";
 import { QaQuotaClient, type QuotaRow } from "./qa-quota-client";
+import { QaLibraryClient, type LibraryCard } from "./qa-library-client";
 
 export const dynamic = "force-dynamic";
 
@@ -29,24 +31,34 @@ export default async function AdminQaPage() {
     profiles: { email: string | null } | null;
   };
 
-  const [{ data: requestsRaw }, { data: categories }, { data: settings }, { data: monthRaw }] =
-    await Promise.all([
-      admin
-        .from("qa_requests")
-        .select("id, question_text, created_at, profiles(email)")
-        .eq("status", "pending")
-        .order("created_at", { ascending: true }),
-      admin
-        .from("qa_categories")
-        .select("id, name_en, name_ar")
-        .order("order_index", { ascending: true }),
-      admin.from("qa_settings").select("monthly_question_limit").eq("id", 1).maybeSingle(),
-      admin
-        .from("qa_requests")
-        .select("user_id, status, created_at, profiles(email)")
-        .gte("created_at", since.toISOString())
-        .order("created_at", { ascending: false }),
-    ]);
+  const [
+    { data: requestsRaw },
+    { data: categories },
+    { data: settings },
+    { data: monthRaw },
+    { data: libraryRaw },
+  ] = await Promise.all([
+    admin
+      .from("qa_requests")
+      .select("id, question_text, created_at, profiles(email)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true }),
+    admin
+      .from("qa_categories")
+      .select("id, name_en, name_ar")
+      .order("order_index", { ascending: true }),
+    admin.from("qa_settings").select("monthly_question_limit").eq("id", 1).maybeSingle(),
+    admin
+      .from("qa_requests")
+      .select("user_id, status, created_at, profiles(email)")
+      .gte("created_at", since.toISOString())
+      .order("created_at", { ascending: false }),
+    // Every card, published or not — hidden ones have to be findable to unhide.
+    admin
+      .from("qa_cards")
+      .select("id, question_en, question_ar, category_id, is_published, external_id")
+      .order("order_index", { ascending: true }),
+  ]);
 
   const requests: TriageRequest[] = ((requestsRaw ?? []) as unknown as RequestRow[]).map((r) => ({
     id: r.id,
@@ -60,6 +72,19 @@ export default async function AdminQaPage() {
     nameEn: c.name_en,
     nameAr: c.name_ar,
   }));
+
+  const categoryById = new Map((categories ?? []).map((c) => [c.id, c]));
+  const libraryCards: LibraryCard[] = (libraryRaw ?? []).map((c) => {
+    const category = c.category_id ? categoryById.get(c.category_id) : undefined;
+    return {
+      id: c.id,
+      questionEn: c.question_en,
+      questionAr: c.question_ar,
+      categoryName: category ? pick(locale, category.name_en, category.name_ar) : null,
+      isPublished: c.is_published ?? false,
+      externalId: c.external_id,
+    };
+  });
 
   // One row per user who asked something this month, heaviest askers first.
   // Rows arrive newest-first, so the first one seen per user is their latest.
@@ -98,6 +123,7 @@ export default async function AdminQaPage() {
         monthLabel={monthLabel}
       />
       <QaRequestsClient locale={locale} requests={requests} categories={triageCategories} />
+      <QaLibraryClient locale={locale} cards={libraryCards} />
     </div>
   );
 }

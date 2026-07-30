@@ -952,6 +952,26 @@ const STRINGS = {
   "admin.qa_quota_published": { en: "Answered", tn: "تجاوب" },
   "admin.qa_quota_last": { en: "Last question", tn: "آخر سؤال" },
 
+  // ---- admin: managing the published library ----
+  "admin.qa_library_title": { en: "Q&A library", tn: "مكتبة الأسئلة" },
+  "admin.qa_library_sub": {
+    en: "Hide a card to take it out of the app, or delete it for good.",
+    tn: "خبّي كارت باش يخرج من التطبيق، ولا امسحو نهائيًا.",
+  },
+  "admin.qa_library_search": { en: "Search a question…", tn: "لوّج على سؤال…" },
+  "admin.qa_library_count": { en: "{n} cards", tn: "{n} كارت" },
+  "admin.qa_library_empty": { en: "No card matches.", tn: "ما فماش كارت يقابل." },
+  "admin.qa_library_hidden": { en: "Hidden", tn: "مخبّي" },
+  "admin.qa_library_hide": { en: "Hide", tn: "خبّي" },
+  "admin.qa_library_show": { en: "Show", tn: "ورّي" },
+  "admin.qa_library_delete": { en: "Delete", tn: "امسح" },
+  "admin.qa_library_confirm_delete": { en: "Delete for good", tn: "امسح نهائيًا" },
+  "admin.qa_library_cancel": { en: "Cancel", tn: "بطّل" },
+  "admin.qa_library_seed_note": {
+    en: "Cards with an id like faq_007 come from the content file — running the seed again restores them. Hide those instead of deleting.",
+    tn: "الكروت اللي عندها رقم كي faq_007 جاية من ملف المحتوى — كان تعاود تعمل seed ترجع. خبّيهم بدل ما تمسحهم.",
+  },
+
   // ---- admin: user records ----
   "admin.nav_users": { en: "Users", tn: "المستخدمين" },
   "admin.users_title": { en: "User records", tn: "سجلات المستخدمين" },
