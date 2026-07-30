@@ -53,8 +53,13 @@ export async function estimateMeal(
       return provider === "gemini"
         ? await estimateWithGemini(input)
         : await estimateWithClaude(input);
-    } catch {
+    } catch (error) {
       // Model/API failure must never break the feature — degrade to fallback.
+      // But never degrade *silently*: a revoked key, an unbilled project or a
+      // dead model id all surface in the UI as a plausible-looking estimate,
+      // so the only way to notice is a log line. The `provider` field on the
+      // stored event is the after-the-fact record; this is the live one.
+      console.error(`[meal-estimator] ${provider} failed, using fallback:`, error);
     }
   }
   return estimateSimulated(supabase, input.description);

@@ -14,10 +14,15 @@ import {
  * older `models/{id}:generateContent` surface is marked legacy, and the REST
  * call is small enough that an SDK dependency would only add version drift.
  *
- * ⚠️ Google's FREE tier trains on submitted content and permits human review.
- * Tunisia is outside the EEA/UK/Swiss carve-out that applies paid-tier terms
- * to free usage, so real users' meal photos must not go through a free key.
- * Test with your own photos, or enable billing before pointing users at this.
+ * Billing is enabled on the key's Google Cloud project, so requests bill at
+ * the paid tier: submitted content is not used to train Google's models and is
+ * not held for human review. That is what makes it safe to send real users'
+ * meal photos through here.
+ *
+ * ⚠️ This property belongs to the PROJECT, not to the code or the key string.
+ * A key minted from a project without billing silently reverts to free-tier
+ * terms — same API, same responses, different data handling. Never point this
+ * at a key whose project you have not confirmed is billed.
  */
 
 const INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions";

@@ -10,6 +10,19 @@ import { CalorieAiClient } from "@/components/ai/calorie-ai-client";
 export const dynamic = "force-dynamic";
 
 /**
+ * Gemini takes 5–33s to answer a meal photo (measured: the image alone is
+ * ~1100 input tokens and the model emits ~1000 thinking tokens before the
+ * JSON). That overruns Vercel's default function timeout, which kills the
+ * request mid-flight — locally there is no such limit, which is exactly why
+ * this only ever fails once deployed.
+ *
+ * Server Actions inherit the timeout of the PAGE that invokes them, not of
+ * the file they live in, so this has to sit here rather than in
+ * app/actions/ai-estimate.ts. 60s is the ceiling on Vercel's Hobby plan.
+ */
+export const maxDuration = 60;
+
+/**
  * AI calorie calculator: photograph a meal → estimate → edit → log.
  * Premium-only (real per-use API cost); admins always pass.
  */
