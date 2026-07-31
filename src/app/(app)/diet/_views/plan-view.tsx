@@ -43,7 +43,9 @@ export async function PlanView({
         .maybeSingle(),
       supabase
         .from("nutrition_ingredients")
-        .select("id, name_en, name_ar, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url")
+        .select(
+          "id, name_en, name_ar, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url, unit_en, unit_en_plural, unit_ar, unit_ar_plural, unit_grams, breakfast_ok",
+        )
         .order("slot", { ascending: true }),
     ]);
   if (!macros) redirect("/diet/questions");
@@ -65,6 +67,11 @@ export async function PlanView({
         carbs_per_100g: number;
         fat_per_100g: number;
         image_url: string | null;
+        unit_en: string | null;
+        unit_en_plural: string | null;
+        unit_ar: string | null;
+        unit_ar_plural: string | null;
+        unit_grams: number | null;
       } | null;
     }[];
   };
@@ -72,7 +79,7 @@ export async function PlanView({
   const { data: mealRowsRaw, error: mealRowsError } = await supabase
     .from("meal_plan_meals")
     .select(
-      "id, meal_type, order_index, meal_plan_items(id, ingredient_id, quantity_g, nutrition_ingredients(name_en, name_ar, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url))",
+      "id, meal_type, order_index, meal_plan_items(id, ingredient_id, quantity_g, nutrition_ingredients(name_en, name_ar, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url, unit_en, unit_en_plural, unit_ar, unit_ar_plural, unit_grams))",
     )
     .eq("meal_plan_id", plan.id)
     .order("order_index", { ascending: true });
@@ -100,6 +107,11 @@ export async function PlanView({
         carbsPer100g: item.nutrition_ingredients!.carbs_per_100g,
         fatPer100g: item.nutrition_ingredients!.fat_per_100g,
         imageUrl: item.nutrition_ingredients!.image_url,
+        unitEn: item.nutrition_ingredients!.unit_en,
+        unitEnPlural: item.nutrition_ingredients!.unit_en_plural,
+        unitAr: item.nutrition_ingredients!.unit_ar,
+        unitArPlural: item.nutrition_ingredients!.unit_ar_plural,
+        unitGrams: item.nutrition_ingredients!.unit_grams,
       })),
   }));
 
@@ -113,6 +125,12 @@ export async function PlanView({
     carbsPer100g: i.carbs_per_100g,
     fatPer100g: i.fat_per_100g,
     imageUrl: i.image_url,
+    unitEn: i.unit_en,
+    unitEnPlural: i.unit_en_plural,
+    unitAr: i.unit_ar,
+    unitArPlural: i.unit_ar_plural,
+    unitGrams: i.unit_grams,
+    breakfastOk: i.breakfast_ok ?? true,
   }));
 
   return (

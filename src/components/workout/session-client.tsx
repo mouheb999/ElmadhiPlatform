@@ -48,8 +48,13 @@ export type SessionExercise = {
   /** Admin CMS media: thumbnail + demo video (YouTube link). */
   thumbnailUrl: string | null;
   videoUrl: string | null;
-  /** Per-exercise coaching cues from the split, shown only here (in-session). */
+  /**
+   * Per-exercise coaching cues from the split, shown only here (in-session).
+   * Pipe-separated ("a. | b. | c.") and stored per language, like every other
+   * bilingual pair in the schema.
+   */
   notes: string | null;
+  notesAr: string | null;
 };
 
 /** A set already stored server-side (resume hydration). */
@@ -545,6 +550,9 @@ export function SessionClient({
         const weightVisible = showWeight[ex.rowId] ?? true;
         const rirVisible = showRir[ex.rowId] ?? false;
         const gridCols = `2rem ${weightVisible ? "1fr " : ""}1fr ${rirVisible ? "1fr " : ""}2.75rem`;
+        // Falls back to whichever language exists — a program generated before
+        // migration 035 has no Arabic cues, and English beats a blank card.
+        const cues = pick(locale, ex.notes, ex.notesAr);
         return (
           <div
             key={ex.rowId}
@@ -596,9 +604,9 @@ export function SessionClient({
                     </span>
                   </div>
                 )}
-                {ex.notes && !isSkipped && (
+                {cues && !isSkipped && (
                   <ul className="mt-2 flex flex-col gap-1">
-                    {ex.notes.split("|").map((cue, i) => {
+                    {cues.split("|").map((cue, i) => {
                       const text = cue.trim();
                       return text ? (
                         <li key={i} className="flex items-start gap-1.5 text-xs font-medium text-emerald-400">

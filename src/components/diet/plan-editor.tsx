@@ -14,7 +14,22 @@ import {
 } from "@/app/actions/diet";
 import { swapQuantityG } from "@/lib/algorithms/meal-swap";
 import type { IngredientOption } from "@/components/diet/ingredient-picker";
+import type { ServingUnit } from "@/lib/servings";
 import { pick, type Locale } from "@/lib/i18n";
+
+/**
+ * The serving-unit half of a catalog entry. Added or swapped-in foods have to
+ * carry it too, or the row would fall back to bare grams until the next reload.
+ */
+function servingUnitOf(ing: IngredientOption): ServingUnit {
+  return {
+    unitEn: ing.unitEn,
+    unitEnPlural: ing.unitEnPlural,
+    unitAr: ing.unitAr,
+    unitArPlural: ing.unitArPlural,
+    unitGrams: ing.unitGrams,
+  };
+}
 
 export type EditorMeal = {
   id: string;
@@ -106,6 +121,7 @@ export function PlanEditor({
                   carbsPer100g: ing.carbsPer100g,
                   fatPer100g: ing.fatPer100g,
                   imageUrl: ing.imageUrl,
+                  ...servingUnitOf(ing),
                 },
               ],
             }
@@ -150,6 +166,7 @@ export function PlanEditor({
                       carbsPer100g: replacement.carbsPer100g,
                       fatPer100g: replacement.fatPer100g,
                       imageUrl: replacement.imageUrl,
+                      ...servingUnitOf(replacement),
                     }
                   : i,
               ),

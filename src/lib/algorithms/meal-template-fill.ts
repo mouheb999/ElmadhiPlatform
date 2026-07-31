@@ -24,6 +24,13 @@ export type Ingredient = {
   budgetTier: "low" | "medium" | "high";
   tags: string[];
   isSlotDefault: boolean;
+  /**
+   * May this food appear in Meal 1? Chicken breast is a perfectly good protein
+   * and a terrible breakfast; without this the substitution step would serve it
+   * at 7am to anyone who avoids eggs. Defaults to true for foods loaded from a
+   * database that predates migration 036.
+   */
+  breakfastOk?: boolean;
 };
 
 export type TemplateSlot = {
@@ -67,18 +74,49 @@ export type FilledMeal = {
 
 const BUDGET_RANK = { low: 0, medium: 1, high: 2 } as const;
 
-/** Which eating occasions appear, in display order, for a given meals/day. */
+/**
+ * Which eating occasions appear, in display order, for a given meals/day.
+ *
+ * post_workout is deliberately absent: it was a two-item stub between two real
+ * meals, and its food is folded into the next one instead (see
+ * `absorbingMealKey`). pre_workout stays — a coffee and a banana before
+ * training is a real instruction, not a meal pretending to be one.
+ */
 export function mealPlanForDay(mealsPerDay: number, trainingDays: string): MealKey[] {
   const trains = trainingDays !== "0";
   const order: MealKey[] = ["meal_1"];
   // 3 main meals → add a snack between meal 1 and meal 2; 5 → also add a snack.
   if (mealsPerDay === 3 || mealsPerDay >= 5) order.push("snack");
   order.push("meal_2");
-  if (trains) order.push("pre_workout", "post_workout");
+  if (trains) order.push("pre_workout");
   order.push("meal_3");
   // last_meal is the 4th main meal — kept for 4/5 meals, dropped for 3.
   if (mealsPerDay >= 4) order.push("last_meal");
   return order;
+}
+
+/**
+ * Where a template slot's food actually lands, or null if it is not eaten today.
+ *
+ * Only post_workout moves: its items join Meal 3, the next meal in the day.
+ * The move is limited to users who train, because a non-trainer never had those
+ * items in the first place — folding them in would silently add food to a plan
+ * that was already correct.
+ */
+export function absorbingMealKey(
+  mealKey: MealKey,
+  dayOrder: MealKey[],
+  trains: boolean,
+): MealKey | null {
+  if (dayOrder.includes(mealKey)) return mealKey;
+  if (mealKey === "post_workout" && trains && dayOrder.includes("meal_3")) return "meal_3";
+  return null;
+}
+
+/** Foods that may fill a given meal. Only Meal 1 is restricted. */
+export function isMealAppropriate(ing: Ingredient, mealKey: MealKey): boolean {
+  if (mealKey !== "meal_1") return true;
+  return ing.breakfastOk !== false;
 }
 
 /** True when an ingredient is allowed under the user's constraints. */
@@ -132,10 +170,17 @@ function avoidMatches(token: string, ing: Ingredient): boolean {
  * Pick a same-slot replacement when the template's primary ingredient is
  * disallowed. Prefers budget-compatible, then the slot default, then any.
  * High-fiber legumes get swapped for a slow carb when fiber bothers the user.
+ *
+ * `mealKey` narrows the pool to what belongs in that meal. At breakfast the
+ * filter is strict on purpose: if nothing appropriate survives the user's
+ * restrictions (a vegan avoiding eggs and dairy), the slot is dropped and the
+ * day's protein is carried by the other meals. A breakfast with no protein
+ * beats a breakfast with grilled chicken in it.
  */
 export function resolveIngredient(
   primaryId: string,
   role: SlotRole,
+  mealKey: MealKey,
   byId: Map<string, Ingredient>,
   bySlot: Map<Slot, Ingredient[]>,
   c: DietConstraints,
@@ -143,16 +188,21 @@ export function resolveIngredient(
   const primary = byId.get(primaryId);
   if (!primary) return null;
 
+  const fits = (i: Ingredient) => isMealAppropriate(i, mealKey);
+
   // High fiber bothers the user → replace the last-meal legume with a slow carb.
   if (role === "legume" && c.digestion.includes("high_fiber")) {
-    const carbAlt = pickFromPool(bySlot.get("carb") ?? [], c, primary.budgetTier);
+    const carbAlt = pickFromPool((bySlot.get("carb") ?? []).filter(fits), c, primary.budgetTier);
     if (carbAlt) return carbAlt;
   }
 
-  if (isIngredientAllowed(primary, c) && budgetOk(primary, c)) return primary;
+  if (isIngredientAllowed(primary, c) && budgetOk(primary, c) && fits(primary)) return primary;
 
-  const pool = (bySlot.get(primary.slot) ?? []).filter((i) => i.id !== primary.id);
-  return pickFromPool(pool, c, primary.budgetTier) ?? (isIngredientAllowed(primary, c) ? primary : null);
+  const pool = (bySlot.get(primary.slot) ?? []).filter((i) => i.id !== primary.id && fits(i));
+  return (
+    pickFromPool(pool, c, primary.budgetTier) ??
+    (isIngredientAllowed(primary, c) && fits(primary) ? primary : null)
+  );
 }
 
 function budgetOk(ing: Ingredient, c: DietConstraints): boolean {
@@ -189,17 +239,29 @@ export function fillTemplate(
   bySlot: Map<Slot, Ingredient[]>,
   c: DietConstraints,
 ): FilledMeal[] {
-  const keptMeals = new Set(mealPlanForDay(c.mealsPerDay, c.trainingDays));
+  const dayPlan = mealPlanForDay(c.mealsPerDay, c.trainingDays);
+  const trains = c.trainingDays !== "0";
 
   type Resolved = { mealKey: MealKey; orderIndex: number; ing: Ingredient; role: SlotRole; isOptional: boolean; grams: number; fixed: boolean };
   const resolved: Resolved[] = [];
 
   for (const s of slots) {
-    if (!keptMeals.has(s.mealKey)) continue;
+    const mealKey = absorbingMealKey(s.mealKey, dayPlan, trains);
+    if (!mealKey) continue;
     if (s.isOptional) continue; // whey/protein-bar are food-first optionals; skip by default
-    const ing = resolveIngredient(s.ingredientId, s.role, byId, bySlot, c);
+    const ing = resolveIngredient(s.ingredientId, s.role, mealKey, byId, bySlot, c);
     if (!ing) continue;
-    resolved.push({ mealKey: s.mealKey, orderIndex: s.orderIndex, ing, role: s.role, isOptional: s.isOptional, grams: 0, fixed: false });
+    resolved.push({
+      mealKey,
+      // Absorbed items sort after the host meal's own foods rather than
+      // interleaving with them by their old index.
+      orderIndex: mealKey === s.mealKey ? s.orderIndex : 100 + s.orderIndex,
+      ing,
+      role: s.role,
+      isOptional: s.isOptional,
+      grams: 0,
+      fixed: false,
+    });
   }
 
   // Lean-protein guard. On a fat-tight target (an aggressive cut with high
@@ -287,15 +349,21 @@ export function fillTemplate(
 
   // Group back into meals, preserving order.
   const meals = new Map<MealKey, FilledMeal>();
-  const dayOrder = mealPlanForDay(c.mealsPerDay, c.trainingDays);
-  dayOrder.forEach((mk, i) => meals.set(mk, { mealKey: mk, orderIndex: i, items: [] }));
-  for (const r of resolved) {
+  dayPlan.forEach((mk, i) => meals.set(mk, { mealKey: mk, orderIndex: i, items: [] }));
+  for (const r of [...resolved].sort((a, b) => a.orderIndex - b.orderIndex)) {
     if (r.grams <= 0) continue; // dropped by the solver (e.g. redundant added fat)
     const meal = meals.get(r.mealKey);
     if (!meal) continue;
+    // Absorbing post-workout can bring in a food the host meal already has —
+    // one line of "dates 40 g" reads better than two lines that must be added up.
+    const existing = meal.items.find((i) => i.ingredientId === r.ing.id);
+    if (existing) {
+      existing.quantityG += r.grams;
+      continue;
+    }
     meal.items.push({ ingredientId: r.ing.id, role: r.role, quantityG: r.grams, isOptional: r.isOptional });
   }
-  return dayOrder.map((mk) => meals.get(mk)!).filter((m) => m.items.length > 0);
+  return dayPlan.map((mk) => meals.get(mk)!).filter((m) => m.items.length > 0);
 }
 
 type Scalable = { ing: Ingredient; grams: number };

@@ -76,11 +76,13 @@ describe("resolveGoalStrategy", () => {
 
 // ---- template fill ----
 
+// `breakfastOk: false` mirrors migration 036 — chicken, tuna and rice are
+// lunch/dinner foods and must never be substituted into Meal 1.
 const ING: Ingredient[] = [
-  ing("chicken_breast", "protein", { protein: 31, carbs: 0, fat: 3.6, cal: 165 }, ["poultry"], true),
-  ing("tuna", "protein", { protein: 26, carbs: 0, fat: 1, cal: 116 }, ["fish"], false),
+  ing("chicken_breast", "protein", { protein: 31, carbs: 0, fat: 3.6, cal: 165 }, ["poultry"], true, false),
+  ing("tuna", "protein", { protein: 26, carbs: 0, fat: 1, cal: 116 }, ["fish"], false, false),
   ing("eggs", "protein", { protein: 13, carbs: 1.1, fat: 10, cal: 143 }, ["egg", "vegetarian"], false),
-  ing("white_rice", "carb", { protein: 2.7, carbs: 28, fat: 0.3, cal: 130 }, ["vegetarian"], true),
+  ing("white_rice", "carb", { protein: 2.7, carbs: 28, fat: 0.3, cal: 130 }, ["vegetarian"], true, false),
   ing("oats", "carb", { protein: 13, carbs: 67, fat: 6.5, cal: 379 }, ["vegetarian"], false),
   ing("olive_oil", "fat", { protein: 0, carbs: 0, fat: 100, cal: 884 }, ["vegetarian"], true),
   ing("mixed_salad", "vegetable", { protein: 1.2, carbs: 3.6, fat: 0.2, cal: 20 }, ["vegetarian"], true),
@@ -95,6 +97,7 @@ function ing(
   m: { protein: number; carbs: number; fat: number; cal: number },
   tags: string[],
   isDefault: boolean,
+  breakfastOk = true,
 ): Ingredient {
   return {
     id,
@@ -107,6 +110,7 @@ function ing(
     budgetTier: "low",
     tags,
     isSlotDefault: isDefault,
+    breakfastOk,
   };
 }
 
@@ -160,6 +164,78 @@ describe("mealPlanForDay", () => {
     const plan = mealPlanForDay(4, "0");
     expect(plan).not.toContain("pre_workout");
     expect(plan).not.toContain("post_workout");
+  });
+  it("never lists post-workout as its own meal, even for a trainer", () => {
+    expect(mealPlanForDay(5, "5_6")).not.toContain("post_workout");
+    expect(mealPlanForDay(5, "5_6")).toContain("pre_workout");
+  });
+});
+
+describe("post-workout is folded into the next meal", () => {
+  const target = { calories: 2200, proteinG: 170, carbsG: 200, fatG: 60 };
+
+  function itemsIn(meals: ReturnType<typeof fillTemplate>, mealKey: string) {
+    return meals.find((m) => m.mealKey === mealKey)?.items.map((i) => i.ingredientId) ?? [];
+  }
+
+  it("moves the post-workout food into meal 3 for someone who trains", () => {
+    const meals = fillTemplate(SLOTS, target, byId, bySlot, baseConstraints);
+    expect(meals.map((m) => m.mealKey)).not.toContain("post_workout");
+    // The template's post-workout banana is eaten with meal 3 instead.
+    expect(itemsIn(meals, "meal_3")).toContain("banana");
+  });
+
+  it("keeps it out of the plan entirely for someone who does not train", () => {
+    const meals = fillTemplate(SLOTS, target, byId, bySlot, {
+      ...baseConstraints,
+      trainingDays: "0",
+    });
+    expect(meals.map((m) => m.mealKey)).not.toContain("post_workout");
+    // No pre-workout meal either, so no banana anywhere: the non-trainer's plan
+    // is unchanged by the fold.
+    expect(meals.flatMap((m) => m.items.map((i) => i.ingredientId))).not.toContain("banana");
+  });
+
+  it("merges rather than listing the same food twice in one meal", () => {
+    const withDuplicate: TemplateSlot[] = [
+      ...SLOTS,
+      { mealKey: "post_workout", orderIndex: 2, ingredientId: "white_rice", role: "carb", isOptional: false },
+    ];
+    const meals = fillTemplate(withDuplicate, target, byId, bySlot, baseConstraints);
+    const rice = itemsIn(meals, "meal_3").filter((id) => id === "white_rice");
+    expect(rice).toHaveLength(1);
+  });
+});
+
+describe("breakfast stays breakfast", () => {
+  const target = { calories: 2200, proteinG: 170, carbsG: 200, fatG: 60 };
+
+  function breakfast(c: Partial<DietConstraints> = {}) {
+    const meals = fillTemplate(SLOTS, target, byId, bySlot, { ...baseConstraints, ...c });
+    return meals.find((m) => m.mealKey === "meal_1")?.items.map((i) => i.ingredientId) ?? [];
+  }
+
+  it("does not serve chicken at 7am when the user avoids eggs", () => {
+    const items = breakfast({ avoidFoods: ["eggs"] });
+    expect(items).not.toContain("chicken_breast");
+    expect(items).not.toContain("tuna");
+  });
+
+  it("drops the slot rather than substituting a dinner food", () => {
+    // eggs are the only breakfast-appropriate protein in the fixture, so
+    // avoiding them leaves Meal 1 with its carb and coffee and no protein.
+    const items = breakfast({ avoidFoods: ["eggs"] });
+    expect(items).toContain("oats");
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("still uses the template's own breakfast protein when it is allowed", () => {
+    expect(breakfast()).toContain("eggs");
+  });
+
+  it("substitutes a breakfast-appropriate carb, not rice", () => {
+    const items = breakfast({ avoidFoods: ["oats"] });
+    expect(items).not.toContain("white_rice");
   });
 });
 

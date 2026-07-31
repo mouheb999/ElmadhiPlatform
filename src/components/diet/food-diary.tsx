@@ -29,6 +29,7 @@ import {
   toggleFavoriteFood,
   type MealSlot,
 } from "@/app/actions/meal-logs";
+import { formatServing, type ServingUnit } from "@/lib/servings";
 
 export type DiaryTargets = { calories: number; proteinG: number; carbsG: number; fatG: number };
 
@@ -45,7 +46,7 @@ export type DiaryEntry = {
   imageUrl: string | null;
 };
 
-export type DiaryFood = {
+export type DiaryFood = ServingUnit & {
   id: string;
   nameEn: string | null;
   nameAr: string;
@@ -697,8 +698,15 @@ function AddFoodSheet({
                             <span className="flex-1 text-sm font-semibold">
                               {pick(locale, item.food.nameEn, item.food.nameAr)}
                             </span>
-                            <span className="shrink-0 text-xs tabular-nums text-muted">
-                              {item.quantityG}g · {Math.round((item.food.caloriesPer100g * item.quantityG) / 100)} kcal
+                            <span className="shrink-0 text-end text-xs text-muted">
+                              <span className="tabular-nums">
+                                {item.quantityG}g · {Math.round((item.food.caloriesPer100g * item.quantityG) / 100)} kcal
+                              </span>
+                              {formatServing(locale, item.quantityG, item.food) && (
+                                <span className="block">
+                                  {formatServing(locale, item.quantityG, item.food)}
+                                </span>
+                              )}
                             </span>
                           </button>
                         ))}

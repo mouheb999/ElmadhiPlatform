@@ -7,8 +7,9 @@ import { IngredientPicker, type IngredientOption } from "@/components/diet/ingre
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { swapQuantityG } from "@/lib/algorithms/meal-swap";
+import { formatServing, type ServingUnit } from "@/lib/servings";
 
-export type EditorItem = {
+export type EditorItem = ServingUnit & {
   id: string;
   ingredientId: string;
   nameEn: string | null;
@@ -99,7 +100,18 @@ export function MealCard({
                     className="h-9 w-9 shrink-0 rounded-lg border border-hairline object-cover"
                   />
                 )}
-                <span className="flex-1 text-sm font-semibold">{pick(locale, item.nameEn, item.nameAr)}</span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-sm font-semibold">
+                    {pick(locale, item.nameEn, item.nameAr)}
+                  </span>
+                  {/* The portion in the language of a kitchen, not a scale. The
+                      grams beside it stay the authoritative number. */}
+                  {formatServing(locale, item.quantityG, item) && (
+                    <span className="text-xs text-muted">
+                      {formatServing(locale, item.quantityG, item)}
+                    </span>
+                  )}
+                </span>
                 <Input
                   type="number"
                   value={item.quantityG}
@@ -129,6 +141,7 @@ export function MealCard({
                 <SwapOptions
                   locale={locale}
                   item={item}
+                  mealType={mealType}
                   ingredients={ingredients}
                   onPick={(replacement) => {
                     onSwap(item, replacement);
@@ -169,19 +182,30 @@ export function MealCard({
  * Same-slot alternatives for one planned food, each shown at the portion that
  * keeps the meal's nutrition (computed with the same function the server uses,
  * so the preview matches what actually gets saved).
+ *
+ * Meal 1 only offers breakfast foods. The generator already refuses to put
+ * chicken breast there; offering it in the swap list would just move the same
+ * mistake one tap away.
  */
 function SwapOptions({
   locale,
   item,
+  mealType,
   ingredients,
   onPick,
 }: {
   locale: Locale;
   item: EditorItem;
+  mealType: string;
   ingredients: IngredientOption[];
   onPick: (replacement: IngredientOption) => void;
 }) {
-  const alternatives = ingredients.filter((i) => i.slot === item.slot && i.id !== item.ingredientId);
+  const alternatives = ingredients.filter(
+    (i) =>
+      i.slot === item.slot &&
+      i.id !== item.ingredientId &&
+      (mealType !== "meal_1" || i.breakfastOk),
+  );
 
   if (alternatives.length === 0) {
     return (
@@ -197,17 +221,23 @@ function SwapOptions({
         {t(locale, "plan.swap_for")}
       </span>
       <div className="flex max-h-56 flex-col divide-y divide-hairline overflow-y-auto">
-        {alternatives.map((alt) => (
-          <button
-            key={alt.id}
-            type="button"
-            onClick={() => onPick(alt)}
-            className="flex items-center gap-3 px-1 py-2 text-start hover:bg-white/5"
-          >
-            <span className="flex-1 truncate text-sm font-semibold">{pick(locale, alt.nameEn, alt.nameAr)}</span>
-            <span className="shrink-0 text-xs tabular-nums text-muted">{swapQuantityG(item, item.quantityG, alt)}g</span>
-          </button>
-        ))}
+        {alternatives.map((alt) => {
+          const grams = swapQuantityG(item, item.quantityG, alt);
+          const serving = formatServing(locale, grams, alt);
+          return (
+            <button
+              key={alt.id}
+              type="button"
+              onClick={() => onPick(alt)}
+              className="flex items-center gap-3 px-1 py-2 text-start hover:bg-white/5"
+            >
+              <span className="flex-1 truncate text-sm font-semibold">{pick(locale, alt.nameEn, alt.nameAr)}</span>
+              <span className="shrink-0 text-xs tabular-nums text-muted">
+                {serving ? `${serving} · ${grams}g` : `${grams}g`}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

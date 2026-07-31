@@ -300,6 +300,12 @@ export type Database = {
           is_slot_default: boolean;
           image_url: string | null;
           created_at: string | null;
+          unit_en: string | null;
+          unit_en_plural: string | null;
+          unit_ar: string | null;
+          unit_ar_plural: string | null;
+          unit_grams: number | null;
+          breakfast_ok: boolean;
         };
         Insert: {
           id: string;
@@ -317,6 +323,12 @@ export type Database = {
           is_slot_default?: boolean;
           image_url?: string | null;
           created_at?: string | null;
+          unit_en?: string | null;
+          unit_en_plural?: string | null;
+          unit_ar?: string | null;
+          unit_ar_plural?: string | null;
+          unit_grams?: number | null;
+          breakfast_ok?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["nutrition_ingredients"]["Insert"]>;
         Relationships: [];
@@ -630,6 +642,7 @@ export type Database = {
           rest_seconds: number | null;
           is_user_modified: boolean | null;
           notes: string | null;
+          notes_ar: string | null;
         };
         Insert: {
           id?: string;
@@ -641,6 +654,7 @@ export type Database = {
           rest_seconds?: number | null;
           is_user_modified?: boolean | null;
           notes?: string | null;
+          notes_ar?: string | null;
         };
         Update: Partial<
           Database["public"]["Tables"]["user_program_exercises"]["Insert"]
@@ -1221,6 +1235,7 @@ export type Database = {
           reps: string;
           swap_options: Json;
           advice_en: string | null;
+          advice_ar: string | null;
         };
         Insert: {
           id?: string;
@@ -1230,6 +1245,7 @@ export type Database = {
           reps: string;
           swap_options?: Json;
           advice_en?: string | null;
+          advice_ar?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["fixed_split_exercises"]["Insert"]>;
         Relationships: [

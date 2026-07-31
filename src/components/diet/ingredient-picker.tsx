@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { pick, type Locale } from "@/lib/i18n";
+import type { ServingUnit } from "@/lib/servings";
 
-export type IngredientOption = {
+export type IngredientOption = ServingUnit & {
   id: string;
   nameEn: string | null;
   nameAr: string;
@@ -16,6 +17,8 @@ export type IngredientOption = {
   carbsPer100g: number;
   fatPer100g: number;
   imageUrl: string | null;
+  /** False for foods that must not be offered in Meal 1 (migration 036). */
+  breakfastOk: boolean;
 };
 
 /**

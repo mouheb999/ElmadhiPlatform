@@ -55,7 +55,7 @@ async function loadCatalog(supabase: Supa) {
     supabase
       .from("nutrition_ingredients")
       .select(
-        "id, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, typical_serving_g, budget_tier, tags, is_slot_default",
+        "id, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, typical_serving_g, budget_tier, tags, is_slot_default, breakfast_ok",
       ),
     supabase.from("meal_templates").select("id, cooking_tier, budget_tier"),
     supabase
@@ -75,6 +75,7 @@ async function loadCatalog(supabase: Supa) {
     budgetTier: i.budget_tier as Ingredient["budgetTier"],
     tags: i.tags ?? [],
     isSlotDefault: i.is_slot_default,
+    breakfastOk: i.breakfast_ok ?? true,
   }));
 
   const byId = new Map<string, Ingredient>(ingList.map((i) => [i.id, i]));

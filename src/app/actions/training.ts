@@ -123,7 +123,9 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
 
   const { data: dayRows } = await supabase
     .from("fixed_split_days")
-    .select("day_number, day_name_en, fixed_split_exercises(order_index, exercise_id, reps, advice_en)")
+    .select(
+      "day_number, day_name_en, fixed_split_exercises(order_index, exercise_id, reps, advice_en, advice_ar)",
+    )
     .eq("fixed_split_id", split.id)
     .order("day_number", { ascending: true });
   if (!dayRows || dayRows.length === 0) return fail(`Split "${split.id}" has no days defined.`);
@@ -168,6 +170,7 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
           rep_range: e.reps,
           rest_seconds: scheme.restSeconds,
           notes: e.advice_en,
+          notes_ar: e.advice_ar,
         };
       }),
     );
