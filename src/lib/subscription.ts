@@ -33,6 +33,43 @@ export function isSubscriptionActive(profile: SubscriptionProfile | null): boole
 /** What a guarded action returns to a lapsed user. */
 export const SUBSCRIPTION_REQUIRED = "Your subscription has ended — renew to keep going.";
 
+/** How far ahead the admin list warns that a term is about to run out. */
+export const EXPIRING_SOON_DAYS = 7;
+
+/**
+ * Where an account stands, for the admin subscriptions list.
+ *
+ * `expiring` is not a state the app enforces — it is still `active` to the
+ * gate. It exists so somebody can be reminded to renew *before* they get
+ * locked out rather than after.
+ */
+export type SubscriptionStanding = "active" | "expiring" | "expired" | "unpaid";
+
+export type SubscriptionStandingResult = {
+  standing: SubscriptionStanding;
+  /** Whole days until the term ends; negative once it has. Null = no term. */
+  daysLeft: number | null;
+};
+
+const DAY_MS = 86_400_000;
+
+export function subscriptionStanding(
+  profile: SubscriptionProfile | null,
+  now: Date = new Date(),
+): SubscriptionStandingResult {
+  if (!profile || profile.payment_status !== "active") {
+    return { standing: "unpaid", daysLeft: null };
+  }
+  if (!profile.plan_expires_at) return { standing: "active", daysLeft: null };
+
+  const daysLeft = Math.ceil(
+    (new Date(profile.plan_expires_at).getTime() - now.getTime()) / DAY_MS,
+  );
+  if (daysLeft <= 0) return { standing: "expired", daysLeft };
+  if (daysLeft <= EXPIRING_SOON_DAYS) return { standing: "expiring", daysLeft };
+  return { standing: "active", daysLeft };
+}
+
 /**
  * When a subscription should run out after paying for `months`.
  *

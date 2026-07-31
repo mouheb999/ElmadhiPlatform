@@ -9,6 +9,7 @@ type Tab = { href: string; label: Parameters<typeof t>[1] };
 
 const TABS: Tab[] = [
   { href: "/admin", label: "admin.nav_payments" },
+  { href: "/admin/subscriptions", label: "admin.nav_subs" },
   { href: "/admin/exercises", label: "admin.nav_exercises" },
   { href: "/admin/qa", label: "admin.nav_qa" },
   { href: "/admin/support", label: "admin.nav_support" },

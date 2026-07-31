@@ -996,6 +996,25 @@ const STRINGS = {
     tn: "الكروت اللي عندها رقم كي faq_007 جاية من ملف المحتوى — كان تعاود تعمل seed ترجع. خبّيهم بدل ما تمسحهم.",
   },
 
+  // ---- admin: subscriptions ----
+  "admin.nav_subs": { en: "Subscriptions", tn: "الاشتراكات" },
+  "admin.subs_title": { en: "Subscriptions", tn: "الاشتراكات" },
+  "admin.subs_sub": {
+    en: "Who is paid up, and who is about to run out. Soonest to lapse first.",
+    tn: "شكون خالص وشكون قرب يوفى ليه الاشتراك. اللي قرب يوفى الأول.",
+  },
+  "admin.subs_active": { en: "Active", tn: "مفعّل" },
+  "admin.subs_expiring": { en: "Expiring soon", tn: "قرب يوفى" },
+  "admin.subs_expired": { en: "Expired", tn: "وفى" },
+  "admin.subs_unpaid": { en: "Never paid", tn: "ما خلّصش" },
+  "admin.subs_admin": { en: "Admin — always has access", tn: "أدمين — عندو دخول ديما" },
+  "admin.subs_search": { en: "Search by name or email…", tn: "لوّج بالاسم ولا الإيميل…" },
+  "admin.subs_none": { en: "Nobody here.", tn: "ما فما حتى حد هوني." },
+  "admin.subs_note": {
+    en: "Access stops on its own the moment a term ends — nothing to switch off by hand. Confirm a payment on the Payments tab to extend one.",
+    tn: "الدخول يتقطع وحدو كي يوفى الاشتراك — ما تحتاج تطفّي شيء بيدك. باش تمدّد، أكّد الخلاص في تبويب الخلاص.",
+  },
+
   // ---- admin: user records ----
   "admin.nav_users": { en: "Users", tn: "المستخدمين" },
   "admin.users_title": { en: "User records", tn: "سجلات المستخدمين" },
