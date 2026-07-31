@@ -88,6 +88,19 @@ export function CheckoutClient({
   const selectedPlan = tierPlans.find((p) => p.months === months) ?? tierPlans[0] ?? null;
   const monthlyBase = tierPlans.find((p) => p.months === 1)?.price_tnd ?? null;
 
+  // What Premium costs on top of Standard *for the duration the user is looking
+  // at*. The tier cards used to print a "from X DT/month" that was really the
+  // 6-month rate, so it contradicted the duration list underneath — this delta
+  // moves with the selection instead, and never competes with the real prices.
+  const activeMonths = selectedPlan?.months ?? months;
+  const premiumUpgradePerMonth = useMemo(() => {
+    const std = plans.find((p) => p.tier === "standard" && p.months === activeMonths);
+    const prem = plans.find((p) => p.tier === "premium" && p.months === activeMonths);
+    if (!std || !prem) return null;
+    const delta = (prem.price_tnd - std.price_tnd) / activeMonths;
+    return delta > 0 ? delta : null;
+  }, [plans, activeMonths]);
+
   const activeMethod = useMemo(
     () => methods.find((m) => m.key === openKey) ?? null,
     [methods, openKey],
@@ -98,6 +111,11 @@ export function CheckoutClient({
     const full = monthlyBase * plan.months;
     const pct = Math.round((1 - plan.price_tnd / full) * 100);
     return pct > 0 ? pct : null;
+  }
+
+  /** One decimal at most, no trailing ".0" — 36.5 stays 36.5, 43.0 becomes 43. */
+  function dt(value: number): string {
+    return String(Math.round(value * 10) / 10);
   }
 
   function monthsLabel(m: number): string {
@@ -217,16 +235,10 @@ export function CheckoutClient({
           </p>
         ) : (
           <>
-            {/* ---- Tier cards ---- */}
+            {/* ---- Tier cards: what you get, not what it costs ---- */}
             <div className="grid grid-cols-2 gap-3">
               {(["standard", "premium"] as Tier[]).map((value) => {
                 const selected = tier === value;
-                const from = plans
-                  .filter((p) => p.tier === value)
-                  .reduce<number | null>(
-                    (min, p) => Math.min(min ?? Infinity, p.price_tnd / p.months),
-                    null,
-                  );
                 return (
                   <button
                     key={value}
@@ -246,15 +258,19 @@ export function CheckoutClient({
                       </span>
                     )}
                     <span className="pt-1 font-extrabold">{tierLabel(value)}</span>
-                    {from !== null && (
-                      <span className="text-xs text-muted">
-                        {t(locale, "plans.from")}{" "}
-                        <span className="text-base font-extrabold text-ink tabular-nums">
-                          {Math.round(from * 10) / 10}
-                        </span>{" "}
-                        DT{t(locale, "plans.per_month")}
-                      </span>
-                    )}
+                    {/* Rendered on both cards so the feature lists stay aligned. */}
+                    <span className="min-h-[1.125rem] text-xs text-muted">
+                      {value === "premium" && premiumUpgradePerMonth !== null ? (
+                        <>
+                          <bdi className="font-extrabold text-accent tabular-nums">
+                            +{dt(premiumUpgradePerMonth)} DT
+                          </bdi>
+                          {t(locale, "plans.per_month")} {t(locale, "plans.vs_standard")}
+                        </>
+                      ) : value === "standard" ? (
+                        t(locale, "plans.base_price")
+                      ) : null}
+                    </span>
                     <ul className="mt-1 flex flex-col gap-1">
                       {TIER_FEATURES[value].map((key) => (
                         <li key={key} className="flex items-start gap-1.5 text-[11px] leading-snug text-muted">
@@ -268,8 +284,11 @@ export function CheckoutClient({
               })}
             </div>
 
-            {/* ---- Duration picker ---- */}
+            {/* ---- Duration picker: the only place absolute prices live ---- */}
             <div className="flex flex-col gap-2">
+              <p className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
+                {t(locale, "plans.duration")} · {tierLabel(tier)}
+              </p>
               {tierPlans.map((plan) => {
                 const selected = selectedPlan?.id === plan.id;
                 const save = savingsPct(plan);
@@ -297,7 +316,7 @@ export function CheckoutClient({
                       </span>
                       {save !== null && monthlyBase !== null && (
                         <span className="text-xs text-muted">
-                          <span className="line-through">{monthlyBase * plan.months} DT</span>{" "}
+                          <span className="line-through">{dt(monthlyBase * plan.months)} DT</span>{" "}
                           <span className="font-bold text-accent">
                             {t(locale, "plans.save")} {save}%
                           </span>
@@ -305,11 +324,12 @@ export function CheckoutClient({
                       )}
                     </span>
                     <span className="text-end tabular-nums">
-                      <span className="text-lg font-extrabold">{perMonth}</span>
+                      <span className="text-lg font-extrabold">{dt(perMonth)}</span>
                       <span className="text-xs text-muted"> DT{t(locale, "plans.per_month")}</span>
                       {plan.months > 1 && (
                         <span className="block text-[11px] text-muted">
-                          {plan.price_tnd} DT {t(locale, "plans.billed_every")} {monthsLabel(plan.months)}
+                          {dt(plan.price_tnd)} DT {t(locale, "plans.billed_every")}{" "}
+                          {monthsLabel(plan.months)}
                         </span>
                       )}
                     </span>
@@ -317,6 +337,24 @@ export function CheckoutClient({
                 );
               })}
             </div>
+
+            {/* ---- One headline number, so nothing is left to interpret ---- */}
+            {selectedPlan && (
+              <div className="flex items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-3">
+                <span className="flex flex-col">
+                  <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
+                  <span className="font-bold text-ink">
+                    {tierLabel(tier)} · {monthsLabel(selectedPlan.months)}
+                  </span>
+                </span>
+                <span className="flex flex-col text-end">
+                  <span className="text-xs text-muted">{t(locale, "plans.total_today")}</span>
+                  <span className="text-xl font-extrabold tabular-nums text-ink">
+                    {dt(selectedPlan.price_tnd)} DT
+                  </span>
+                </span>
+              </div>
+            )}
 
             {offerLabel && (
               <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
@@ -401,7 +439,7 @@ export function CheckoutClient({
                   >
                     {isPending
                       ? "…"
-                      : `${t(locale, "checkout.whatsapp_cta")} · ${selectedPlan?.price_tnd ?? ""} DT`}
+                      : `${t(locale, "checkout.whatsapp_cta")} · ${selectedPlan ? dt(selectedPlan.price_tnd) : ""} DT`}
                   </Button>
                   <p className="text-center text-xs text-muted">{t(locale, "checkout.whatsapp_hint")}</p>
                 </div>
