@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePaidUser } from "@/lib/subscription-server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { tunisWeekStartUtc } from "@/lib/dates";
 import { SESSION_ERR } from "@/lib/session-codes";
@@ -31,8 +31,8 @@ export async function startSession(
   userProgramDayId: string,
 ): Promise<ActionResult<StartSessionOk>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   // Day must belong to one of the user's programs.
   const { data: day } = await supabase
@@ -146,8 +146,8 @@ async function getOpenSession(
  */
 export async function logSet(input: LogSetInput): Promise<ActionResult<{ setId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   if (!Number.isInteger(input.reps) || input.reps < 1 || input.reps > 100) {
     return fail("Reps look off — please double-check.");
@@ -202,8 +202,8 @@ export async function skipExercise(
   exerciseId: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   const session = await getOpenSession(supabase, user.id, sessionId);
   if (!session) return fail(SESSION_ERR.notOpen);
@@ -235,8 +235,8 @@ export async function finishSession(input: {
   prExerciseIds: string[];
 }): Promise<ActionResult<FinishSummary>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   const { data: session } = await supabase
     .from("workout_sessions")
@@ -319,8 +319,8 @@ export async function finishSession(input: {
  */
 export async function discardEmptySession(sessionId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   const session = await getOpenSession(supabase, user.id, sessionId);
   if (!session) return fail(SESSION_ERR.notOpen);

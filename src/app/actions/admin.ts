@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { nextExpiry } from "@/lib/subscription";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -131,10 +132,7 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
   const months = req.plan_months ?? 1;
   const tier = req.plan_tier === "standard" ? "standard" : "premium";
   const now = new Date();
-  const currentExpiry = profile?.plan_expires_at ? new Date(profile.plan_expires_at) : null;
-  const base = currentExpiry && currentExpiry > now ? currentExpiry : now;
-  const newExpiry = new Date(base);
-  newExpiry.setMonth(newExpiry.getMonth() + months);
+  const newExpiry = nextExpiry(profile?.plan_expires_at, months, now);
 
   const { error: updateProfileError } = await admin
     .from("profiles")

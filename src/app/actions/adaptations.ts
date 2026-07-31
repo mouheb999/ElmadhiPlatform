@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePaidUser } from "@/lib/subscription-server";
 import { computeDietProposal } from "@/lib/coach/diet-proposal";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
@@ -15,8 +15,8 @@ import { type ActionResult, ok, fail } from "@/lib/action-result";
  */
 export async function applyDietAdaptation(): Promise<ActionResult> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   const context = await computeDietProposal(supabase, user.id);
   if (!context) return fail("No adjustment is due right now.");

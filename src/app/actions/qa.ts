@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePaidUser } from "@/lib/subscription-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { getLocale } from "@/lib/i18n-server";
@@ -22,8 +22,8 @@ export async function submitQaRequest(
   questionText: string,
 ): Promise<ActionResult<{ remaining: number }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
   if (!questionText.trim()) return fail("Question can't be empty.");
 
   const locale = await getLocale();
@@ -50,8 +50,8 @@ export async function submitQaRequest(
 /** User clicked through to read their answered question — stop notifying. */
 export async function markQaAnswerSeen(requestId: string): Promise<ActionResult> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   const { error } = await supabase
     .from("qa_requests")

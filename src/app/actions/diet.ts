@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { hasPaidAccess, requirePaidUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -180,8 +180,8 @@ async function buildAndSaveMealPlan(
 
 export async function submitDietQuestions(answers: DietAnswers): Promise<ActionResult<{ dietProfileId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   // Archive any existing active profile + plan (versioned, never deleted).
   const { data: previous } = await supabase
@@ -277,6 +277,9 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
 }
 
 export async function saveMealPlanItemEdit(itemId: string, quantityG: number): Promise<ActionResult> {
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("meal_plan_items")
@@ -287,6 +290,9 @@ export async function saveMealPlanItemEdit(itemId: string, quantityG: number): P
 }
 
 export async function removeMealPlanItem(itemId: string): Promise<ActionResult> {
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
+
   const supabase = await createClient();
   const { error } = await supabase.from("meal_plan_items").delete().eq("id", itemId);
   if (error) return fail(error.message);
@@ -298,6 +304,9 @@ export async function addMealPlanItem(
   ingredientId: string,
   quantityG: number,
 ): Promise<ActionResult<{ id: string }>> {
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("meal_plan_items")
@@ -318,6 +327,9 @@ export async function swapMealPlanItem(
   itemId: string,
   newIngredientId: string,
 ): Promise<ActionResult<{ quantityG: number }>> {
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
+
   const supabase = await createClient();
 
   type MacroRow = {
@@ -369,6 +381,7 @@ export async function swapMealPlanItem(
 }
 
 export async function markMealPlanModified(planId: string): Promise<void> {
+  if (!(await hasPaidAccess())) return;
   const supabase = await createClient();
   await supabase.from("meal_plans").update({ user_modified: true }).eq("id", planId);
 }

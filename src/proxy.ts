@@ -6,6 +6,7 @@ import {
   issueGateTicket,
   verifyGateTicket,
 } from "@/lib/paywall-gate";
+import { isSubscriptionActive } from "@/lib/subscription";
 
 // Routes that require a signed-in, paid user.
 const PROTECTED_PREFIXES = [
@@ -83,10 +84,9 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  const expired =
-    !!profile?.plan_expires_at && new Date(profile.plan_expires_at) < new Date();
-
-  if (!profile?.is_admin && (profile?.payment_status !== "active" || expired)) {
+  // Same predicate the paid Server Functions enforce, so the optimistic gate
+  // and the real boundary can never disagree about who is paid up.
+  if (!isSubscriptionActive(profile)) {
     const url = request.nextUrl.clone();
     url.pathname = "/checkout";
     const redirectResponse = NextResponse.redirect(url);

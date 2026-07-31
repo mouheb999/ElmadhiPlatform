@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { hasPaidAccess, requirePaidUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -53,8 +53,8 @@ function schemeForReps(reps: string): { sets: number; restSeconds: number } {
  */
 export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<ActionResult<{ programId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
 
   const { data: previous } = await supabase
     .from("training_profiles")
@@ -183,6 +183,9 @@ export async function saveProgramExerciseEdit(
   rowId: string,
   patch: { sets?: number; repRange?: string; restSeconds?: number },
 ): Promise<ActionResult> {
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("user_program_exercises")
@@ -198,6 +201,9 @@ export async function saveProgramExerciseEdit(
 }
 
 export async function swapProgramExercise(rowId: string, newExerciseId: string): Promise<ActionResult> {
+  const { user, denied } = await requirePaidUser();
+  if (!user) return fail(denied);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("user_program_exercises")
@@ -208,6 +214,7 @@ export async function swapProgramExercise(rowId: string, newExerciseId: string):
 }
 
 export async function markProgramModified(programId: string): Promise<void> {
+  if (!(await hasPaidAccess())) return;
   const supabase = await createClient();
   await supabase.from("user_programs").update({ user_modified: true }).eq("id", programId);
 }
