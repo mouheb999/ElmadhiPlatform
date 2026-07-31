@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
+import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { calculateMacros, type ActivityLevel, type DailySteps } from "@/lib/algorithms/macros";
 import type { Goal, BodyFatLevel } from "@/lib/algorithms/diet-strategy";
@@ -187,7 +190,15 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
     .eq("is_active", true)
     .maybeSingle();
 
+  // A second profile means the user is rebuilding, not onboarding — that is
+  // what the monthly cap counts. Checked before anything is archived, so a
+  // blocked redo leaves the current plan exactly as it was.
   if (previous) {
+    const quota = await getRedoQuota(supabase, user.id, "diet");
+    if (quota.remaining <= 0) {
+      const locale = await getLocale();
+      return fail(t(locale, "redo.quota_blocked").replace("{total}", String(quota.limit)));
+    }
     await supabase.from("diet_profiles").update({ is_active: false }).eq("id", previous.id);
     await supabase.from("meal_plans").update({ is_active: false }).eq("diet_profile_id", previous.id);
   }
@@ -221,7 +232,15 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
     .select("id")
     .single();
 
-  if (error || !dietProfile) return fail(error?.message ?? "Could not save your answers.");
+  if (error || !dietProfile) {
+    // The trigger is what actually holds the cap (this action is reachable by
+    // direct POST); translate its raised exception into the same message.
+    if (error?.message.includes(REDO_QUOTA_ERROR)) {
+      const locale = await getLocale();
+      return fail(t(locale, "redo.quota_blocked").replace("{total}", String(MONTHLY_REDO_LIMIT)));
+    }
+    return fail(error?.message ?? "Could not save your answers.");
+  }
 
   const macros = calculateMacros({
     gender: answers.gender,

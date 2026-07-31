@@ -320,6 +320,22 @@ const STRINGS = {
   "settings.sign_out": { en: "Sign out", tn: "اخرج" },
   "settings.admin_panel": { en: "Admin panel", tn: "لوحة الأدمين" },
 
+  // ---- monthly plan rebuild allowance ----
+  "redo.remaining": {
+    en: "{remaining} of {total} left this month",
+    tn: "باقيلك {remaining} من {total} هالشهر",
+  },
+  "redo.none_left": {
+    en: "No rebuilds left this month — you can redo it next month.",
+    tn: "ما باقيلكش تبديل هالشهر — تنجّم تعاود الشهر الجاي.",
+  },
+  "redo.limit_title": { en: "Come back next month", tn: "ارجع الشهر الجاي" },
+  "redo.quota_blocked": {
+    en: "You've used all {total} plan rebuilds for this month. Give this plan a real chance — you can redo it next month.",
+    tn: "استعملت {total} تبديلات متاع البرنامج الكل هالشهر. اعطي البرنامج هذا فرصة بالحق — تنجّم تعاود الشهر الجاي.",
+  },
+  "redo.back_to_settings": { en: "Back to settings", tn: "ارجع للإعدادات" },
+
   // ---- diet maker: questions ----
   "diet.q_gender": { en: "Are you a man or a woman?", tn: "راجل ولا مرا؟" },
   "diet.gender_male": { en: "Man", tn: "راجل" },
@@ -1008,6 +1024,55 @@ const STRINGS = {
   },
   "admin.users_reset": { en: "Reset workout history", tn: "صفّر سجل التمارين" },
   "admin.users_reset_done": { en: "Workout history reset.", tn: "تصفّر سجل التمارين." },
+
+  // ---- report a problem (user side) ----
+  "support.title": { en: "Report a problem", tn: "بلّغ على مشكل" },
+  "support.subtitle": {
+    en: "Something broken or confusing? Tell us and we'll answer you here.",
+    tn: "فمّا حاجة خايبة ولا ما فهمتهاش؟ قلّنا وباش نجاوبوك هنا.",
+  },
+  "support.category": { en: "What is it about?", tn: "علاش يخص؟" },
+  "support.cat_bug": { en: "Something is broken", tn: "حاجة ما تخدمش" },
+  "support.cat_payment": { en: "Payment", tn: "الخلاص" },
+  "support.cat_plan": { en: "My plan", tn: "البرنامج متاعي" },
+  "support.cat_account": { en: "My account", tn: "الحساب متاعي" },
+  "support.cat_other": { en: "Something else", tn: "حاجة أخرى" },
+  "support.message": { en: "What happened?", tn: "شنوّة صار؟" },
+  "support.message_placeholder": {
+    en: "Tell us what you were doing and what went wrong.",
+    tn: "قلّنا شنوّة كنت تعمل وشنوّة صار.",
+  },
+  "support.send": { en: "Send report", tn: "ابعث" },
+  "support.sending": { en: "Sending…", tn: "قاعد يتبعث…" },
+  "support.sent": {
+    en: "Sent. We'll answer you right here.",
+    tn: "تبعثت. باش نجاوبوك هوني.",
+  },
+  "support.my_reports": { en: "My reports", tn: "التبليغات متاعي" },
+  "support.empty": { en: "You haven't reported anything yet.", tn: "مازلت ما بلّغت على حتى حاجة." },
+  "support.status_open": { en: "Waiting for an answer", tn: "في انتظار الجواب" },
+  "support.status_answered": { en: "Answered", tn: "تجاوب" },
+  "support.status_closed": { en: "Closed", tn: "تسكّر" },
+  "support.new_reply": { en: "New reply", tn: "جواب جديد" },
+  "support.from_you": { en: "You", tn: "إنت" },
+  "support.from_coach": { en: "ELMADHI", tn: "المدّي" },
+  "support.reply_placeholder": { en: "Write a message…", tn: "اكتب رسالة…" },
+  "support.reply_send": { en: "Send", tn: "ابعث" },
+
+  // ---- report a problem (admin side) ----
+  "admin.nav_support": { en: "Reports", tn: "التبليغات" },
+  "admin.support_title": { en: "Problem reports", tn: "تبليغات المشاكل" },
+  "admin.support_sub": {
+    en: "What users report from the app. Your answer lands in their thread.",
+    tn: "شنوّة يبلّغو عليه المستخدمين من التطبيق. جوابك يوصلهم في نفس المحادثة.",
+  },
+  "admin.support_empty": { en: "No reports.", tn: "ما فماش تبليغات." },
+  "admin.support_answer_placeholder": { en: "Write your answer…", tn: "اكتب جوابك…" },
+  "admin.support_send": { en: "Send answer", tn: "ابعث الجواب" },
+  "admin.support_close": { en: "Close", tn: "سكّر" },
+  "admin.support_reopen": { en: "Reopen", tn: "رجّع افتح" },
+  "admin.support_show_open": { en: "Needs an answer", tn: "تحتاج جواب" },
+  "admin.support_show_all": { en: "All", tn: "الكل" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

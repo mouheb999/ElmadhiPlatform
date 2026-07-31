@@ -15,10 +15,10 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DecimalInput, Input } from "@/components/ui/input";
 import { ExerciseIllustrationBanner, ExerciseMedia } from "@/components/workout/exercise-media";
 import { illustrationFor } from "@/lib/exercise-illustrations";
-import { cn } from "@/lib/utils";
+import { cn, parseDecimal } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { finishSession } from "@/app/actions/sessions";
 import { SESSION_ERR } from "@/lib/session-codes";
@@ -365,8 +365,7 @@ export function SessionClient({
       const prev = entries[ex.rowId].slice(0, index).reverse().find((s) => s.weight.trim());
       if (prev) weight = prev.weight;
     }
-    const weightNum = parseFloat(weight);
-    const weightKg = Number.isFinite(weightNum) ? weightNum : null;
+    const weightKg = parseDecimal(weight);
     const rirNum = parseInt(entry.rir, 10);
     const rir = Number.isFinite(rirNum) ? rirNum : null;
 
@@ -433,8 +432,8 @@ export function SessionClient({
 
   function isPr(ex: SessionExercise, entry: SetEntry): boolean {
     if (ex.maxWeightKg === null || !entry.done) return false;
-    const w = parseFloat(entry.weight);
-    return Number.isFinite(w) && w > ex.maxWeightKg;
+    const w = parseDecimal(entry.weight);
+    return w !== null && w > ex.maxWeightKg;
   }
 
   async function finish() {
@@ -650,12 +649,10 @@ export function SessionClient({
                   <div key={i} className="grid items-center gap-2" style={{ gridTemplateColumns: gridCols }}>
                     <span className="text-center text-sm font-bold text-muted">{i + 1}</span>
                     {weightVisible && (
-                      <Input
-                        type="number"
-                        inputMode="decimal"
+                      <DecimalInput
                         value={entry.weight}
                         disabled={entry.locked}
-                        onChange={(e) => updateSet(ex.rowId, i, { weight: e.target.value })}
+                        onValueChange={(value) => updateSet(ex.rowId, i, { weight: value })}
                         className={cn("h-11 px-2 text-center text-sm", entry.locked && "opacity-60")}
                       />
                     )}

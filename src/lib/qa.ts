@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/db";
+import { utcMonthStart } from "@/lib/dates";
 
 /**
  * Fallback used when `qa_settings` can't be read (migration 031 not applied
@@ -15,9 +16,7 @@ export type QaQuota = {
 };
 
 /** Start of the current calendar month, matching the trigger's date_trunc. */
-export function monthStart(now: Date = new Date()): Date {
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-}
+export const monthStart = utcMonthStart;
 
 /** The configured number of questions a user may ask per calendar month. */
 export async function getQaMonthlyLimit(

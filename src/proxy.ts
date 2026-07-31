@@ -19,6 +19,12 @@ const PROTECTED_PREFIXES = [
   "/settings",
 ];
 
+// Deliberately absent from PROTECTED_PREFIXES above: /support. It is matched
+// (so the session still refreshes there) but not paywalled — "I paid and I'm
+// still locked out" is precisely the report that must be able to reach an
+// admin. The (app) layout still requires a signed-in user, and RLS still
+// scopes every ticket to its owner.
+
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {
   const { response, supabase, user, indeterminate } =
@@ -108,6 +114,7 @@ export const config = {
     "/review/:path*",
     "/progress/:path*",
     "/settings/:path*",
+    "/support/:path*",
     "/admin/:path*",
     "/checkout/:path*",
   ],

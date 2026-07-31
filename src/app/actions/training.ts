@@ -3,6 +3,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
+import { getLocale } from "@/lib/i18n-server";
+import { t } from "@/lib/i18n";
+import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -60,7 +63,14 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     .eq("is_active", true)
     .maybeSingle();
 
+  // Same monthly cap as the diet side, counted separately: a second profile is
+  // a rebuild. Checked before archiving so a blocked redo costs nothing.
   if (previous) {
+    const quota = await getRedoQuota(supabase, user.id, "workout");
+    if (quota.remaining <= 0) {
+      const locale = await getLocale();
+      return fail(t(locale, "redo.quota_blocked").replace("{total}", String(quota.limit)));
+    }
     await supabase.from("training_profiles").update({ is_active: false }).eq("id", previous.id);
     await supabase.from("user_programs").update({ is_active: false }).eq("training_profile_id", previous.id);
   }
@@ -91,7 +101,14 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
     })
     .select("id")
     .single();
-  if (error || !trainingProfile) return fail(error?.message ?? "Could not save your answers.");
+  if (error || !trainingProfile) {
+    // Backstop for direct POSTs — the trigger, not this action, is the gate.
+    if (error?.message.includes(REDO_QUOTA_ERROR)) {
+      const locale = await getLocale();
+      return fail(t(locale, "redo.quota_blocked").replace("{total}", String(MONTHLY_REDO_LIMIT)));
+    }
+    return fail(error?.message ?? "Could not save your answers.");
+  }
 
   // ---- match one pre-built split: gender + days, nothing else ----
   const { data: split } = await supabase

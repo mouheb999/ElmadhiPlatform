@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { QuestionWizard, type WizardStep } from "@/components/shared/question-wizard";
 import { OptionCardGroup } from "@/components/shared/option-card";
-import { Input } from "@/components/ui/input";
+import { NumberField } from "@/components/shared/number-field";
 import { submitDietQuestions, type DietAnswers } from "@/app/actions/diet";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 
@@ -22,12 +22,10 @@ export function DietQuestionsClient({ locale }: { locale: Locale }) {
     title: tr(titleKey),
     isValid: (a) => !!a[key] && (a[key] as number) > 0,
     render: ({ answers, setAnswer }) => (
-      <Input
-        type="number"
-        inputMode={mode}
-        value={(answers[key] as number) ?? ""}
-        onChange={(e) => setAnswer(key, Number(e.target.value) as never)}
-        className="text-center text-2xl"
+      <NumberField
+        decimal={mode === "decimal"}
+        value={answers[key] as number | undefined}
+        onValueChange={(v) => setAnswer(key, v as never)}
       />
     ),
   });

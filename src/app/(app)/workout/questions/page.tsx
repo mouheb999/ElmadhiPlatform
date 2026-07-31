@@ -1,12 +1,34 @@
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
+import { getRedoQuota } from "@/lib/plan-redo";
+import { RedoLimitCard } from "@/components/shared/redo-limit-card";
 import { WorkoutQuestionsClient, type QuestionRow } from "./workout-questions-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function WorkoutQuestionsPage() {
-  const locale = await getLocale();
+export default async function WorkoutQuestionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redo?: string }>;
+}) {
+  const [locale, { redo }] = await Promise.all([getLocale(), searchParams]);
   const supabase = await createClient();
+
+  // Only a redo is capped — first-time onboarding always goes through.
+  if (redo) {
+    const user = await getCurrentUser();
+    if (user) {
+      const quota = await getRedoQuota(supabase, user.id, "workout");
+      if (quota.remaining <= 0) {
+        return (
+          <div className="mx-auto max-w-lg">
+            <RedoLimitCard locale={locale} limit={quota.limit} />
+          </div>
+        );
+      }
+    }
+  }
 
   const { data: questions } = await supabase
     .from("questionnaire_questions")

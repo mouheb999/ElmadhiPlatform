@@ -34,6 +34,19 @@ export function tunisWeekStartUtc(now: Date = new Date()): Date {
   return new Date(dayStart.getTime() - sinceMonday * 24 * 60 * 60 * 1000);
 }
 
+/**
+ * Start of the current calendar month in UTC.
+ *
+ * The odd one out on purpose: monthly quotas (Q&A asks, plan redos) are
+ * enforced by database triggers using `date_trunc('month', NOW())`, which is
+ * UTC on the server. The client-side count has to bucket the same rows the
+ * trigger would, so it uses UTC here rather than Tunis — one hour of drift on
+ * the first of the month, against a limit measured in whole months.
+ */
+export function utcMonthStart(now: Date = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
+
 /** YYYY-MM-DD of the Tunis calendar day (e.g. daily_checkins.checkin_date). */
 export function tunisDateKey(now: Date = new Date()): string {
   return tunisWall(now).toISOString().slice(0, 10);

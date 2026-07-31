@@ -12,8 +12,8 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { DecimalInput } from "@/components/ui/input";
+import { cn, parseDecimal } from "@/lib/utils";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { submitCheckin } from "@/app/actions/checkins";
 
@@ -23,9 +23,14 @@ export type TodayCheckin = {
   sleepHours: number | null;
 } | null;
 
+/**
+ * Ordered so the batteries fill up left to right — empty, low, half, full,
+ * then the lightning bolt. The icon alone has to say "this end is worse than
+ * that end" without reading the labels.
+ */
 const ENERGY_LEVELS: { value: number; icon: typeof Battery; labelKey: StringKey }[] = [
-  { value: 1, icon: BatteryLow, labelKey: "checkin.energy_1" },
-  { value: 2, icon: Battery, labelKey: "checkin.energy_2" },
+  { value: 1, icon: Battery, labelKey: "checkin.energy_1" },
+  { value: 2, icon: BatteryLow, labelKey: "checkin.energy_2" },
   { value: 3, icon: BatteryMedium, labelKey: "checkin.energy_3" },
   { value: 4, icon: BatteryFull, labelKey: "checkin.energy_4" },
   { value: 5, icon: Zap, labelKey: "checkin.energy_5" },
@@ -80,13 +85,11 @@ export function CheckinCard({
 
   function save() {
     setError(null);
-    const weightKg = weight.trim() ? parseFloat(weight) : null;
-    const sleepHours = sleep.trim() ? parseFloat(sleep) : null;
     startTransition(async () => {
       const result = await submitCheckin({
-        weightKg: Number.isFinite(weightKg as number) ? weightKg : null,
+        weightKg: parseDecimal(weight),
         energy,
-        sleepHours: Number.isFinite(sleepHours as number) ? sleepHours : null,
+        sleepHours: parseDecimal(sleep),
       });
       if (!result.ok) {
         setError(result.error);
@@ -110,22 +113,18 @@ export function CheckinCard({
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1">
           <span className="text-xs font-bold text-muted">{t(locale, "checkin.weight")}</span>
-          <Input
-            type="number"
-            inputMode="decimal"
+          <DecimalInput
             value={weight}
-            onChange={(e) => setWeight(e.target.value)}
+            onValueChange={setWeight}
             placeholder={lastWeightKg != null ? String(lastWeightKg) : "70"}
             className="h-11 text-center"
           />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs font-bold text-muted">{t(locale, "checkin.sleep")}</span>
-          <Input
-            type="number"
-            inputMode="decimal"
+          <DecimalInput
             value={sleep}
-            onChange={(e) => setSleep(e.target.value)}
+            onValueChange={setSleep}
             placeholder="7"
             className="h-11 text-center"
           />

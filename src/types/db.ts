@@ -971,6 +971,66 @@ export type Database = {
         Relationships: [];
       };
 
+      // ---- migration 034: report a problem → admin answers ----
+      support_tickets: {
+        Row: {
+          id: string;
+          user_id: string;
+          category: string;
+          status: string;
+          last_message_at: string | null;
+          last_admin_reply_at: string | null;
+          user_seen_at: string | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          category?: string;
+          status?: string;
+          last_message_at?: string | null;
+          last_admin_reply_at?: string | null;
+          user_seen_at?: string | null;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["support_tickets"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      support_messages: {
+        Row: {
+          id: string;
+          ticket_id: string;
+          sender: string;
+          body: string;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          ticket_id: string;
+          sender: string;
+          body: string;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["support_messages"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey";
+            columns: ["ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "support_tickets";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+
       // ---- migration 019: canonical catalog config ----
       exercise_ratings: {
         Row: {
