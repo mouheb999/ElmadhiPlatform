@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -8,17 +8,28 @@ import {
   CheckCircle2,
   ImageIcon,
   Loader2,
+  Minus,
+  Plus,
   RefreshCw,
   Sparkles,
   Trash2,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { DecimalInput, Input } from "@/components/ui/input";
+import { cn, parseDecimal } from "@/lib/utils";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { estimateMealAction, logEstimate } from "@/app/actions/ai-estimate";
-import type { EstimatedItem } from "@/lib/ai/meal-estimator";
+import { clamp } from "@/lib/ai/estimate-shape";
+import {
+  MAX_VALUE,
+  toDraftItem,
+  toLoggedItem,
+  withNutrient,
+  withQuantity,
+  type DraftItem,
+  type NutrientKey,
+} from "@/lib/ai/estimate-editing";
 import type { MealSlot } from "@/app/actions/meal-logs";
 
 const SLOTS: { key: MealSlot; en: string; ar: string }[] = [
@@ -29,6 +40,9 @@ const SLOTS: { key: MealSlot; en: string; ar: string }[] = [
 ];
 
 const MAX_EDGE = 1024;
+
+/** What one tap of the −/+ portion stepper moves. */
+const QUANTITY_STEP_G = 10;
 
 type Photo = {
   base64: string;
@@ -77,7 +91,7 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   /** True once the stream reports real dimensions — capture needs them. */
   const [videoReady, setVideoReady] = useState(false);
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<EstimatedItem[] | null>(null);
+  const [items, setItems] = useState<DraftItem[] | null>(null);
   const [simulated, setSimulated] = useState(false);
   const [slot, setSlot] = useState<MealSlot>("lunch");
   const [logged, setLogged] = useState(false);
@@ -203,24 +217,44 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
         setError(result.error);
         return;
       }
-      setItems(result.data.items);
+      setItems(result.data.items.map(toDraftItem));
       setSimulated(result.data.simulated);
     });
   }
 
-  function patchItem(index: number, patch: Partial<EstimatedItem>) {
-    setItems((prev) => prev?.map((item, i) => (i === index ? { ...item, ...patch } : item)) ?? null);
+  function updateItem(id: string, update: (item: DraftItem) => DraftItem) {
+    setItems((prev) => prev?.map((item) => (item.id === id ? update(item) : item)) ?? null);
   }
 
-  function removeItem(index: number) {
-    setItems((prev) => prev?.filter((_, i) => i !== index) ?? null);
+  /** The portion is the master control — the four nutrients follow it. */
+  function setQuantity(id: string, quantityG: number) {
+    updateItem(id, (item) => withQuantity(item, quantityG));
+  }
+
+  /**
+   * Moves the portion by one step. The delta is applied inside the updater
+   * rather than computed from the rendered value: two taps in the same frame
+   * would otherwise both read the same stale quantity and count as one.
+   */
+  function stepQuantity(id: string, deltaG: number) {
+    updateItem(id, (item) =>
+      withQuantity(item, clamp(Math.round(item.quantityG) + deltaG, 1, MAX_VALUE.quantityG)),
+    );
+  }
+
+  function setNutrient(id: string, key: NutrientKey, value: number) {
+    updateItem(id, (item) => withNutrient(item, key, value));
+  }
+
+  function removeItem(id: string) {
+    setItems((prev) => prev?.filter((item) => item.id !== id) ?? null);
   }
 
   function log() {
     if (!items) return;
     setError(null);
     startTransition(async () => {
-      const result = await logEstimate({ slot, fromImage: true, items });
+      const result = await logEstimate({ slot, fromImage: true, items: items.map(toLoggedItem) });
       if (!result.ok) {
         setError(result.error);
         return;
@@ -245,9 +279,19 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
     (acc, i) => ({
       calories: acc.calories + (i.calories || 0),
       proteinG: acc.proteinG + (i.proteinG || 0),
+      carbsG: acc.carbsG + (i.carbsG || 0),
+      fatG: acc.fatG + (i.fatG || 0),
     }),
-    { calories: 0, proteinG: 0 },
+    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   );
+
+  // Macros are named in full everywhere. "P / C / F" reads as an initialism
+  // only in English, and in Arabic it decodes to nothing at all.
+  const macroFields = [
+    { key: "proteinG", label: t(locale, "diary.macro_protein") },
+    { key: "carbsG", label: t(locale, "diary.macro_carbs") },
+    { key: "fatG", label: t(locale, "diary.macro_fat") },
+  ] as const;
 
   // ---- Logged screen ----
   if (logged) {
@@ -438,7 +482,12 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
       {/* ---- Results ---- */}
       {items && (
         <div className="flex flex-col gap-3">
-          <h2 className="font-bold">{t(locale, "ai.results_title")}</h2>
+          <div>
+            <h2 className="font-bold">{t(locale, "ai.results_title")}</h2>
+            {/* Says out loud what the portion field now does, so nobody edits
+                the grams and wonders why the macros "didn't listen". */}
+            <p className="mt-0.5 text-xs text-muted">{t(locale, "ai.qty_sync_hint")}</p>
+          </div>
 
           {simulated && (
             <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
@@ -446,52 +495,85 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
             </p>
           )}
 
-          {items.map((item, index) => (
-            <div key={index} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4">
+          {items.map((item) => (
+            <div key={item.id} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
               <div className="flex items-center gap-2">
                 <Input
                   value={item.name}
-                  onChange={(e) => patchItem(index, { name: e.target.value })}
+                  onChange={(e) =>
+                    updateItem(item.id, (current) => ({ ...current, name: e.target.value }))
+                  }
                   className="h-11 flex-1 text-sm font-semibold"
                 />
                 <button
                   type="button"
-                  onClick={() => removeItem(index)}
-                  aria-label="Remove item"
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:text-ink"
+                  onClick={() => removeItem(item.id)}
+                  aria-label={t(locale, "ai.remove_item")}
+                  title={t(locale, "ai.remove_item")}
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted transition-colors hover:border-red-500/40 hover:text-red-400"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="grid grid-cols-5 gap-2 text-center">
-                {(
-                  [
-                    { label: t(locale, "ai.grams"), key: "quantityG" },
-                    { label: "kcal", key: "calories" },
-                    { label: "P", key: "proteinG" },
-                    { label: "C", key: "carbsG" },
-                    { label: "F", key: "fatG" },
-                  ] as const
-                ).map((field) => (
-                  <label key={field.key} className="flex flex-col gap-1">
-                    <span className="text-[10px] font-bold uppercase text-muted">{field.label}</span>
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={String(Math.round(item[field.key] as number))}
-                      onChange={(e) => patchItem(index, { [field.key]: parseFloat(e.target.value) || 0 })}
-                      className="h-10 px-1 text-center text-sm"
-                    />
-                  </label>
-                ))}
+              {/* Portion — the one control everything else follows. */}
+              <div className="flex flex-col gap-2 rounded-xl border border-accent/25 bg-accent/[0.06] p-3">
+                <span className="text-[11px] font-bold text-muted">{t(locale, "ai.quantity")}</span>
+                <div className="flex items-center gap-2">
+                  <StepButton
+                    icon="minus"
+                    label={t(locale, "ai.decrease")}
+                    disabled={item.quantityG <= 1}
+                    onClick={() => stepQuantity(item.id, -QUANTITY_STEP_G)}
+                  />
+                  <NumberField
+                    value={item.quantityG}
+                    max={MAX_VALUE.quantityG}
+                    unit={t(locale, "ai.grams")}
+                    onValue={(value) => setQuantity(item.id, value)}
+                    className="h-11 flex-1 text-center text-base font-bold"
+                  />
+                  <StepButton
+                    icon="plus"
+                    label={t(locale, "ai.increase")}
+                    disabled={item.quantityG >= MAX_VALUE.quantityG}
+                    onClick={() => stepQuantity(item.id, QUANTITY_STEP_G)}
+                  />
+                </div>
+              </div>
+
+              {/* Calories, then the three macros — each named in full. */}
+              <div className="flex flex-col gap-2">
+                <FieldBox label={t(locale, "diary.quick_calories")}>
+                  <NumberField
+                    value={item.calories}
+                    max={MAX_VALUE.calories}
+                    unit="kcal"
+                    onValue={(value) => setNutrient(item.id, "calories", value)}
+                    className="h-11 font-bold"
+                  />
+                </FieldBox>
+
+                <div className="grid grid-cols-3 gap-2">
+                  {macroFields.map((macro) => (
+                    <FieldBox key={macro.key} label={macro.label}>
+                      <NumberField
+                        value={item[macro.key]}
+                        max={MAX_VALUE[macro.key]}
+                        unit={t(locale, "ai.grams")}
+                        onValue={(value) => setNutrient(item.id, macro.key, value)}
+                        className="h-11"
+                      />
+                    </FieldBox>
+                  ))}
+                </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
                   <div
                     className={cn(
-                      "h-full rounded-full",
+                      "h-full rounded-full transition-all duration-500",
                       item.confidence >= 0.7 ? "bg-accent" : item.confidence >= 0.4 ? "bg-amber-400" : "bg-red-400",
                     )}
                     style={{ width: `${Math.round(item.confidence * 100)}%` }}
@@ -504,12 +586,29 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
             </div>
           ))}
 
-          <div className="flex items-baseline justify-between rounded-2xl border border-hairline bg-surface px-4 py-3">
-            <span className="text-sm font-bold">{t(locale, "ai.total")}</span>
-            <span className="tabular-nums">
-              <span className="text-lg font-extrabold">{Math.round(totals.calories)}</span>
-              <span className="text-xs text-muted"> kcal · P {Math.round(totals.proteinG)}g</span>
-            </span>
+          <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface px-4 py-3">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm font-bold">{t(locale, "ai.total")}</span>
+              <span className="flex items-baseline gap-1 tabular-nums">
+                <span className="text-2xl font-extrabold text-accent">
+                  {Math.round(totals.calories)}
+                </span>
+                <span className="text-xs font-bold text-muted">kcal</span>
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {macroFields.map((macro) => (
+                <div
+                  key={macro.key}
+                  className="flex flex-col items-center gap-0.5 rounded-xl bg-white/5 px-2 py-2"
+                >
+                  <span className="text-center text-[11px] font-bold text-muted">{macro.label}</span>
+                  <span className="text-sm font-bold tabular-nums">
+                    {Math.round(totals[macro.key])} {t(locale, "ai.grams")}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="flex flex-col gap-1">
@@ -537,5 +636,120 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** A labelled slot around one editable number. */
+function FieldBox({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[11px] font-bold text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function StepButton({
+  icon,
+  label,
+  disabled,
+  onClick,
+}: {
+  icon: "minus" | "plus";
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const Icon = icon === "minus" ? Minus : Plus;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline bg-surface text-ink transition-colors hover:border-accent/60 hover:text-accent active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
+
+/**
+ * A number field with the unit printed inside it.
+ *
+ * It holds the raw text the user is typing so that clearing the field doesn't
+ * snap to "0" and leave them typing "0150" — an empty field simply reports no
+ * value. The draft is dropped as soon as the value moves for a reason other
+ * than this field's own edit, which is the whole point here: re-portioning an
+ * item rewrites the nutrient fields underneath, and a half-typed number must
+ * not sit there contradicting the figure that will actually be logged.
+ *
+ * Built on DecimalInput, so an Arabic keyboard's "٫" and Arabic-Indic digits
+ * parse too.
+ */
+function NumberField({
+  value,
+  max,
+  unit,
+  onValue,
+  className,
+}: {
+  value: number;
+  max: number;
+  unit: string;
+  onValue: (value: number) => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  /** The rounded value this field last put into state, to tell its own edits
+   *  apart from one that came from the portion being rescaled. */
+  const ownValue = useRef<number | null>(null);
+
+  const rounded = Math.round(value);
+
+  useEffect(() => {
+    if (ownValue.current !== null && ownValue.current !== rounded) {
+      setDraft(null);
+      ownValue.current = null;
+    }
+  }, [rounded]);
+
+  return (
+    <span className="relative flex items-center">
+      <DecimalInput
+        value={draft ?? String(rounded)}
+        onValueChange={(raw) => {
+          const parsed = parseDecimal(raw);
+          if (parsed === null) {
+            // Still typing (an empty field, or just "."). Leave the last good
+            // value in state, but keep watching it for an outside change.
+            setDraft(raw);
+            ownValue.current = rounded;
+            return;
+          }
+          const next = clamp(parsed, 0, max);
+          // Show the cap immediately rather than letting the field claim a
+          // number that was never accepted.
+          setDraft(next === parsed ? raw : null);
+          ownValue.current = Math.round(next);
+          onValue(next);
+        }}
+        onBlur={() => {
+          setDraft(null);
+          ownValue.current = null;
+        }}
+        className={cn(
+          "w-full ps-3 text-sm tabular-nums",
+          // Just enough room for the unit sitting inside the field: "kcal"
+          // needs more than "g" / "غ", and the macro columns are narrow.
+          unit.length > 2 ? "pe-11" : "pe-8",
+          className,
+        )}
+      />
+      <span className="pointer-events-none absolute end-3 text-[11px] font-bold text-muted">
+        {unit}
+      </span>
+    </span>
   );
 }

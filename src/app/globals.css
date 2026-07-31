@@ -28,6 +28,21 @@
     text-rendering: optimizeLegibility;
   }
 
+  /*
+   * Numbers stay Western in the Arabic UI: 250, never ٢٥٠.
+   *
+   * With lang="ar" a font is free to map 0-9 to Arabic-Indic digits through
+   * the `locl` feature. Cairo and Tajawal don't, but they load with
+   * `display: swap` — so every Arabic screen renders in a system fallback
+   * first, and the Arabic system fonts on iOS and Android do substitute.
+   * Grams, kcal and kilos would flicker into another numeral system for the
+   * first paint. Turning `locl` off pins the digits; Arabic letterforms are
+   * unaffected, they are shaped by `init`/`medi`/`fina`/`rlig`, not this.
+   */
+  :lang(ar) {
+    font-feature-settings: "locl" 0;
+  }
+
   /* Improve focus visibility for accessibility */
   :focus-visible {
     outline: 2px solid var(--accent);
