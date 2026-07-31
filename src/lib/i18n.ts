@@ -1014,6 +1014,23 @@ const STRINGS = {
     en: "Access stops on its own the moment a term ends — nothing to switch off by hand. Confirm a payment on the Payments tab to extend one.",
     tn: "الدخول يتقطع وحدو كي يوفى الاشتراك — ما تحتاج تطفّي شيء بيدك. باش تمدّد، أكّد الخلاص في تبويب الخلاص.",
   },
+  "admin.subs_actions": { en: "Actions", tn: "إجراءات" },
+  "admin.subs_cancel": { en: "Cancel", tn: "إلغاء" },
+  "admin.subs_end": { en: "End access", tn: "اقطع الدخول" },
+  "admin.subs_end_note": {
+    en: "Cuts them off now and sends them to checkout. Their account, plan and history stay — confirming a payment brings them back.",
+    tn: "يتقطعلو الدخول توّا ويتوجّه للخلاص. حسابو وبرنامجو وسجلّو يبقاو — كي تأكّد خلاص يرجع كيما كان.",
+  },
+  "admin.subs_end_confirm": { en: "Yes, end it", tn: "إي، اقطعو" },
+  "admin.subs_delete": { en: "Delete account", tn: "امسح الحساب" },
+  "admin.subs_delete_note": {
+    en: "Erases the account and everything logged under it — workouts, meals, check-ins. This cannot be undone. Type the email to confirm.",
+    tn: "يمسح الحساب وكل شيء تسجّل فيه — تمارين، ماكلة، تسجيلات. ما تنجّمش ترجّعو. اكتب الإيميل باش تأكّد.",
+  },
+  "admin.subs_delete_confirm_label": {
+    en: "Type the account email to confirm",
+    tn: "اكتب إيميل الحساب باش تأكّد",
+  },
 
   // ---- admin: user records ----
   "admin.nav_users": { en: "Users", tn: "المستخدمين" },
