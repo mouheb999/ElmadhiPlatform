@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePaidUser } from "@/lib/subscription-server";
 import { estimateMeal, type MealEstimate, type EstimatedItem } from "@/lib/ai/meal-estimator";
 import { type MealSlot } from "@/app/actions/meal-logs";
+import { AI_ESTIMATE_LIMIT_REACHED, isQuotaError } from "@/lib/ai-quota";
+import { tunisDateKey } from "@/lib/dates";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 const MEAL_SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -33,11 +35,30 @@ export async function estimateMealAction(input: {
     return fail("Unsupported image format.");
   }
 
-  const estimate = await estimateMeal(supabase, input);
-
-  await supabase.from("events").insert({
+  // Reserve the call before spending anything on it. Migration 037 gates this
+  // insert on the daily cap, so a scripted loop is stopped by the database and
+  // never reaches the provider — which is the only place a cap can hold, since
+  // this function is reachable by direct POST and every call is metered.
+  const { error: reservationError } = await supabase.from("events").insert({
     user_id: user.id,
     event_type: "ai_estimate_requested",
+    payload: { has_image: !!input.imageBase64 },
+  });
+  if (reservationError) {
+    return fail(
+      isQuotaError(reservationError.message)
+        ? AI_ESTIMATE_LIMIT_REACHED
+        : reservationError.message,
+    );
+  }
+
+  const estimate = await estimateMeal(supabase, input);
+
+  // The outcome is a second event so the reservation above stays a clean
+  // one-row-per-attempt count. Nothing reads these but the analytics spine.
+  await supabase.from("events").insert({
+    user_id: user.id,
+    event_type: "ai_estimate_completed",
     payload: {
       has_image: !!input.imageBase64,
       simulated: estimate.simulated,
@@ -84,7 +105,9 @@ export async function logEstimate(input: {
   );
   if (items.length === 0) return fail("Nothing to log.");
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Africa/Tunis, like every other write to meal_logs — see serverToday() in
+  // meal-logs.ts for what a UTC key cost here.
+  const today = tunisDateKey();
   const entryMethod = input.fromImage ? "camera_ai" : "ai_estimate";
 
   const { error } = await supabase.from("meal_logs").insert(

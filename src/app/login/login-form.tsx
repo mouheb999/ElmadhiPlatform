@@ -19,13 +19,18 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { type Locale, t } from "@/lib/i18n";
+import { safeNextPath } from "@/lib/safe-redirect";
 
 type Mode = "signin" | "signup";
 
 export function LoginForm({ locale }: { locale: Locale }) {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
+  // Narrowed to a same-origin path: `?next=` is attacker-controlled, and
+  // router.push() will happily leave the site for an absolute URL. Sending a
+  // user somewhere else the instant they hand over a real password is the
+  // single best moment to phish them.
+  const next = safeNextPath(params.get("next"));
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
