@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Flame, MessageCircleQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -6,22 +7,13 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
 import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/components/dashboard/today-workout";
-import { NutritionLiveTile } from "@/components/dashboard/nutrition-live-tile";
-import { QaSpark, type QaSparkCard } from "@/components/dashboard/qa-spark";
 import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
 import { Reveal } from "@/components/shared/reveal";
+import { NutritionSection, NutritionSectionSkeleton } from "./_sections/nutrition-section";
+import { QaSparkSection, QaSparkSectionSkeleton } from "./_sections/qa-spark-section";
 import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
-
-function shuffled<T>(items: T[], count: number): T[] {
-  const copy = [...items];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.slice(0, count);
-}
 
 /** Consecutive-day streak over check-in dates (desc), anchored at today or yesterday (Tunis). */
 function checkinStreak(datesDesc: string[]): number {
@@ -61,24 +53,19 @@ export default async function DashboardPage() {
   // an earlier id belongs here.
   const [
     { data: profile },
-    { data: dietProfile },
     { data: trainingProfile },
-    { data: qaCardsRaw },
     { data: checkins },
     { data: answeredRequests },
-    { data: todayLogs },
     { data: openSession },
     { data: weekSessionsRaw },
   ] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user!.id).maybeSingle(),
-    supabase.from("diet_profiles").select("id").eq("user_id", user!.id).eq("is_active", true).maybeSingle(),
     supabase
       .from("training_profiles")
       .select("id, days_per_week")
       .eq("user_id", user!.id)
       .eq("is_active", true)
       .maybeSingle(),
-    supabase.from("qa_cards").select("id, question_en, question_ar, answer_short, answer_short_ar").eq("is_published", true),
     supabase
       .from("daily_checkins")
       .select("checkin_date, weight_kg, energy, sleep_hours")
@@ -91,11 +78,6 @@ export default async function DashboardPage() {
       .eq("user_id", user!.id)
       .eq("status", "published")
       .is("answered_seen_at", null),
-    supabase
-      .from("meal_logs")
-      .select("calories, protein_g, carbs_g, fat_g")
-      .eq("user_id", user!.id)
-      .eq("log_date", today),
     supabase
       .from("workout_sessions")
       .select("id, user_program_day_id")
@@ -113,38 +95,23 @@ export default async function DashboardPage() {
       .gte("completed_at", weekStart.toISOString()),
   ]);
 
-  // Round 2: the two lookups that genuinely needed an id from round 1. They
-  // don't depend on each other, so they go together.
-  const [{ data: macros }, { data: program }] = await Promise.all([
-    dietProfile
-      ? supabase
-          .from("macro_targets")
-          .select("calories, protein_g, carbs_g, fat_g")
-          .eq("diet_profile_id", dietProfile.id)
-          .order("computed_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    trainingProfile
-      ? supabase
-          .from("user_programs")
-          .select("id")
-          .eq("training_profile_id", trainingProfile.id)
-          .eq("is_active", true)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
-
-  // ---- Nutrition: targets vs. today's logged intake ----
-  const consumed = (todayLogs ?? []).reduce(
-    (acc, log) => ({
-      calories: acc.calories + log.calories,
-      proteinG: acc.proteinG + log.protein_g,
-      carbsG: acc.carbsG + log.carbs_g,
-      fatG: acc.fatG + log.fat_g,
-    }),
-    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
-  );
+  // Round 2, and the last one. The program's days used to be a third round of
+  // their own, because they need the program id — but PostgREST will embed
+  // them, so "which program" and "what's in it" arrive together.
+  const { data: program } = trainingProfile
+    ? await supabase
+        .from("user_programs")
+        .select(
+          "id, user_program_days(id, day_number, day_name, user_program_exercises(count))",
+        )
+        .eq("training_profile_id", trainingProfile.id)
+        .eq("is_active", true)
+        .order("day_number", {
+          referencedTable: "user_program_days",
+          ascending: true,
+        })
+        .maybeSingle()
+    : { data: null };
 
   // ---- Training: what does today look like? ----
   let workoutState: TodayWorkoutState = "none";
@@ -160,12 +127,9 @@ export default async function DashboardPage() {
         day_name: string;
         user_program_exercises: { count: number }[];
       };
-      const { data: daysRaw } = await supabase
-        .from("user_program_days")
-        .select("id, day_number, day_name, user_program_exercises(count)")
-        .eq("user_program_id", program.id)
-        .order("day_number", { ascending: true });
-      const days = ((daysRaw ?? []) as unknown as ProgramDayRow[]).map((d) => ({
+      const daysRaw = (program as unknown as { user_program_days?: ProgramDayRow[] })
+        .user_program_days;
+      const days = ((daysRaw ?? []) as ProgramDayRow[]).map((d) => ({
         id: d.id,
         dayNumber: d.day_number,
         dayName: d.day_name,
@@ -227,21 +191,6 @@ export default async function DashboardPage() {
     .map((c) => c.weight_kg as number)
     .reverse();
 
-  const nutritionTarget = macros
-    ? { calories: macros.calories, proteinG: macros.protein_g, carbsG: macros.carbs_g, fatG: macros.fat_g }
-    : null;
-
-  const qaCards: QaSparkCard[] = shuffled(
-    (qaCardsRaw ?? []).map((c) => ({
-      id: c.id,
-      questionEn: c.question_en,
-      questionAr: c.question_ar,
-      answerShort: c.answer_short,
-      answerShortAr: c.answer_short_ar,
-    })),
-    5,
-  );
-
   const firstName = profile?.full_name?.split(" ")[0];
   const hasAnsweredQa = (answeredRequests ?? []).length > 0;
 
@@ -300,12 +249,18 @@ export default async function DashboardPage() {
         />
       </Reveal>
 
+      {/* Below the fold and independent of everything above, so neither gets
+          to decide when the coaching content paints. */}
       <Reveal delay={0.15}>
-        <NutritionLiveTile locale={locale} target={nutritionTarget} consumed={consumed} />
+        <Suspense fallback={<NutritionSectionSkeleton />}>
+          <NutritionSection locale={locale} userId={user!.id} />
+        </Suspense>
       </Reveal>
 
       <Reveal delay={0.2}>
-        <QaSpark locale={locale} cards={qaCards} />
+        <Suspense fallback={<QaSparkSectionSkeleton />}>
+          <QaSparkSection locale={locale} />
+        </Suspense>
       </Reveal>
     </div>
   );

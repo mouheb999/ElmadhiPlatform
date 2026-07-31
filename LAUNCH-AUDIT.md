@@ -321,20 +321,74 @@ especially the /diet Today view and the AI estimator.
 
 ### P1 — launch week
 
-| # | Item | Payoff | Effort |
-|---|------|--------|--------|
-| 8 | **1.2** Suspense boundaries on dashboard + diet + workout | First paint stops waiting on the slowest query. The main cure for "heavy". | 4–6 h |
-| 9 | **1.4** Limit the Q&A card query | Removes a growing full-table read from the busiest screen. | 30 min |
-| 10 | **1.5** Collapse the session screen's opening awaits into one `Promise.all` | Fastest fix on the worst-latency route. | 1 h |
-| 11 | **S5** Security headers in `next.config.ts` | CSP, HSTS, nosniff, frame-ancestors. | 1 h |
-| 12 | **1.7a** Re-export `logo.png` at 256 px | 656 KB → ~20 KB on the shared path. | 15 min |
-| 13 | **1.3** Collapse the dashboard's third query round | Three serial legs → two. | 1–2 h |
+Done (2026-07-31). Build passes, 129 tests pass, lint clean.
+
+| # | Item | Status |
+|---|------|--------|
+| 8 | **1.2** Suspense boundaries on dashboard + diet | ✅ done |
+| 9 | **1.4** Limit the Q&A card query | ✅ done · ⚠️ migration 038 needs applying |
+| 10 | **1.5** Collapse the session screen's opening awaits | ✅ done — **smaller than estimated, see below** |
+| 11 | **S5** Security headers | ✅ done, verified serving |
+| 12 | **1.7a** Re-export `logo.png` | ✅ done — **also smaller than estimated** |
+| 13 | **1.3** Collapse the dashboard's third query round | ✅ done |
+
+#### What was changed
+
+- **Dashboard** — the nutrition tile and the Q&A spark moved into
+  `dashboard/_sections/` as suspended async components. They own four of the
+  page's queries, including the only two-round chain on it
+  (`diet_profiles` → `macro_targets`), and nothing above them depends on the
+  answers. The critical path went from **9 queries over 3 rounds** to
+  **5 queries over 2**. The program's days are now embedded in the
+  `user_programs` select rather than fetched in a round of their own.
+- **`/diet`** — the two views are suspended behind a skeleton, keyed on
+  view+date so switching Today/Plan remounts instead of silently holding the
+  old view while the new one loads.
+- **Migration 038** — `qa_cards_random(n)` samples in the database.
+  The dashboard now receives 5 rows instead of the entire published library,
+  and every card stays reachable (a bounded `LIMIT` would have made cards
+  beyond the first N unreachable from the spark). `SECURITY INVOKER`, so RLS
+  still applies and it cannot expose unpublished drafts.
+- **`next.config.ts`** — CSP, HSTS, `X-Frame-Options`, nosniff,
+  `Referrer-Policy`, `Permissions-Policy` (with `camera=(self)`, which the meal
+  photo flow needs), and `poweredByHeader: false`. Verified serving on `/login`
+  with no console violations, HMR still connected, React still hydrating.
+- **`logo.png`** — 860×522 / 656 KB → 512×311 / 104 KB, truecolor. 512 rather
+  than 256 because `icon.tsx` renders the mark at 340 px inside the 512×512 PWA
+  icon; 256 would have softened it.
+
+#### Two corrections to this document
+
+Both estimates above were wrong in the same direction — I had ranked these off
+code reading, and looking closer they matter less than 1.1 and 1.2 do:
+
+1. **Item 10 was overstated.** I described the session page's opening awaits as
+   "four round-trips stacked". They are not: `createClient()` and `getLocale()`
+   only read cookies, and `getCurrentUser()` verifies the JWT locally against a
+   process-cached JWKS. The `Promise.all` is still correct — `getClaims()` does
+   reach the network on a cache miss or a near-expiry refresh — but the win is
+   occasional, not per-request. The same pattern appears on 13 pages; I left the
+   other 12 alone rather than churn them for a negligible gain.
+
+2. **Item 12 was overstated.** Users never downloaded the 656 KB source —
+   `next/image` was already serving a 96 px variant, confirmed in the network
+   log. The real saving is build work, the image optimizer's cold miss, and repo
+   weight. Still worth the fifteen minutes; not a user-facing latency win.
+
+#### Also found
+
+`src/lib/supabase/client.ts` — the browser Supabase client — is imported by
+nothing. Every read and write goes through a Server Function. It is dead code,
+and worth deleting so nobody wires the browser straight to the database by
+reaching for the file that is already sitting there.
 
 ### P2 — first month
 
 | # | Item | Payoff | Effort |
 |---|------|--------|--------|
 | 14 | **1.6** Split the i18n dictionary per locale | ~34 KB off the client bundle. | 3–4 h |
+| 14b | **S5b** Nonce-based `script-src` | The CSP shipped in P1 carries `'unsafe-inline'` on scripts. Needs a nonce threaded through `updateSession` and a wider proxy matcher — a change to make with time to test it. | 3–4 h |
+| 14c | Delete `src/lib/supabase/client.ts` | Dead code that invites wiring the browser straight to the database. | 10 min |
 | 15 | **1.7b** `next/image` for exercise illustrations | Responsive `srcset` on the gym screen. Local assets need no config. | 2–3 h |
 | 16 | **S6** Dedicated `GATE_SIGNING_SECRET` | Decouples key rotation from paywall tickets. | 30 min |
 | 17 | **1.5** Restructure the remaining session-page query rounds | The deeper fix behind item 10. | 3–4 h |
