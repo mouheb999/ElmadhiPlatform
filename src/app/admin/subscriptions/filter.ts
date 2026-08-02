@@ -10,6 +10,9 @@ export type SubscriptionRow = {
   expiresAt: string | null;
   paidAt: string | null;
   daysLeft: number | null;
+  phone: string | null;
+  /** The customer's own language — the WhatsApp draft is written in it. */
+  userLocale: string | null;
 };
 
 export type StandingFilter = SubscriptionStanding | "all";
@@ -32,7 +35,11 @@ export function filterRows(
     if (!needle) return true;
     return (
       (row.email ?? "").toLowerCase().includes(needle) ||
-      (row.name ?? "").toLowerCase().includes(needle)
+      (row.name ?? "").toLowerCase().includes(needle) ||
+      // Digits only, so "26 341 616" finds "+21626341616": an admin pasting a
+      // number out of WhatsApp should not have to guess the stored format.
+      (needle.replace(/\D/g, "").length >= 4 &&
+        (row.phone ?? "").replace(/\D/g, "").includes(needle.replace(/\D/g, "")))
     );
   });
 }

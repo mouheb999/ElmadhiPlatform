@@ -59,6 +59,23 @@ export function isValidPhone(input: string | null | undefined): boolean {
   return normalizePhone(input) !== null;
 }
 
+/**
+ * A wa.me deep link, optionally with the first message pre-typed.
+ *
+ * wa.me wants bare digits — a leading + gives "phone number shared via url is
+ * invalid". Returns null when there is no usable number, so callers render the
+ * "no number on file" state instead of a dead link.
+ */
+export function whatsappLink(
+  phone: string | null | undefined,
+  message?: string,
+): string | null {
+  const e164 = normalizePhone(phone);
+  if (!e164) return null;
+  const base = `https://wa.me/${e164.slice(1)}`;
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
+}
+
 /** `+21626341616` → `+216 26 341 616`, for display only. */
 export function formatPhone(e164: string | null | undefined): string {
   if (!e164) return "";

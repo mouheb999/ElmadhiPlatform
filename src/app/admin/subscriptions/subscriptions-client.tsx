@@ -2,12 +2,26 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, MoreHorizontal, Search, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  MessageCircle,
+  MoreHorizontal,
+  Search,
+  ShieldCheck,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteAccount, endSubscription } from "@/app/actions/subscriptions";
 import { cn } from "@/lib/utils";
-import { t, type Locale, type StringKey } from "@/lib/i18n";
+import {
+  DEFAULT_LOCALE,
+  isLocale,
+  t,
+  type Locale,
+  type StringKey,
+} from "@/lib/i18n";
+import { formatPhone, whatsappLink } from "@/lib/phone";
 import type { SubscriptionStanding } from "@/lib/subscription";
 import {
   countByStanding,
@@ -63,6 +77,29 @@ function relativeDays(locale: Locale, daysLeft: number | null): string {
     return locale === "tn" ? `باقي ${arabicDays(n)}` : `${n} day${n === 1 ? "" : "s"} left`;
   }
   return locale === "tn" ? `وفى من ${arabicDays(n)}` : `${n} day${n === 1 ? "" : "s"} ago`;
+}
+
+/** Which chase message fits where this person stands. */
+const WA_MESSAGE: Record<SubscriptionStanding, StringKey> = {
+  unpaid: "admin.wa_msg_unpaid",
+  expiring: "admin.wa_msg_expiring",
+  expired: "admin.wa_msg_expired",
+  active: "admin.wa_msg_active",
+};
+
+/**
+ * A wa.me link with the chase already typed, in the customer's own language.
+ * Null when there is no number on file, so the button is absent rather than
+ * dead — most accounts predate the phone field and will stay null until their
+ * owner next signs in.
+ */
+function waLink(row: SubscriptionRow): string | null {
+  const to = isLocale(row.userLocale) ? row.userLocale : DEFAULT_LOCALE;
+  const message = t(to, WA_MESSAGE[row.standing]).replace(
+    "{name}",
+    (row.name ?? "").split(" ")[0] || "",
+  );
+  return whatsappLink(row.phone, message);
 }
 
 export function SubscriptionsClient({
@@ -186,6 +223,11 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
               {row.email}
             </div>
           )}
+          {row.phone && (
+            <div className="truncate text-xs text-muted" dir="ltr">
+              {formatPhone(row.phone)}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-3 sm:justify-end">
@@ -212,6 +254,19 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
           >
             {t(locale, standing.label)}
           </span>
+
+          {!row.isAdmin && waLink(row) && (
+            <a
+              href={waLink(row)!}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t(locale, "admin.wa_confirm")}
+              aria-label={t(locale, "admin.wa_confirm")}
+              className="shrink-0 rounded-full border border-accent/40 p-1.5 text-accent transition-colors hover:bg-accent/10"
+            >
+              <MessageCircle className="h-4 w-4" />
+            </a>
+          )}
 
           {removable && (
             <button

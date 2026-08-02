@@ -34,7 +34,9 @@ export default async function AdminSubscriptionsPage() {
 
   const { data: profiles } = await db
     .from("profiles")
-    .select("id, full_name, email, payment_status, plan_type, plan_expires_at, is_admin, paid_at")
+    .select(
+      "id, full_name, email, payment_status, plan_type, plan_expires_at, is_admin, paid_at, phone, locale",
+    )
     .order("created_at", { ascending: false })
     .limit(MAX_ROWS);
 
@@ -53,6 +55,8 @@ export default async function AdminSubscriptionsPage() {
       expiresAt: profile.plan_expires_at,
       paidAt: profile.paid_at,
       daysLeft: profile.is_admin ? null : daysLeft,
+      phone: profile.phone,
+      userLocale: profile.locale,
     };
   });
 

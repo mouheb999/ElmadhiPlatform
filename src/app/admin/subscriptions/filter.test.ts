@@ -5,6 +5,7 @@ const row = (
   name: string | null,
   email: string | null,
   standing: SubscriptionRow["standing"],
+  phone: string | null = null,
 ): SubscriptionRow => ({
   id: `${email ?? name}`,
   name,
@@ -15,6 +16,8 @@ const row = (
   expiresAt: null,
   paidAt: null,
   daysLeft: null,
+  phone,
+  userLocale: "tn",
 });
 
 const ROWS: SubscriptionRow[] = [
@@ -78,5 +81,37 @@ describe("countByStanding", () => {
     for (const standing of ["active", "expiring", "expired", "unpaid"] as const) {
       expect(filterRows(ROWS, "", standing)).toHaveLength(counts[standing]);
     }
+  });
+});
+
+describe("filterRows — searching by phone", () => {
+  const rows = [
+    row("Bellila Bechir", "bellila@x.com", "unpaid", "+21626341616"),
+    row("Ghaydaa", "ghaydaa@x.com", "active", "+21646973073"),
+    row("No Number", "none@x.com", "unpaid", null),
+  ];
+
+  it("finds a number pasted out of WhatsApp, however it is spaced", () => {
+    for (const q of ["26341616", "26 341 616", "+216 26 341 616", "21626341616"]) {
+      expect(filterRows(rows, q, "all").map((r) => r.email)).toEqual([
+        "bellila@x.com",
+      ]);
+    }
+  });
+
+  it("matches on a partial number", () => {
+    expect(filterRows(rows, "4697", "all").map((r) => r.email)).toEqual([
+      "ghaydaa@x.com",
+    ]);
+  });
+
+  it("does not let a short digit string drag in every row", () => {
+    // "26" alone is too weak to be a number search; it must not match the
+    // person whose number merely contains it.
+    expect(filterRows(rows, "26", "all")).toEqual([]);
+  });
+
+  it("still honours the standing filter", () => {
+    expect(filterRows(rows, "26341616", "active")).toEqual([]);
   });
 });

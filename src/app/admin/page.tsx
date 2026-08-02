@@ -32,13 +32,32 @@ export default async function AdminPage() {
         .order("months", { ascending: true }),
     ]);
 
-  // Resolve emails for the pending requests so the admin can match WhatsApp.
-  const pending = await Promise.all(
-    (requests ?? []).map(async (r) => {
-      const { data } = await db.auth.admin.getUserById(r.user_id);
-      return { ...r, email: data.user?.email ?? null };
-    }),
-  );
+  // Who each request belongs to, so the admin can chase them on WhatsApp
+  // without leaving the panel.
+  //
+  // One query keyed by id, not a getUserById per request: that was a round-trip
+  // per pending payment, and it could only ever return an email. `profiles`
+  // carries the name and number too — and the number is the whole point, since
+  // confirming a manual payment means asking for the transfer screenshot.
+  const userIds = [...new Set((requests ?? []).map((r) => r.user_id))];
+  const { data: people } = userIds.length
+    ? await db
+        .from("profiles")
+        .select("id, full_name, email, phone, locale")
+        .in("id", userIds)
+    : { data: [] };
+
+  const byId = new Map((people ?? []).map((p) => [p.id, p]));
+  const pending = (requests ?? []).map((r) => {
+    const person = byId.get(r.user_id);
+    return {
+      ...r,
+      email: person?.email ?? null,
+      fullName: person?.full_name ?? null,
+      phone: person?.phone ?? null,
+      userLocale: person?.locale ?? null,
+    };
+  });
 
   return (
     <AdminClient

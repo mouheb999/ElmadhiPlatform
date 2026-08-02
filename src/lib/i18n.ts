@@ -129,6 +129,22 @@ const STRINGS = {
   "admin.activate": { en: "Activate", tn: "فعّل" },
   "admin.reject": { en: "Reject", tn: "ارفض" },
   "admin.no_requests": { en: "No pending requests.", tn: "ما فماش طلبات معلّقة." },
+  "admin.wa_confirm": { en: "WhatsApp", tn: "واتساب" },
+  "admin.no_phone": {
+    en: "No number yet",
+    tn: "ما فماش نمرة",
+  },
+  // Written in the *customer's* language, not the admin's — t() takes the
+  // locale, so the draft arrives in the language they chose. {name} {plan}
+  // {amount} are substituted before the link is built.
+  "admin.wa_msg": {
+    en:
+      "Hi {name}, this is ELMADHI. We received your payment request ({plan} · {amount} DT). " +
+      "Send us the payment screenshot here and we'll activate your account right away.",
+    tn:
+      "أهلا {name}، هذا ELMADHI. وصلنا طلب الدفع متاعك ({plan} · {amount} دينار). " +
+      "ابعثلنا تصويرة الدفع هوني وتوّا نفعّلولك الحساب.",
+  },
   "admin.save": { en: "Save", tn: "احفظ" },
   "admin.plans_title": { en: "Subscription plans", tn: "عروض الاشتراك" },
   "admin.months_short": { en: "mo", tn: "شهر" },
@@ -1037,7 +1053,42 @@ const STRINGS = {
   "admin.subs_expired": { en: "Expired", tn: "وفى" },
   "admin.subs_unpaid": { en: "Never paid", tn: "ما خلّصش" },
   "admin.subs_admin": { en: "Admin — always has access", tn: "أدمين — عندو دخول ديما" },
-  "admin.subs_search": { en: "Search by name or email…", tn: "لوّج بالاسم ولا الإيميل…" },
+  "admin.subs_search": {
+    en: "Search by name, email or number…",
+    tn: "لوّج بالاسم ولا الإيميل ولا النمرة…",
+  },
+
+  // Chase messages, written in the *customer's* language. {name} is replaced
+  // before the wa.me link is built. One per situation — telling someone who
+  // never started a payment to "renew" would make no sense to them.
+  "admin.wa_msg_unpaid": {
+    en:
+      "Hi {name}, this is ELMADHI. You have an account with us but it isn't active yet. " +
+      "Anything blocking you? Happy to help you finish.",
+    tn:
+      "أهلا {name}، هذا ELMADHI. عندك حساب عندنا أما مازال ما تفعّلش. " +
+      "فما حاجة واقفتلك؟ نجمو نعاونوك تكمّل.",
+  },
+  "admin.wa_msg_expiring": {
+    en:
+      "Hi {name}, this is ELMADHI. Your subscription is about to run out — " +
+      "renew and you keep your plan and your progress.",
+    tn:
+      "أهلا {name}، هذا ELMADHI. الاشتراك متاعك قرب يوفى — " +
+      "جدّدو وتبقى عندك البرنامج والتقدّم متاعك.",
+  },
+  "admin.wa_msg_expired": {
+    en:
+      "Hi {name}, this is ELMADHI. Your subscription has ended. " +
+      "Renew whenever you like — your plan and progress are still saved.",
+    tn:
+      "أهلا {name}، هذا ELMADHI. الاشتراك متاعك وفى. " +
+      "جدّدو وقتلي تحب — البرنامج والتقدّم متاعك مازالوا محفوظين.",
+  },
+  "admin.wa_msg_active": {
+    en: "Hi {name}, this is ELMADHI. Just checking in — how are you getting on?",
+    tn: "أهلا {name}، هذا ELMADHI. نشوفو فيك برك — كيفاش ماشي معاك؟",
+  },
   "admin.subs_none": { en: "Nobody here.", tn: "ما فما حتى حد هوني." },
   "admin.subs_note": {
     en: "Access stops on its own the moment a term ends — nothing to switch off by hand. Confirm a payment on the Payments tab to extend one.",

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatPhone, isValidPhone, normalizePhone } from "./phone";
+import {
+  formatPhone,
+  isValidPhone,
+  normalizePhone,
+  whatsappLink,
+} from "./phone";
 
 describe("normalizePhone", () => {
   it("accepts the shapes people actually type", () => {
@@ -43,6 +48,24 @@ describe("normalizePhone", () => {
       expect(out).not.toBeNull();
       expect(out!).toMatch(constraint);
     }
+  });
+});
+
+describe("whatsappLink", () => {
+  it("strips the +, which wa.me rejects", () => {
+    expect(whatsappLink("+21626341616")).toBe("https://wa.me/21626341616");
+    expect(whatsappLink("26341616")).toBe("https://wa.me/21626341616");
+  });
+
+  it("encodes the pre-typed message", () => {
+    const link = whatsappLink("26341616", "Ahla & welcome");
+    expect(link).toBe("https://wa.me/21626341616?text=Ahla%20%26%20welcome");
+  });
+
+  it("returns null when there is no usable number, so no dead links", () => {
+    expect(whatsappLink(null)).toBeNull();
+    expect(whatsappLink("")).toBeNull();
+    expect(whatsappLink("71234567")).toBeNull();
   });
 });
 

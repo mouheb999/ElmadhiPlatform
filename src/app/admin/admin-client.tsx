@@ -15,7 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type Locale, pick, t } from "@/lib/i18n";
+import { DEFAULT_LOCALE, type Locale, isLocale, pick, t } from "@/lib/i18n";
+import { formatPhone, whatsappLink } from "@/lib/phone";
 import type { Database } from "@/types/db";
 
 type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
@@ -23,6 +24,10 @@ type Method = Database["public"]["Tables"]["payment_methods"]["Row"];
 type Plan = Database["public"]["Tables"]["subscription_plans"]["Row"];
 type Request = Database["public"]["Tables"]["payment_requests"]["Row"] & {
   email: string | null;
+  fullName: string | null;
+  phone: string | null;
+  /** The customer's own language — the WhatsApp draft is written in it. */
+  userLocale: string | null;
 };
 
 type Props = {
@@ -51,6 +56,26 @@ export function AdminClient({ locale, settings, methods, requests, plans }: Prop
       </div>
     </div>
   );
+}
+
+/**
+ * A wa.me link with the confirmation already typed, in the customer's own
+ * language. Returns null when we have no number for them, so the button is
+ * simply absent rather than dead.
+ */
+function waLink(r: Request): string | null {
+  const to = isLocale(r.userLocale) ? r.userLocale : DEFAULT_LOCALE;
+  const plan =
+    r.plan_tier && r.plan_months
+      ? `${r.plan_tier === "premium" ? t(to, "plans.premium") : t(to, "plans.standard")} · ${r.plan_months} ${t(to, "admin.months_short")}`
+      : (r.method_key ?? "");
+
+  const message = t(to, "admin.wa_msg")
+    .replace("{name}", (r.fullName ?? "").split(" ")[0] || "")
+    .replace("{plan}", plan)
+    .replace("{amount}", String(r.amount_tnd ?? ""));
+
+  return whatsappLink(r.phone, message);
 }
 
 function RequestsCard({
@@ -94,6 +119,9 @@ function RequestsCard({
           >
             <div className="min-w-0">
               <p className="truncate font-bold text-ink">
+                {r.fullName ?? r.email ?? r.user_id}
+              </p>
+              <p className="truncate text-sm text-muted">
                 {r.email ?? r.user_id}
               </p>
               <p className="text-sm text-muted">
@@ -105,8 +133,33 @@ function RequestsCard({
                   ? new Date(r.created_at).toLocaleString()
                   : ""}
               </p>
+              <p className="text-sm" dir="ltr">
+                {r.phone ? (
+                  <span className="text-ink">{formatPhone(r.phone)}</span>
+                ) : (
+                  <span className="text-muted">
+                    {t(locale, "admin.no_phone")}
+                  </span>
+                )}
+              </p>
             </div>
             <div className="flex shrink-0 gap-2">
+              {waLink(r) && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  asChild
+                  className="border-accent text-accent"
+                >
+                  <a
+                    href={waLink(r)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t(locale, "admin.wa_confirm")}
+                  </a>
+                </Button>
+              )}
               <Button
                 size="sm"
                 disabled={isPending}
