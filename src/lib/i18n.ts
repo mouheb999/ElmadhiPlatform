@@ -229,6 +229,27 @@ const STRINGS = {
   "login.full_name_ph": { en: "Your name", tn: "اسمك" },
   "login.email": { en: "Email", tn: "الإيميل" },
   "login.password": { en: "Password", tn: "كلمة السر" },
+  "login.phone": { en: "Phone (WhatsApp)", tn: "النمرة (واتساب)" },
+  "login.phone_ph": { en: "26 341 616", tn: "26 341 616" },
+
+  // The /phone gate — shown once, to anyone who has no number on file. Google
+  // users always land here, since OAuth never gives us one.
+  "phone.title": { en: "One last thing", tn: "حاجة أخيرة" },
+  "phone.sub": {
+    en: "Leave us your WhatsApp number so we can reach you about your account.",
+    tn: "خلّيلنا نمرة الواتساب متاعك باش نجمو نوصلولك على حسابك.",
+  },
+  "phone.label": { en: "WhatsApp number", tn: "نمرة الواتساب" },
+  "phone.save": { en: "Save and continue", tn: "سجّل وكمّل" },
+  "phone.saving": { en: "Saving…", tn: "قاعد يسجّل…" },
+  "phone.invalid": {
+    en: "That doesn't look like a valid mobile number.",
+    tn: "النمرة هذي ما تبانش صحيحة.",
+  },
+  "phone.why": {
+    en: "We only use it to contact you about your subscription. Never shared.",
+    tn: "نستعملوها برك باش نكلموك على الاشتراك متاعك. ما نعطيوهاش لحتى حد.",
+  },
   "login.please_wait": { en: "Please wait…", tn: "استنّى شويّة…" },
   "login.sign_in": { en: "Sign in", tn: "أدخل" },
   "login.create_account": { en: "Create account", tn: "اعمل حساب" },

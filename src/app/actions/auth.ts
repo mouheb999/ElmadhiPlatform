@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { GATE_COOKIE } from "@/lib/paywall-gate";
+import { normalizePhone } from "@/lib/phone";
 
 async function siteUrl() {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -39,13 +40,24 @@ export async function signUpWithPassword(
   email: string,
   password: string,
   fullName?: string,
+  phone?: string,
 ): Promise<ActionResult> {
+  // Normalised here rather than taken as typed: the trigger in migration 039
+  // copies this metadata straight into `profiles.phone`, which carries a CHECK
+  // on the E.164 shape. A raw "26 341 616" would fail that at INSERT time and
+  // take the whole sign-up down with it.
+  const normalized = normalizePhone(phone);
+  if (phone?.trim() && !normalized) return fail("invalid_phone");
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: fullName ? { full_name: fullName } : undefined,
+      data: {
+        ...(fullName ? { full_name: fullName } : {}),
+        ...(normalized ? { phone: normalized } : {}),
+      },
       emailRedirectTo: `${await siteUrl()}/dashboard`,
     },
   });

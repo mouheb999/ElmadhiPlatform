@@ -23,6 +23,7 @@ export type Database = {
           is_admin: boolean;
           payment_status: string;
           locale: string | null;
+          phone: string | null;
           plan_type: string | null;
           plan_expires_at: string | null;
           payment_ref: string | null;
@@ -38,6 +39,7 @@ export type Database = {
           is_admin?: boolean;
           payment_status?: string;
           locale?: string | null;
+          phone?: string | null;
           plan_type?: string | null;
           plan_expires_at?: string | null;
           payment_ref?: string | null;
@@ -53,6 +55,7 @@ export type Database = {
           is_admin?: boolean;
           payment_status?: string;
           locale?: string | null;
+          phone?: string | null;
           plan_type?: string | null;
           plan_expires_at?: string | null;
           payment_ref?: string | null;

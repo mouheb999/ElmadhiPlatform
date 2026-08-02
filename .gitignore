@@ -36,6 +36,15 @@ yarn-error.log*
 # learns which keys the app needs.
 !.env.example
 
+# waitlist broadcast: SMTP app password, delivery logs, rendered preview
+/scripts/waitlist-broadcast/.smtp.env
+/scripts/waitlist-broadcast/*.log
+/scripts/waitlist-broadcast/preview*.html
+/scripts/waitlist-broadcast/logo.png
+# Exported customer contact data — never commit.
+/scripts/waitlist-broadcast/*.xlsx
+/scripts/waitlist-broadcast/~$*
+
 # vercel
 .vercel
 

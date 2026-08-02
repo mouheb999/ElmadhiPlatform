@@ -68,12 +68,13 @@ export async function proxy(request: NextRequest) {
     payment_status: string | null;
     is_admin: boolean | null;
     plan_expires_at: string | null;
+    phone: string | null;
   } | null = null;
 
   try {
     const { data } = await supabase
       .from("profiles")
-      .select("payment_status, is_admin, plan_expires_at")
+      .select("payment_status, is_admin, plan_expires_at, phone")
       .eq("id", user.id)
       .maybeSingle();
     profile = data;
@@ -82,6 +83,22 @@ export async function proxy(request: NextRequest) {
     // become a 500 or an eviction to /checkout for a paying user.
     console.error("[proxy] payment gate lookup failed:", err);
     return response;
+  }
+
+  // No contact number yet → collect one before anything else, including the
+  // paywall. Asking first is the whole point: someone who stalls at checkout
+  // is exactly the person worth being able to reach, and after they bounce it
+  // is too late. Google sign-in never supplies one, and no account created
+  // before migration 039 has one either, so this backfills as people return.
+  //
+  // Admins are exempt — locking the person who confirms payments out of the
+  // admin panel over a missing phone number would be self-defeating.
+  if (!profile?.is_admin && !profile?.phone?.trim()) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/phone";
+    url.search = "";
+    url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
   }
 
   // Same predicate the paid Server Functions enforce, so the optimistic gate
@@ -117,5 +134,9 @@ export const config = {
     "/support/:path*",
     "/admin/:path*",
     "/checkout/:path*",
+    // Matched for the session refresh only — it is absent from
+    // PROTECTED_PREFIXES, so the gate never runs here and the redirect to it
+    // cannot loop.
+    "/phone/:path*",
   ],
 };
