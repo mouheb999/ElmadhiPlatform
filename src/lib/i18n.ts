@@ -229,8 +229,12 @@ const STRINGS = {
   "login.full_name_ph": { en: "Your name", tn: "اسمك" },
   "login.email": { en: "Email", tn: "الإيميل" },
   "login.password": { en: "Password", tn: "كلمة السر" },
-  "login.phone": { en: "Phone (WhatsApp)", tn: "النمرة (واتساب)" },
+  "login.phone": { en: "WhatsApp number", tn: "نمرة الواتساب" },
   "login.phone_ph": { en: "26 341 616", tn: "26 341 616" },
+  "login.phone_hint": {
+    en: "So we can reach you about your account.",
+    tn: "باش نجمو نوصلولك على حسابك.",
+  },
 
   // The /phone gate — shown once, to anyone who has no number on file. Google
   // users always land here, since OAuth never gives us one.

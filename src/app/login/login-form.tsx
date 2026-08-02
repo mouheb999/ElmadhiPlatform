@@ -191,6 +191,9 @@ export function LoginForm({ locale }: { locale: Locale }) {
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder={t(locale, "login.phone_ph")}
                   />
+                  <p className="text-xs text-muted">
+                    {t(locale, "login.phone_hint")}
+                  </p>
                 </div>
               </>
             )}
