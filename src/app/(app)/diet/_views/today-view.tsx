@@ -7,6 +7,7 @@ import {
   type DiaryTargets,
 } from "@/components/diet/food-diary";
 import type { Locale } from "@/lib/i18n";
+import { tunisDateKey } from "@/lib/dates";
 
 function shiftDate(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);
@@ -36,7 +37,9 @@ export async function TodayView({
 }) {
   const supabase = await createClient();
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Africa/Tunis, matching what the log actions stamp rows with — in UTC this
+  // view spent the first hour of every Tunis day showing "yesterday" as today.
+  const today = tunisDateKey();
   let viewDate = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;
   if (viewDate > today) viewDate = today;
   const isToday = viewDate === today;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Bell, LifeBuoy } from "lucide-react";
@@ -12,12 +13,39 @@ import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 export const dynamic = "force-dynamic";
 
 /**
+ * The unread dot on the support icon.
+ *
+ * Its own component, suspended, for one reason: the shell must not await it.
+ * Awaited inline in the layout, this single query sat in front of `{children}`
+ * on every screen in the app — Dashboard, Diet, Workout, Q&A, Settings all
+ * waited for a decorative dot before their own queries could even start.
+ * Suspended, the shell streams immediately and the dot arrives whenever it
+ * arrives. It still fails closed to "no dot" if migration 034 hasn't been
+ * applied yet.
+ */
+async function SupportUnreadDot({ userId }: { userId: string }) {
+  const supabase = await createClient();
+  const unread = await countUnreadSupportReplies(supabase, userId);
+  if (unread === 0) return null;
+
+  return (
+    <span
+      aria-hidden
+      className="absolute end-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-accent"
+    />
+  );
+}
+
+/**
  * Shell for every signed-in pillar route (/dashboard, /diet, /workout, /qa,
  * /settings). `proxy.ts` already gates auth + payment_status before this
  * layout ever renders; the check here is defense-in-depth for direct
  * server-side rendering, not the primary gate. `getCurrentUser` is
  * request-deduped, so the page rendering inside this layout reuses the same
  * verification rather than repeating it.
+ *
+ * Nothing else may be awaited here. Whatever this function waits on, every
+ * screen in the app waits on too.
  */
 export default async function AppLayout({
   children,
@@ -26,11 +54,6 @@ export default async function AppLayout({
 }) {
   const [user, locale] = await Promise.all([getCurrentUser(), getLocale()]);
   if (!user) redirect("/login");
-
-  // The support badge is the only per-request read this shell does. It fails
-  // closed to "no dot" if migration 034 hasn't been applied yet.
-  const supabase = await createClient();
-  const unreadSupport = await countUnreadSupportReplies(supabase, user.id);
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -44,12 +67,9 @@ export default async function AppLayout({
             className="relative grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
           >
             <LifeBuoy className="h-5 w-5" />
-            {unreadSupport > 0 && (
-              <span
-                aria-hidden
-                className="absolute end-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-accent"
-              />
-            )}
+            <Suspense fallback={null}>
+              <SupportUnreadDot userId={user.id} />
+            </Suspense>
           </Link>
           <button
             type="button"

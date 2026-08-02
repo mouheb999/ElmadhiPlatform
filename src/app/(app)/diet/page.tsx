@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
@@ -9,6 +10,18 @@ import { TodayView } from "./_views/today-view";
 import { PlanView } from "./_views/plan-view";
 
 export const dynamic = "force-dynamic";
+
+/** Stand-in for whichever nutrition view is loading. Roughly their shared shape. */
+function NutritionViewSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-hidden>
+      <div className="h-36 w-full animate-pulse rounded-3xl bg-surface" />
+      <div className="h-20 w-full animate-pulse rounded-2xl bg-surface" />
+      <div className="h-20 w-full animate-pulse rounded-2xl bg-surface" />
+      <div className="h-20 w-full animate-pulse rounded-2xl bg-surface" />
+    </div>
+  );
+}
 
 /**
  * Unified nutrition home. One route, two views switched by `?view=today|plan`
@@ -55,17 +68,25 @@ export default async function DietPage({
       <NutritionTabs current={current} locale={locale} />
       {/* The active diet profile is already in hand — hand it down so the view
           doesn't re-query it and, worse, have to wait on that answer before it
-          can ask for the macro targets keyed to it. */}
-      {current === "plan" ? (
-        <PlanView locale={locale} userId={user!.id} dietProfileId={dietProfile.id} />
-      ) : (
-        <TodayView
-          locale={locale}
-          userId={user!.id}
-          dietProfileId={dietProfile.id}
-          dateParam={date}
-        />
-      )}
+          can ask for the macro targets keyed to it.
+
+          Suspended so the tab bar is on screen the moment the shell resolves.
+          Switching Today/Plan is a tap between two heavy reads, and without a
+          boundary here that tap left the user on the previous view with no
+          sign anything had happened. The key makes React remount on the switch
+          rather than hold the old view while the new one loads. */}
+      <Suspense key={`${current}-${date ?? ""}`} fallback={<NutritionViewSkeleton />}>
+        {current === "plan" ? (
+          <PlanView locale={locale} userId={user!.id} dietProfileId={dietProfile.id} />
+        ) : (
+          <TodayView
+            locale={locale}
+            userId={user!.id}
+            dietProfileId={dietProfile.id}
+            dateParam={date}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }

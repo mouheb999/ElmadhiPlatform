@@ -19,18 +19,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { type Locale, t } from "@/lib/i18n";
+import { safeNextPath } from "@/lib/safe-redirect";
+import { isValidPhone } from "@/lib/phone";
 
 type Mode = "signin" | "signup";
 
 export function LoginForm({ locale }: { locale: Locale }) {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") ?? "/dashboard";
+  // Narrowed to a same-origin path: `?next=` is attacker-controlled, and
+  // router.push() will happily leave the site for an absolute URL. Sending a
+  // user somewhere else the instant they hand over a real password is the
+  // single best moment to phish them.
+  const next = safeNextPath(params.get("next"));
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(
     params.get("error") ? t(locale, "login.failed") : null,
   );
@@ -65,9 +72,17 @@ export function LoginForm({ locale }: { locale: Locale }) {
         router.push(next);
         router.refresh();
       } else {
-        const res = await signUpWithPassword(email, password, fullName);
+        if (!isValidPhone(phone)) {
+          setError(t(locale, "phone.invalid"));
+          return;
+        }
+        const res = await signUpWithPassword(email, password, fullName, phone);
         if (!res.ok) {
-          setError(res.error);
+          setError(
+            res.error === "invalid_phone"
+              ? t(locale, "phone.invalid")
+              : res.error,
+          );
           return;
         }
         setNotice(t(locale, "login.check_inbox"));
@@ -147,17 +162,40 @@ export function LoginForm({ locale }: { locale: Locale }) {
         <CardContent className="flex flex-col gap-4">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {mode === "signup" && (
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="fullName">{t(locale, "login.full_name")}</Label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  autoComplete="name"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder={t(locale, "login.full_name_ph")}
-                />
-              </div>
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="fullName">
+                    {t(locale, "login.full_name")}
+                  </Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    autoComplete="name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder={t(locale, "login.full_name_ph")}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="phone">{t(locale, "login.phone")}</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    // Numbers read LTR even when the rest of the page is RTL.
+                    dir="ltr"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder={t(locale, "login.phone_ph")}
+                  />
+                  <p className="text-xs text-muted">
+                    {t(locale, "login.phone_hint")}
+                  </p>
+                </div>
+              </>
             )}
 
             <div className="flex flex-col gap-1.5">

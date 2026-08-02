@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePaidUser } from "@/lib/subscription-server";
+import { tunisDateKey } from "@/lib/dates";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -44,8 +45,16 @@ const MEAL_SLOTS: MealSlot[] = [
 const MANUAL_ENTRY_METHODS = ["search", "recent", "favorite", "plan"] as const;
 type ManualEntryMethod = (typeof MANUAL_ENTRY_METHODS)[number];
 
+/**
+ * "Today" for a log row, in Africa/Tunis.
+ *
+ * This used to be `new Date().toISOString().slice(0, 10)` — UTC. Every screen
+ * that reads these rows back asks for `tunisDateKey()`, so between 00:00 and
+ * 01:00 Tunis a logged meal was stamped with yesterday and vanished from the
+ * diary and the dashboard totals. A midnight snack is not an edge case here.
+ */
 function serverToday(): string {
-  return new Date().toISOString().slice(0, 10);
+  return tunisDateKey();
 }
 
 /**

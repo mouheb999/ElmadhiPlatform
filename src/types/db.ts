@@ -23,6 +23,7 @@ export type Database = {
           is_admin: boolean;
           payment_status: string;
           locale: string | null;
+          phone: string | null;
           plan_type: string | null;
           plan_expires_at: string | null;
           payment_ref: string | null;
@@ -38,6 +39,7 @@ export type Database = {
           is_admin?: boolean;
           payment_status?: string;
           locale?: string | null;
+          phone?: string | null;
           plan_type?: string | null;
           plan_expires_at?: string | null;
           payment_ref?: string | null;
@@ -53,6 +55,7 @@ export type Database = {
           is_admin?: boolean;
           payment_status?: string;
           locale?: string | null;
+          phone?: string | null;
           plan_type?: string | null;
           plan_expires_at?: string | null;
           payment_ref?: string | null;
@@ -1267,7 +1270,20 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      // migration 038: the dashboard's Q&A spark, sampled in the database so
+      // the payload is five rows instead of the whole published library.
+      qa_cards_random: {
+        Args: { n?: number };
+        Returns: {
+          id: string;
+          question_en: string | null;
+          question_ar: string | null;
+          answer_short: string | null;
+          answer_short_ar: string | null;
+        }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

@@ -29,10 +29,16 @@ export default async function WorkoutSessionPage({
 }: {
   params: Promise<{ dayId: string }>;
 }) {
-  const { dayId } = await params;
-  const supabase = await createClient();
-  const locale = await getLocale();
-  const user = await getCurrentUser();
+  // Four independent awaits, so they go together. Mostly cheap — two cookie
+  // reads and a local token verification — but getClaims() does reach the
+  // network on a JWKS cache miss or a near-expiry refresh, and there is no
+  // reason for the other three to queue behind that when it happens.
+  const [{ dayId }, supabase, locale, user] = await Promise.all([
+    params,
+    createClient(),
+    getLocale(),
+    getCurrentUser(),
+  ]);
   if (!user) redirect("/login");
 
   type DayRow = {
