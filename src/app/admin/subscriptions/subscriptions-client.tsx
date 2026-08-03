@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  CheckCheck,
   MessageCircle,
   MoreHorizontal,
   Search,
@@ -13,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteAccount, endSubscription } from "@/app/actions/subscriptions";
+import { setContacted } from "@/app/actions/admin";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_LOCALE,
@@ -26,6 +28,7 @@ import type { SubscriptionStanding } from "@/lib/subscription";
 import {
   countByStanding,
   filterRows,
+  type ContactFilter,
   type StandingFilter,
   type SubscriptionRow,
 } from "./filter";
@@ -111,9 +114,29 @@ export function SubscriptionsClient({
 }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StandingFilter>("all");
+  const [contact, setContact] = useState<ContactFilter>("all");
 
   const counts = useMemo(() => countByStanding(rows), [rows]);
-  const visible = useMemo(() => filterRows(rows, query, filter), [rows, query, filter]);
+  const visible = useMemo(
+    () => filterRows(rows, query, filter, contact),
+    [rows, query, filter, contact],
+  );
+
+  // Only counts people we could actually message — a row with no number can
+  // never leave the "not contacted" pile, and padding the number with them
+  // would make the list look permanently unfinished.
+  const reachable = useMemo(
+    () => rows.filter((r) => !r.isAdmin && r.phone),
+    [rows],
+  );
+  const contactCounts = useMemo(
+    () => ({
+      all: reachable.length,
+      contacted: reachable.filter((r) => r.contactedAt).length,
+      uncontacted: reachable.filter((r) => !r.contactedAt).length,
+    }),
+    [reachable],
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -136,6 +159,38 @@ export function SubscriptionsClient({
                 {counts[standing.key]}
               </div>
               <div className="text-xs font-bold text-muted">{t(locale, standing.label)}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Who still needs a message. Only people with a number are counted. */}
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["uncontacted", "admin.not_contacted"],
+            ["contacted", "admin.contacted"],
+            ["all", "admin.contact_all"],
+          ] as const
+        ).map(([key, label]) => {
+          const selected = contact === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setContact(key)}
+              aria-pressed={selected}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
+                selected
+                  ? "border-accent/40 bg-accent/10 text-accent"
+                  : "border-hairline bg-surface text-muted hover:border-white/20",
+              )}
+            >
+              {t(locale, label)}
+              <span className="ms-1.5 tabular-nums opacity-70">
+                {contactCounts[key]}
+              </span>
             </button>
           );
         })}
@@ -260,11 +315,38 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
               href={waLink(row)!}
               target="_blank"
               rel="noopener noreferrer"
-              title={t(locale, "admin.wa_confirm")}
-              aria-label={t(locale, "admin.wa_confirm")}
-              className="shrink-0 rounded-full border border-accent/40 p-1.5 text-accent transition-colors hover:bg-accent/10"
+              title={
+                row.contactedAt
+                  ? `${t(locale, "admin.contacted")} · ${formatDate(row.contactedAt)}`
+                  : t(locale, "admin.not_contacted")
+              }
+              aria-label={
+                row.contactedAt
+                  ? t(locale, "admin.contacted")
+                  : t(locale, "admin.wa_confirm")
+              }
+              // Marked as the link opens, so working the list keeps the list
+              // honest without a second click.
+              onClick={() => {
+                if (!row.contactedAt) {
+                  startTransition(async () => {
+                    await setContacted(row.id, true);
+                    router.refresh();
+                  });
+                }
+              }}
+              className={cn(
+                "shrink-0 rounded-full border p-1.5 transition-colors",
+                row.contactedAt
+                  ? "border-hairline text-muted hover:border-white/20"
+                  : "border-accent/40 text-accent hover:bg-accent/10",
+              )}
             >
-              <MessageCircle className="h-4 w-4" />
+              {row.contactedAt ? (
+                <CheckCheck className="h-4 w-4" />
+              ) : (
+                <MessageCircle className="h-4 w-4" />
+              )}
             </a>
           )}
 
@@ -296,6 +378,29 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
             <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs">
               {error}
             </p>
+          )}
+
+          {/* The mis-tap, and the person worth another message later. */}
+          {row.contactedAt && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline p-3">
+              <p className="text-xs text-muted">
+                {t(locale, "admin.contacted")} · {formatDate(row.contactedAt)}
+              </p>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={isPending}
+                onClick={() =>
+                  startTransition(async () => {
+                    const res = await setContacted(row.id, false);
+                    if (!res.ok) setError(res.error ?? t(locale, "common.error"));
+                    else router.refresh();
+                  })
+                }
+              >
+                {t(locale, "admin.mark_uncontacted")}
+              </Button>
+            </div>
           )}
 
           {/* Reversible: billing off, everything they logged stays. */}

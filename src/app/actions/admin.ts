@@ -199,3 +199,38 @@ export async function rejectRequest(requestId: string): Promise<ActionResult> {
   revalidatePath("/admin");
   return ok(undefined);
 }
+
+/**
+ * Note that a customer has been chased on WhatsApp, or clear that note.
+ *
+ * Called as the admin opens the WhatsApp link, so the list marks itself while
+ * the job gets done rather than asking for a second click. It is a note, not a
+ * guarantee of delivery — hence `clear`, for the mis-tap and for the person
+ * worth chasing again later.
+ */
+export async function setContacted(
+  userId: string,
+  contacted: boolean,
+): Promise<ActionResult> {
+  let adminUserId: string;
+  try {
+    adminUserId = (await requireAdmin()).id;
+  } catch {
+    return fail("Not authorized.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profiles")
+    .update(
+      contacted
+        ? { contacted_at: new Date().toISOString(), contacted_by: adminUserId }
+        : { contacted_at: null, contacted_by: null },
+    )
+    .eq("id", userId);
+  if (error) return fail(error.message);
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/subscriptions");
+  return ok(undefined);
+}

@@ -43,7 +43,7 @@ export default async function AdminPage() {
   const { data: people } = userIds.length
     ? await db
         .from("profiles")
-        .select("id, full_name, email, phone, locale")
+        .select("id, full_name, email, phone, locale, contacted_at")
         .in("id", userIds)
     : { data: [] };
 
@@ -56,6 +56,7 @@ export default async function AdminPage() {
       fullName: person?.full_name ?? null,
       phone: person?.phone ?? null,
       userLocale: person?.locale ?? null,
+      contactedAt: person?.contacted_at ?? null,
     };
   });
 

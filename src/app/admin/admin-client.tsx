@@ -8,9 +8,11 @@ import {
   updatePlanPrice,
   activateRequest,
   rejectRequest,
+  setContacted,
   type SettingsInput,
   type MethodInput,
 } from "@/app/actions/admin";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +30,7 @@ type Request = Database["public"]["Tables"]["payment_requests"]["Row"] & {
   phone: string | null;
   /** The customer's own language — the WhatsApp draft is written in it. */
   userLocale: string | null;
+  contactedAt: string | null;
 };
 
 type Props = {
@@ -149,14 +152,36 @@ function RequestsCard({
                   size="sm"
                   variant="secondary"
                   asChild
-                  className="border-accent text-accent"
+                  className={cn(
+                    r.contactedAt
+                      ? "border-hairline text-muted"
+                      : "border-accent text-accent",
+                  )}
                 >
                   <a
                     href={waLink(r)!}
                     target="_blank"
                     rel="noopener noreferrer"
+                    title={
+                      r.contactedAt
+                        ? `${t(locale, "admin.contacted")} · ${new Date(r.contactedAt).toLocaleString()}`
+                        : undefined
+                    }
+                    // Mark as the link opens: the admin is already doing the
+                    // thing, so asking for a second click to record it is how
+                    // the list ends up lying.
+                    onClick={() => {
+                      if (!r.contactedAt) {
+                        startTransition(async () => {
+                          await setContacted(r.user_id, true);
+                          router.refresh();
+                        });
+                      }
+                    }}
                   >
-                    {t(locale, "admin.wa_confirm")}
+                    {r.contactedAt
+                      ? `✓ ${t(locale, "admin.wa_confirm")}`
+                      : t(locale, "admin.wa_confirm")}
                   </a>
                 </Button>
               )}

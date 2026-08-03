@@ -13,9 +13,14 @@ export type SubscriptionRow = {
   phone: string | null;
   /** The customer's own language — the WhatsApp draft is written in it. */
   userLocale: string | null;
+  /** When an admin last messaged them, or null if nobody has. */
+  contactedAt: string | null;
 };
 
 export type StandingFilter = SubscriptionStanding | "all";
+
+/** Whether the list is narrowed to people who still need a message. */
+export type ContactFilter = "all" | "contacted" | "uncontacted";
 
 /**
  * What the list shows for a given search box and selected tile.
@@ -28,10 +33,13 @@ export function filterRows(
   rows: SubscriptionRow[],
   query: string,
   filter: StandingFilter,
+  contact: ContactFilter = "all",
 ): SubscriptionRow[] {
   const needle = query.trim().toLowerCase();
   return rows.filter((row) => {
     if (filter !== "all" && row.standing !== filter) return false;
+    if (contact === "contacted" && !row.contactedAt) return false;
+    if (contact === "uncontacted" && row.contactedAt) return false;
     if (!needle) return true;
     return (
       (row.email ?? "").toLowerCase().includes(needle) ||

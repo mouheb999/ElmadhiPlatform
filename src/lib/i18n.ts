@@ -130,6 +130,13 @@ const STRINGS = {
   "admin.reject": { en: "Reject", tn: "ارفض" },
   "admin.no_requests": { en: "No pending requests.", tn: "ما فماش طلبات معلّقة." },
   "admin.wa_confirm": { en: "WhatsApp", tn: "واتساب" },
+  "admin.contacted": { en: "Contacted", tn: "تكلّمنا معاه" },
+  "admin.not_contacted": { en: "Not contacted", tn: "ما تكلّمناش معاه" },
+  "admin.contact_all": { en: "Everyone", tn: "الكل" },
+  "admin.mark_uncontacted": {
+    en: "Mark as not contacted",
+    tn: "رجّعو لـ ما تكلّمناش معاه",
+  },
   "admin.no_phone": {
     en: "No number yet",
     tn: "ما فماش نمرة",
@@ -139,11 +146,12 @@ const STRINGS = {
   // {amount} are substituted before the link is built.
   "admin.wa_msg": {
     en:
-      "Hi {name}, this is ELMADHI. We received your payment request ({plan} · {amount} DT). " +
-      "Send us the payment screenshot here and we'll activate your account right away.",
+      "Hi {name}, welcome to elmadhi platform. We received your payment request " +
+      "({plan} · {amount} DT). Would you like us to walk you through activating " +
+      "your account step by step?",
     tn:
-      "أهلا {name}، هذا ELMADHI. وصلنا طلب الدفع متاعك ({plan} · {amount} دينار). " +
-      "ابعثلنا تصويرة الدفع هوني وتوّا نفعّلولك الحساب.",
+      "أهلا {name}، مرحبا بيك معانا في elmadhi platform. وصلنا طلب الدفع متاعك " +
+      "({plan} · {amount} دينار). تحب نعاونك خطوة بخطوة كيفاش t’activi الcompte متاعك ؟",
   },
   "admin.save": { en: "Save", tn: "احفظ" },
   "admin.plans_title": { en: "Subscription plans", tn: "عروض الاشتراك" },

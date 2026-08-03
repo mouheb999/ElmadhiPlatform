@@ -18,6 +18,7 @@ const row = (
   daysLeft: null,
   phone,
   userLocale: "tn",
+  contactedAt: null,
 });
 
 const ROWS: SubscriptionRow[] = [
@@ -113,5 +114,47 @@ describe("filterRows — searching by phone", () => {
 
   it("still honours the standing filter", () => {
     expect(filterRows(rows, "26341616", "active")).toEqual([]);
+  });
+});
+
+describe("filterRows — contacted vs not", () => {
+  const withContact = (
+    email: string,
+    standing: SubscriptionRow["standing"],
+    contactedAt: string | null,
+  ): SubscriptionRow => ({ ...row(email, email, standing, "+21626341616"), contactedAt });
+
+  const rows = [
+    withContact("chased@x.com", "unpaid", "2026-08-02T10:00:00Z"),
+    withContact("fresh@x.com", "unpaid", null),
+    withContact("lapsed@x.com", "expired", null),
+  ];
+
+  it("defaults to showing everyone", () => {
+    expect(filterRows(rows, "", "all")).toHaveLength(3);
+  });
+
+  it("narrows to the people still waiting on a message", () => {
+    expect(filterRows(rows, "", "all", "uncontacted").map((r) => r.email)).toEqual([
+      "fresh@x.com",
+      "lapsed@x.com",
+    ]);
+  });
+
+  it("narrows to the ones already chased", () => {
+    expect(filterRows(rows, "", "all", "contacted").map((r) => r.email)).toEqual([
+      "chased@x.com",
+    ]);
+  });
+
+  it("combines with the standing tile rather than overriding it", () => {
+    expect(filterRows(rows, "", "unpaid", "uncontacted").map((r) => r.email)).toEqual([
+      "fresh@x.com",
+    ]);
+  });
+
+  it("combines with the search box", () => {
+    expect(filterRows(rows, "lapsed", "all", "uncontacted")).toHaveLength(1);
+    expect(filterRows(rows, "lapsed", "all", "contacted")).toHaveLength(0);
   });
 });
