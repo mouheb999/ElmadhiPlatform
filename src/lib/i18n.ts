@@ -194,6 +194,24 @@ const STRINGS = {
     en: "Meanwhile, your program and macros are still yours to read.",
     tn: "في الأثناء، البرنامج والماكرو متاعك تنجم تقراهم عادي.",
   },
+  // The free tier has to be visible *on the paid page*, or landing here still
+  // reads as "pay or leave" — which is the thing that broke the old funnel.
+  "co.stay_free": {
+    en: "Not now — keep using the free plan",
+    tn: "موش توّا — نكمّل بالخطة الفابور",
+  },
+  "co.free_line": {
+    en: "Your program and your macros stay free either way. You're paying to track against them.",
+    tn: "البرنامج والماكرو متاعك يبقاو فابور في كل الحالات. إنت تخلّص باش تسجّل عليهم.",
+  },
+  "co.rejected_title": {
+    en: "We couldn't confirm that payment",
+    tn: "ما نجّمناش نأكّدو الخلاص هذاك",
+  },
+  "co.rejected_body": {
+    en: "Nothing was taken from your account by us. Check the transfer went through, then try again — or message us and we'll sort it out.",
+    tn: "ما خذينا شيء من حسابك. تثبّت إذا التحويل نجح، وعاود جرّب — ولا راسلنا ونحلّوها.",
+  },
 
   // ---- admin: payment proof ----
   "admin.proof": { en: "Receipt", tn: "الوصل" },

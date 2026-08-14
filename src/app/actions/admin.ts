@@ -186,17 +186,40 @@ export async function rejectRequest(requestId: string): Promise<ActionResult> {
   }
 
   const admin = createAdminClient();
-  const { error } = await admin
+  const { data: rejected, error } = await admin
     .from("payment_requests")
     .update({
       status: "rejected",
       resolved_at: new Date().toISOString(),
       resolved_by: adminUserId,
     })
-    .eq("id", requestId);
+    .eq("id", requestId)
+    .select("user_id")
+    .maybeSingle();
   if (error) return fail(error.message);
 
+  // Hand the account back to checkout.
+  //
+  // A trigger (migration 013) flips the profile to `pending` when a request is
+  // created, and nothing ever flipped it back. Rejecting therefore left the
+  // customer parked on "we're checking your payment" permanently: the request
+  // was closed, but the profile still said pending, so checkout kept showing
+  // the review screen and there was no route to try again. The one thing a
+  // rejected customer needs is another attempt.
+  //
+  // Guarded on `active` so this can never revoke a paying account — a stale
+  // rejection on someone who has since paid must not lock them out.
+  if (rejected?.user_id) {
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({ payment_status: "unpaid" })
+      .eq("id", rejected.user_id)
+      .neq("payment_status", "active");
+    if (profileError) return fail(profileError.message);
+  }
+
   revalidatePath("/admin");
+  revalidatePath("/checkout");
   return ok(undefined);
 }
 

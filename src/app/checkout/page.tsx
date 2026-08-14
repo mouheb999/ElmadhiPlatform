@@ -41,11 +41,15 @@ export default async function CheckoutPage({
         .select("*")
         .eq("is_enabled", true)
         .order("months", { ascending: true }),
+      // Their most recent attempt, whatever became of it. `pending` drives the
+      // review screen; `rejected` tells them the last one was turned down so
+      // they are not left guessing why they are back at step one.
       supabase
         .from("payment_requests")
-        .select("proof_path")
+        .select("status, proof_path")
         .eq("user_id", user.id)
-        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
     ]);
 
@@ -59,7 +63,8 @@ export default async function CheckoutPage({
       paymentStatus={expired ? "unpaid" : (profile?.payment_status ?? "unpaid")}
       planExpiresAt={profile?.plan_expires_at ?? null}
       isRenewal={expired}
-      hasProof={!!openRequest?.proof_path}
+      hasProof={openRequest?.status === "pending" && !!openRequest.proof_path}
+      wasRejected={openRequest?.status === "rejected"}
       from={from ?? null}
       settings={settings ?? null}
       methods={methods ?? []}

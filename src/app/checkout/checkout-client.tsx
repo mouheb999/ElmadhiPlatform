@@ -43,6 +43,8 @@ type Props = {
   planExpiresAt: string | null;
   isRenewal: boolean;
   hasProof: boolean;
+  /** Their last attempt was turned down, and they have not started another. */
+  wasRejected: boolean;
   from: string | null;
   settings: Settings | null;
   methods: Method[];
@@ -68,6 +70,7 @@ export function CheckoutClient({
   planExpiresAt,
   isRenewal,
   hasProof,
+  wasRejected,
   from,
   settings,
   methods,
@@ -320,11 +323,26 @@ export function CheckoutClient({
               )}
             </div>
 
+            {wasRejected && (
+              <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+                <p className="text-sm font-bold">{t(locale, "co.rejected_title")}</p>
+                <p className="text-xs leading-relaxed text-muted">
+                  {t(locale, "co.rejected_body")}
+                </p>
+              </div>
+            )}
+
             {isRenewal && (
               <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-sm font-semibold">
                 {t(locale, "checkout.renewal_banner")}
               </p>
             )}
+
+            {/* Says out loud that not paying is a real option. Without this the
+                page still reads as "pay or leave", which is what it used to. */}
+            <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-xs leading-relaxed text-muted">
+              {t(locale, "co.free_line")}
+            </p>
 
             {plans.length === 0 ? (
               <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-center text-sm text-muted">
@@ -454,6 +472,13 @@ export function CheckoutClient({
                   {t(locale, "co.next")}
                   {selectedPlan && ` · ${dt(selectedPlan.price_tnd)} DT`}
                 </Button>
+
+                <Link
+                  href="/dashboard"
+                  className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink"
+                >
+                  {t(locale, "co.stay_free")}
+                </Link>
               </>
             )}
           </>
