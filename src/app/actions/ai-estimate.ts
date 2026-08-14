@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requirePaidUser } from "@/lib/subscription-server";
+import { requirePremiumUser } from "@/lib/subscription-server";
 import { estimateMeal, type MealEstimate, type EstimatedItem } from "@/lib/ai/meal-estimator";
 import { type MealSlot } from "@/app/actions/meal-logs";
 import { AI_ESTIMATE_LIMIT_REACHED, isQuotaError } from "@/lib/ai-quota";
@@ -19,7 +19,7 @@ export async function estimateMealAction(input: {
   imageMediaType?: "image/jpeg" | "image/png" | "image/webp";
 }): Promise<ActionResult<MealEstimate>> {
   const supabase = await createClient();
-  const { user, denied } = await requirePaidUser();
+  const { user, denied } = await requirePremiumUser();
   if (!user) return fail(denied);
 
   if (!input.description.trim() && !input.imageBase64) {
@@ -91,7 +91,7 @@ export async function logEstimate(input: {
   items: EstimatedItem[];
 }): Promise<ActionResult<{ logged: number }>> {
   const supabase = await createClient();
-  const { user, denied } = await requirePaidUser();
+  const { user, denied } = await requirePremiumUser();
   if (!user) return fail(denied);
 
   if (!MEAL_SLOTS.includes(input.slot)) return fail("Unknown meal slot.");

@@ -31,7 +31,12 @@
  * it that write data guard themselves.
  */
 export const PAID_PREFIXES = [
-  "/ai",
+  // Deliberately absent: /ai. The page opens for everyone and explains what the
+  // estimator does, because a feature nobody has seen cannot sell itself — the
+  // same reason the program and the meal plan are readable unpaid. Its page
+  // renders a walkthrough instead of the camera for anyone not on Premium, and
+  // the estimator actions enforce the tier themselves (requirePremiumUser), so
+  // nothing here is load-bearing for access.
   "/qa",
   "/review",
   "/progress",

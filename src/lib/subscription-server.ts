@@ -1,11 +1,15 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser, type CurrentUser } from "@/lib/current-user";
-import { isSubscriptionActive, type SubscriptionProfile } from "@/lib/subscription";
+import {
+  isPremiumActive,
+  isSubscriptionActive,
+  type SubscriptionProfile,
+} from "@/lib/subscription";
 
-import { SUBSCRIPTION_REQUIRED } from "@/lib/subscription";
+import { PREMIUM_REQUIRED, SUBSCRIPTION_REQUIRED } from "@/lib/subscription";
 
-export { SUBSCRIPTION_REQUIRED };
+export { PREMIUM_REQUIRED, SUBSCRIPTION_REQUIRED };
 
 /**
  * The paywall, checked next to the data instead of in front of the route.
@@ -30,6 +34,8 @@ export { SUBSCRIPTION_REQUIRED };
 export type SubscriptionState = SubscriptionProfile & {
   /** May this account use the paid product right now? */
   active: boolean;
+  /** ...and is it on the Premium tier, which the AI estimator requires? */
+  premium: boolean;
 };
 
 /**
@@ -38,16 +44,29 @@ export type SubscriptionState = SubscriptionProfile & {
  */
 export const getSubscription = cache(async (): Promise<SubscriptionState> => {
   const user = await getCurrentUser();
-  if (!user) return { active: false, is_admin: false, payment_status: null, plan_expires_at: null };
+  if (!user) {
+    return {
+      active: false,
+      premium: false,
+      is_admin: false,
+      payment_status: null,
+      plan_expires_at: null,
+      plan_type: null,
+    };
+  }
 
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("payment_status, is_admin, plan_expires_at")
+    .select("payment_status, is_admin, plan_expires_at, plan_type")
     .eq("id", user.id)
     .maybeSingle();
 
-  return { ...profile, active: isSubscriptionActive(profile) };
+  return {
+    ...profile,
+    active: isSubscriptionActive(profile),
+    premium: isPremiumActive(profile),
+  };
 });
 
 /**
@@ -73,4 +92,25 @@ export async function requirePaidUser(): Promise<
 /** True when the caller may use the paid product. For void actions. */
 export async function hasPaidAccess(): Promise<boolean> {
   return (await getSubscription()).active;
+}
+
+/** True when the caller is on Premium (or an admin). */
+export async function hasPremiumAccess(): Promise<boolean> {
+  return (await getSubscription()).premium;
+}
+
+/**
+ * Guard for a Premium-only action. Same shape as `requirePaidUser`, and told
+ * apart from it on purpose: a Standard subscriber is not lapsed, and telling
+ * them to renew would send them to fix a problem they do not have.
+ */
+export async function requirePremiumUser(): Promise<
+  { user: CurrentUser; denied?: never } | { user?: never; denied: string }
+> {
+  const user = await getCurrentUser();
+  if (!user) return { denied: "Not signed in." };
+  const state = await getSubscription();
+  if (!state.active) return { denied: SUBSCRIPTION_REQUIRED };
+  if (!state.premium) return { denied: PREMIUM_REQUIRED };
+  return { user };
 }

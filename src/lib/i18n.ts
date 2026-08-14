@@ -145,6 +145,28 @@ const STRINGS = {
   "lock.cta": { en: "See plans", tn: "شوف العروض" },
   "lock.not_now": { en: "Not now", tn: "موش توّا" },
 
+  // ---- AI walkthrough, shown to anyone not on Premium ----
+  "ai.how_title": { en: "How it works", tn: "كيفاش تخدم" },
+  "ai.how_1": { en: "Photograph your meal", tn: "صوّر ماكلتك" },
+  "ai.how_1_body": {
+    en: "One photo from your phone camera — no weighing, no searching a database.",
+    tn: "تصويرة وحدة بالتليفون — بلا ما توزن، بلا ما تلوّج في قاعدة بيانات.",
+  },
+  "ai.how_2": { en: "It reads the plate", tn: "يقرا الصحن" },
+  "ai.how_2_body": {
+    en: "Each food is identified with its portion, calories and macros — and you can correct anything before it counts.",
+    tn: "كل ماكلة تتعرّف بالكمية والسعرات والماكرو — وتنجم تصلّح أي حاجة قبل ما تتحسب.",
+  },
+  "ai.how_3": { en: "It lands in your diary", tn: "يتسجّل في الدفتر" },
+  "ai.how_3_body": {
+    en: "One tap logs it against today's targets, like anything else you eat.",
+    tn: "كبسة وحدة تسجّلو على أهداف اليوم، كيف أي حاجة أخرى تاكلها.",
+  },
+  "ai.premium_only": {
+    en: "Part of Premium — it costs us per photo, so it isn't in Standard.",
+    tn: "من بريميوم — يكلّفنا على كل تصويرة، على هكة ماهوش في ستاندرد.",
+  },
+
   // ---- free-account banner ----
   "free.title": { en: "Your plan is ready", tn: "البرنامج متاعك جاهز" },
   "free.body": {

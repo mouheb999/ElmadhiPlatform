@@ -13,6 +13,7 @@ export type SubscriptionProfile = {
   payment_status?: string | null;
   is_admin?: boolean | null;
   plan_expires_at?: string | null;
+  plan_type?: string | null;
 };
 
 /**
@@ -30,8 +31,25 @@ export function isSubscriptionActive(profile: SubscriptionProfile | null): boole
   return new Date(profile.plan_expires_at) > new Date();
 }
 
+/**
+ * The Premium tier specifically, not just "paid".
+ *
+ * The AI estimator costs real money per call, so it is sold as Premium only —
+ * but that was enforced on the page and nowhere else, and a page is not a
+ * boundary. Server Functions are reachable by a direct POST, so a Standard
+ * subscriber could call the estimator and bill Gemini to the house. Same shape
+ * of mistake as gating a route without gating the action behind it.
+ */
+export function isPremiumActive(profile: SubscriptionProfile | null): boolean {
+  if (!isSubscriptionActive(profile)) return false;
+  return profile?.is_admin === true || profile?.plan_type === "premium";
+}
+
 /** What a guarded action returns to a lapsed user. */
 export const SUBSCRIPTION_REQUIRED = "Your subscription has ended — renew to keep going.";
+
+/** What a guarded action returns to a paid user on the wrong tier. */
+export const PREMIUM_REQUIRED = "The AI estimator is part of the Premium plan.";
 
 /** How far ahead the admin list warns that a term is about to run out. */
 export const EXPIRING_SOON_DAYS = 7;
