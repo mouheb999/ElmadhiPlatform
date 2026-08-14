@@ -19,7 +19,9 @@ export default async function AdminLayout({
 
   return (
     <main dir={dir(locale)} className="container-page flex flex-col gap-8 py-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* items-start is load-bearing: stacked, the cross axis is horizontal, and a
+          stretched flex item would pull the logo to full width and distort it. */}
+      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Logo />
         <AdminNav locale={locale} />
       </div>

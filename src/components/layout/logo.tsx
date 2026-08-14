@@ -21,7 +21,7 @@ export function Logo({ className }: { className?: string }) {
       height={370}
       priority
       sizes="240px"
-      className={cn("h-10 w-auto", className)}
+      className={cn("h-10 w-auto shrink-0", className)}
     />
   );
 }
