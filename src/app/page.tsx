@@ -9,7 +9,7 @@ export default async function Home() {
   return (
     <main className="container-page relative flex min-h-dvh flex-col items-center justify-center gap-8 py-16 text-center">
       <div className="glow-accent pointer-events-none absolute inset-x-0 top-0 -z-10 h-[60vh]" />
-      <Logo className="h-20 w-20 sm:h-24 sm:w-24" wordmarkClassName="text-3xl sm:text-4xl" />
+      <Logo className="h-20 sm:h-24" />
       <h1 className="max-w-2xl text-balance text-4xl font-extrabold leading-tight sm:text-5xl">
         {t(locale, "home.hero")}
       </h1>

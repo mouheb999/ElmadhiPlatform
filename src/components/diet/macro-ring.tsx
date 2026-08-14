@@ -1,7 +1,7 @@
 "use client";
 
 const MACRO_COLORS = {
-  protein: "#5DD62C",
+  protein: "#C0DA1B",
   carbs: "#F5A623",
   fat: "#B76CFF",
 } as const;
@@ -62,7 +62,7 @@ export function MacroRing({
             cy="80"
             r={radius}
             fill="none"
-            stroke="#5DD62C"
+            stroke="#C0DA1B"
             strokeWidth="12"
             strokeLinecap="round"
             strokeDasharray={circumference}

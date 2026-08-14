@@ -34,7 +34,7 @@ function checkinStreak(datesDesc: string[]): number {
 
 /**
  * The Today screen. Not a summary of what the user set up once — a live
- * answer to "what does ELMADHI want from me today, and what did it notice?"
+ * answer to "what does HYPE FITNESS want from me today, and what did it notice?"
  */
 export default async function DashboardPage() {
   const [supabase, locale, user] = await Promise.all([

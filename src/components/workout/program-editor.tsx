@@ -180,7 +180,7 @@ function DayAction({
   return (
     <Link
       href={`/workout/session/${dayId}`}
-      className="flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-bold text-bg shadow-[0_10px_28px_rgba(93,214,44,0.25)] transition-transform hover:-translate-y-0.5"
+      className="flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform hover:-translate-y-0.5"
     >
       <Play className="h-5 w-5" />
       {status.state === "in_progress"

@@ -32,7 +32,7 @@ export default function GlobalError({
         }}
       >
         <h1 style={{ fontSize: "1.25rem", fontWeight: 800, margin: 0 }}>
-          ELMADHI hit a snag
+          HYPE FITNESS hit a snag
         </h1>
         <p
           style={{
@@ -50,7 +50,7 @@ export default function GlobalError({
           style={{
             border: "none",
             borderRadius: "9999px",
-            background: "#5dd62c",
+            background: "#c0da1b",
             color: "#0f0f0f",
             fontWeight: 700,
             fontSize: "1rem",

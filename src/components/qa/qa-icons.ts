@@ -37,7 +37,7 @@ export function qaIconKey(...keys: (string | null | undefined)[]): string {
 }
 
 /** Category accent from the content set; the brand green when there is none. */
-export const QA_DEFAULT_ACCENT = "#5DD62C";
+export const QA_DEFAULT_ACCENT = "#C0DA1B";
 
 /** Guard against a bad value reaching `style` — only #rgb / #rrggbb pass. */
 export function qaAccent(...values: (string | null | undefined)[]): string {

@@ -1,5 +1,5 @@
 /**
- * Goal-based calorie/macro strategy — from the elmadhi nutrition formula sheet.
+ * Goal-based calorie/macro strategy — from the HYPE FITNESS nutrition formula sheet.
  *
  * There is no user-facing "intensity" switch anymore. Each goal defines a RANGE
  * for the calorie adjustment, protein g/kg, and fat % of calories; the exact

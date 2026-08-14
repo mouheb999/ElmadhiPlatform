@@ -1,56 +1,57 @@
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-type LogoProps = {
-  /** Render only the icon tile, without the ELMADHI wordmark. */
-  markOnly?: boolean;
-  /** Tailwind size classes for the mark tile (default: h-11 w-11). */
-  className?: string;
-  /** Extra classes for the wordmark text. */
-  wordmarkClassName?: string;
-};
+/**
+ * HYPE FITNESS brand logo.
+ *
+ * The artwork carries the wordmark itself, so `Logo` is the lockup image alone —
+ * there is no separate text to typeset next to it. `className` sizes it by height
+ * (`h-*`); the width follows the 900×370 aspect ratio.
+ *
+ * `sizes` is pinned to the widest slot the logo actually occupies (the ~235px hero
+ * on the landing page). Left to a viewport-relative hint the browser reaches for a
+ * multi-thousand-pixel upscale of a logo that never renders above a few hundred.
+ */
+export function Logo({ className }: { className?: string }) {
+  return (
+    <Image
+      src="/logo.png"
+      alt="HYPE FITNESS"
+      width={900}
+      height={370}
+      priority
+      sizes="240px"
+      className={cn("h-10 w-auto", className)}
+    />
+  );
+}
 
 /**
- * ELMADHI brand logo — the FM mark artwork (public/logo.png) sitting on a soft
- * light gradient tile, paired with the ELMADHI wordmark.
+ * Square tile variant, for slots that need a 1:1 mark. Drops the FITNESS subline —
+ * it turns to mush much below 96px — and sits the HYPE mark on the dark tile + lime
+ * glow that the generated app icons use.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <span
       className={cn(
         "relative grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10",
-        // dark tile with a green glow, matching the app-icon brand style
         "bg-gradient-to-br from-[#161616] to-[#070707] shadow-[0_10px_30px_rgba(0,0,0,0.55)]",
         "h-12 w-12",
         className,
       )}
       aria-hidden="true"
     >
-      {/* ambient green glow behind the mark */}
-      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_62%_38%,rgba(93,214,44,0.45),transparent_62%)]" />
+      {/* ambient lime glow behind the mark */}
+      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(192,218,27,0.4),transparent_65%)]" />
       <Image
-        src="/logo.png"
+        src="/logo-mark.png"
         alt=""
-        fill
-        sizes="96px"
-        priority
-        className="relative object-contain p-1.5"
+        width={900}
+        height={278}
+        sizes="128px"
+        className="relative w-[86%] object-contain"
       />
-    </span>
-  );
-}
-
-export function Logo({ markOnly, className, wordmarkClassName }: LogoProps) {
-  if (markOnly) {
-    return <LogoMark className={className} />;
-  }
-
-  return (
-    <span className="flex items-center gap-2.5 font-extrabold">
-      <LogoMark className={className} />
-      <span className={cn("text-lg tracking-tight", wordmarkClassName)}>
-        ELMADHI
-      </span>
     </span>
   );
 }

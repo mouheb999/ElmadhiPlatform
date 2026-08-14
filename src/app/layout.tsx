@@ -6,13 +6,13 @@ import { dir } from "@/lib/i18n";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "ELMADHI", template: "%s · ELMADHI" },
+  title: { default: "HYPE FITNESS", template: "%s · HYPE FITNESS" },
   description: "Your personal diet and training coach.",
-  applicationName: "ELMADHI",
-  // Launch standalone from the iOS home screen with the ELMADHI name + dark status bar.
+  applicationName: "HYPE FITNESS",
+  // Launch standalone from the iOS home screen with the HYPE FITNESS name + dark status bar.
   appleWebApp: {
     capable: true,
-    title: "ELMADHI",
+    title: "HYPE FITNESS",
     statusBarStyle: "black-translucent",
   },
 };

@@ -73,8 +73,8 @@ export function WeightTrendChart({
         <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label={t(locale, "progress.weight_title")}>
           <defs>
             <linearGradient id="weight-area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#5DD62C" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#5DD62C" stopOpacity="0.02" />
+              <stop offset="0%" stopColor="#C0DA1B" stopOpacity="0.22" />
+              <stop offset="100%" stopColor="#C0DA1B" stopOpacity="0.02" />
             </linearGradient>
           </defs>
           {gridKgs.map((g) => (
@@ -94,8 +94,8 @@ export function WeightTrendChart({
           ))}
           <polygon points={area} fill="url(#weight-area)" />
           <polyline points={rollingLine} fill="none" stroke="rgba(248,248,248,0.35)" strokeWidth="1.5" strokeDasharray="3 3" />
-          <polyline points={line} fill="none" stroke="#5DD62C" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
-          <circle cx={x(points[points.length - 1].date)} cy={y(last)} r="3.5" fill="#5DD62C" stroke="#202020" strokeWidth="1.5" />
+          <polyline points={line} fill="none" stroke="#C0DA1B" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          <circle cx={x(points[points.length - 1].date)} cy={y(last)} r="3.5" fill="#C0DA1B" stroke="#202020" strokeWidth="1.5" />
           <text x={PAD.left} y={H - 5} fontSize="8" fill="rgba(248,248,248,0.45)">
             {fmtDay(points[0].date)}
           </text>

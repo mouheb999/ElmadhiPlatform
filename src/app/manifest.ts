@@ -7,8 +7,8 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ELMADHI",
-    short_name: "ELMADHI",
+    name: "HYPE FITNESS",
+    short_name: "HYPE",
     description: "Your personal diet and training coach.",
     start_url: "/dashboard",
     display: "standalone",

@@ -51,7 +51,7 @@ export function WeeklyVolumeChart({
               {w.volumeKg > 0 && (
                 <path
                   d={barPath(xPos, yBase - h, barW, yBase, 4)}
-                  fill={w.isCurrent ? "#5DD62C" : "rgba(93,214,44,0.35)"}
+                  fill={w.isCurrent ? "#C0DA1B" : "rgba(192,218,27,0.35)"}
                 />
               )}
               {showLabel && (
@@ -61,7 +61,7 @@ export function WeeklyVolumeChart({
                   textAnchor="middle"
                   fontSize="8"
                   fontWeight="700"
-                  fill={w.isCurrent ? "#5DD62C" : "rgba(248,248,248,0.6)"}
+                  fill={w.isCurrent ? "#C0DA1B" : "rgba(248,248,248,0.6)"}
                 >
                   {Math.round(w.volumeKg)}
                 </text>

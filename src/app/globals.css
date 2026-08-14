@@ -6,8 +6,8 @@
   :root {
     --bg: #0f0f0f;
     --surface: #202020;
-    --accent: #5dd62c;
-    --accent-hover: #337418;
+    --accent: #c0da1b;
+    --accent-hover: #7d8e10;
     --ink: #f8f8f8;
     --muted: rgba(248, 248, 248, 0.65);
     --hairline: rgba(255, 255, 255, 0.08);
@@ -50,7 +50,7 @@
   }
 
   ::selection {
-    background: rgba(93, 214, 44, 0.3);
+    background: rgba(192, 218, 27, 0.3);
     color: var(--ink);
   }
 }
@@ -61,12 +61,12 @@
     margin-inline: auto;
   }
 
-  /* Soft radial green glow used behind hero / accents */
+  /* Soft radial lime glow used behind hero / accents */
   .glow-accent {
     background: radial-gradient(
       60% 60% at 50% 40%,
-      rgba(93, 214, 44, 0.18) 0%,
-      rgba(93, 214, 44, 0) 70%
+      rgba(192, 218, 27, 0.18) 0%,
+      rgba(192, 218, 27, 0) 70%
     );
   }
 

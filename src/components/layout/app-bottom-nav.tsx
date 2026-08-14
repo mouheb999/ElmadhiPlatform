@@ -35,7 +35,7 @@ function TabButton({
       className={cn(
         "grid h-11 w-11 place-items-center rounded-full transition-all duration-200",
         active
-          ? "bg-accent text-bg shadow-[0_6px_16px_-4px_rgba(93,214,44,0.6)]"
+          ? "bg-accent text-bg shadow-[0_6px_16px_-4px_rgba(192,218,27,0.6)]"
           : pending
             ? "bg-white/10 text-ink"
             : "text-muted",

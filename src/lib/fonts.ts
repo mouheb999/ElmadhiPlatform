@@ -1,7 +1,7 @@
 import { Cairo, Tajawal } from "next/font/google";
 
 /**
- * ELMADHI brand fonts. Import these in your root (or [locale]) layout and add
+ * HYPE FITNESS brand fonts. Import these in your root (or [locale]) layout and add
  * `${cairo.variable} ${tajawal.variable}` to the <html> className so the
  * Tailwind `font-sans` token (var(--font-cairo)) resolves.
  */

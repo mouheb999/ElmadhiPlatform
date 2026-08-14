@@ -1,5 +1,5 @@
 /**
- * Locale model for ELMADHI.
+ * Locale model for HYPE FITNESS.
  * - "en" → English, left-to-right
  * - "tn" → Tunisian Arabic (Derja), right-to-left
  *
@@ -146,11 +146,11 @@ const STRINGS = {
   // {amount} are substituted before the link is built.
   "admin.wa_msg": {
     en:
-      "Hi {name}, welcome to elmadhi platform. We received your payment request " +
+      "Hi {name}, welcome to HYPE FITNESS. We received your payment request " +
       "({plan} · {amount} DT). Would you like us to walk you through activating " +
       "your account step by step?",
     tn:
-      "أهلا {name}، مرحبا بيك معانا في elmadhi platform. وصلنا طلب الدفع متاعك " +
+      "أهلا {name}، مرحبا بيك معانا في HYPE FITNESS. وصلنا طلب الدفع متاعك " +
       "({plan} · {amount} دينار). تحب نعاونك خطوة بخطوة كيفاش t’activi الcompte متاعك ؟",
   },
   "admin.save": { en: "Save", tn: "احفظ" },
@@ -538,7 +538,7 @@ const STRINGS = {
   "qa.block_science": { en: "Why?", tn: "علاش؟" },
   "qa.block_practical": { en: "What to do", tn: "شنو تعمل؟" },
   "qa.block_mistake": { en: "Common mistake", tn: "غلط شائع" },
-  "qa.block_tip": { en: "ELMADHI tip", tn: "نصيحة ELMADHI" },
+  "qa.block_tip": { en: "HYPE FITNESS tip", tn: "نصيحة HYPE FITNESS" },
   "qa.block_warning": { en: "Heads up", tn: "تنبيه" },
   "qa.block_more": { en: "More detail", tn: "تفاصيل زيادة" },
   "qa.level": { en: "Level", tn: "المستوى" },
@@ -1071,31 +1071,31 @@ const STRINGS = {
   // never started a payment to "renew" would make no sense to them.
   "admin.wa_msg_unpaid": {
     en:
-      "Hi {name}, this is ELMADHI. You have an account with us but it isn't active yet. " +
+      "Hi {name}, this is HYPE FITNESS. You have an account with us but it isn't active yet. " +
       "Anything blocking you? Happy to help you finish.",
     tn:
-      "أهلا {name}، هذا ELMADHI. عندك حساب عندنا أما مازال ما تفعّلش. " +
+      "أهلا {name}، هذا HYPE FITNESS. عندك حساب عندنا أما مازال ما تفعّلش. " +
       "فما حاجة واقفتلك؟ نجمو نعاونوك تكمّل.",
   },
   "admin.wa_msg_expiring": {
     en:
-      "Hi {name}, this is ELMADHI. Your subscription is about to run out — " +
+      "Hi {name}, this is HYPE FITNESS. Your subscription is about to run out — " +
       "renew and you keep your plan and your progress.",
     tn:
-      "أهلا {name}، هذا ELMADHI. الاشتراك متاعك قرب يوفى — " +
+      "أهلا {name}، هذا HYPE FITNESS. الاشتراك متاعك قرب يوفى — " +
       "جدّدو وتبقى عندك البرنامج والتقدّم متاعك.",
   },
   "admin.wa_msg_expired": {
     en:
-      "Hi {name}, this is ELMADHI. Your subscription has ended. " +
+      "Hi {name}, this is HYPE FITNESS. Your subscription has ended. " +
       "Renew whenever you like — your plan and progress are still saved.",
     tn:
-      "أهلا {name}، هذا ELMADHI. الاشتراك متاعك وفى. " +
+      "أهلا {name}، هذا HYPE FITNESS. الاشتراك متاعك وفى. " +
       "جدّدو وقتلي تحب — البرنامج والتقدّم متاعك مازالوا محفوظين.",
   },
   "admin.wa_msg_active": {
-    en: "Hi {name}, this is ELMADHI. Just checking in — how are you getting on?",
-    tn: "أهلا {name}، هذا ELMADHI. نشوفو فيك برك — كيفاش ماشي معاك؟",
+    en: "Hi {name}, this is HYPE FITNESS. Just checking in — how are you getting on?",
+    tn: "أهلا {name}، هذا HYPE FITNESS. نشوفو فيك برك — كيفاش ماشي معاك؟",
   },
   "admin.subs_none": { en: "Nobody here.", tn: "ما فما حتى حد هوني." },
   "admin.subs_note": {
@@ -1187,7 +1187,7 @@ const STRINGS = {
   "support.status_closed": { en: "Closed", tn: "تسكّر" },
   "support.new_reply": { en: "New reply", tn: "جواب جديد" },
   "support.from_you": { en: "You", tn: "إنت" },
-  "support.from_coach": { en: "ELMADHI", tn: "المدّي" },
+  "support.from_coach": { en: "HYPE FITNESS", tn: "HYPE FITNESS" },
   "support.reply_placeholder": { en: "Write a message…", tn: "اكتب رسالة…" },
   "support.reply_send": { en: "Send", tn: "ابعث" },
 

@@ -57,7 +57,7 @@ export function ProgressTeaser({
               <polyline
                 points={line}
                 fill="none"
-                stroke="#5DD62C"
+                stroke="#C0DA1B"
                 strokeWidth="2"
                 strokeLinejoin="round"
                 strokeLinecap="round"
