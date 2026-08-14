@@ -4,7 +4,7 @@ import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { type LockedFeature } from "@/lib/access";
 import { cn } from "@/lib/utils";
 
-const REASON: Record<LockedFeature, StringKey> = {
+export const LOCK_REASON: Record<LockedFeature, StringKey> = {
   session: "lock.session",
   meal_log: "lock.meal_log",
   checkin: "lock.checkin",
@@ -43,7 +43,7 @@ export function Locked({
         <Lock className="h-3 w-3" />
         {t(locale, "lock.title")}
       </span>
-      <p className="text-sm font-bold">{t(locale, REASON[feature])}</p>
+      <p className="text-sm font-bold">{t(locale, LOCK_REASON[feature])}</p>
       <p className="text-xs text-muted">{t(locale, "lock.free_note")}</p>
       <Link
         href={`/checkout?from=${feature}`}

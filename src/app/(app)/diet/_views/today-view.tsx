@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { hasPaidAccess } from "@/lib/subscription-server";
 import {
   FoodDiary,
   type DiaryEntry,
@@ -287,6 +288,7 @@ export async function TodayView({
       dateLabel={dateLabel}
       prevDate={shiftDate(viewDate, -1)}
       nextDate={isToday ? null : shiftDate(viewDate, 1)}
+      locked={!(await hasPaidAccess())}
     />
   );
 }

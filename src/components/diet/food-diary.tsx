@@ -9,12 +9,14 @@ import {
   ChevronRight,
   ChevronUp,
   Copy,
+  Lock,
   Plus,
   Search,
   Star,
   Trash2,
   X,
 } from "lucide-react";
+import { LockedDialog } from "@/components/shared/locked-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -139,6 +141,7 @@ export function FoodDiary({
   dateLabel,
   prevDate,
   nextDate,
+  locked = false,
 }: {
   locale: Locale;
   targets: DiaryTargets | null;
@@ -152,10 +155,13 @@ export function FoodDiary({
   dateLabel: string;
   prevDate: string;
   nextDate: string | null;
+  /** Free account: the diary is readable, but logging into it is not. */
+  locked?: boolean;
 }) {
   const router = useRouter();
   const mounted = useMounted();
   const [sheetSlot, setSheetSlot] = useState<MealSlot | null>(null);
+  const [showLock, setShowLock] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -301,16 +307,28 @@ export function FoodDiary({
             {isToday && (
               <button
                 type="button"
-                onClick={() => setSheetSlot(slotKey)}
+                // A free account keeps the button and gets told why, rather
+                // than losing the screen it was reading to a redirect. The
+                // logging actions guard themselves regardless; this is what the
+                // user sees, not what enforces it.
+                onClick={() => (locked ? setShowLock(true) : setSheetSlot(slotKey))}
                 className="flex items-center gap-1.5 self-start text-sm font-bold text-accent hover:underline"
               >
-                <Plus className="h-4 w-4" />
+                {locked ? <Lock className="h-3.5 w-3.5" /> : <Plus className="h-4 w-4" />}
                 {t(locale, "diary.add_food")}
               </button>
             )}
           </div>
         );
       })}
+
+      {showLock && (
+        <LockedDialog
+          locale={locale}
+          feature="meal_log"
+          onClose={() => setShowLock(false)}
+        />
+      )}
 
       {sheetSlot && (
         <AddFoodSheet
