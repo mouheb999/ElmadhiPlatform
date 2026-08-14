@@ -47,6 +47,23 @@ export default async function AdminPage() {
         .in("id", userIds)
     : { data: [] };
 
+  // The receipt the customer uploaded. The bucket is private (migration 041)
+  // because these are screenshots of banking apps, so the panel renders a
+  // short-lived signed URL rather than a public one. Ten minutes is longer than
+  // anyone spends on this page and short enough that a leaked page source is
+  // not a lasting handle on somebody's bank details.
+  const proofPaths = (requests ?? [])
+    .map((r) => r.proof_path)
+    .filter((p): p is string => !!p);
+  const { data: signed } = proofPaths.length
+    ? await db.storage.from("payment-proofs").createSignedUrls(proofPaths, 600)
+    : { data: [] };
+  const proofUrlByPath = new Map(
+    (signed ?? [])
+      .filter((s) => s.signedUrl && s.path)
+      .map((s) => [s.path as string, s.signedUrl]),
+  );
+
   const byId = new Map((people ?? []).map((p) => [p.id, p]));
   const pending = (requests ?? []).map((r) => {
     const person = byId.get(r.user_id);
@@ -57,6 +74,7 @@ export default async function AdminPage() {
       phone: person?.phone ?? null,
       userLocale: person?.locale ?? null,
       contactedAt: person?.contacted_at ?? null,
+      proofUrl: r.proof_path ? (proofUrlByPath.get(r.proof_path) ?? null) : null,
     };
   });
 

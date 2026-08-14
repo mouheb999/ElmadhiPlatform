@@ -7,24 +7,17 @@ import {
   verifyGateTicket,
 } from "@/lib/paywall-gate";
 import { isSubscriptionActive } from "@/lib/subscription";
+import { featureForPath, isPaidPath } from "@/lib/access";
 
-// Routes that require a signed-in, paid user.
-const PROTECTED_PREFIXES = [
-  "/dashboard",
-  "/diet",
-  "/workout",
-  "/ai",
-  "/qa",
-  "/review",
-  "/progress",
-  "/settings",
-];
-
-// Deliberately absent from PROTECTED_PREFIXES above: /support. It is matched
-// (so the session still refreshes there) but not paywalled — "I paid and I'm
-// still locked out" is precisely the report that must be able to reach an
-// admin. The (app) layout still requires a signed-in user, and RLS still
-// scopes every ticket to its owner.
+// Which routes cost money now lives in lib/access, because the client
+// components that grey out a locked control need the same answer. Everything
+// else — the questionnaires, the generated program, the diet plan, the
+// dashboard — is reachable unpaid by design; see the note at the top of that
+// file for why the wall moved rather than softened.
+//
+// Deliberately not paywalled: /support. "I paid and I'm still locked out" is
+// precisely the report that must be able to reach an admin. The (app) layout
+// still requires a signed-in user, and RLS still scopes every row to its owner.
 
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {
@@ -32,11 +25,14 @@ export async function proxy(request: NextRequest) {
     await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  const isProtected = PROTECTED_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+  const isPaid = isPaidPath(pathname);
+  const isCheckout =
+    pathname === "/checkout" || pathname.startsWith("/checkout/");
 
-  if (!isProtected) return response;
+  // Everything else in the matcher is here for the session refresh only. The
+  // free surface — dashboard, questionnaires, program, diet plan, settings —
+  // falls out here and is never gated.
+  if (!isPaid && !isCheckout) return response;
 
   // Supabase was unreachable, not "this user is signed out". Bouncing them to
   // /login over a network blip would throw away the page they were on (and, on
@@ -52,15 +48,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Gate: only accounts an admin has activated can reach the app. Everyone
-  // else is held on /checkout until their payment is confirmed. Admins always
-  // pass (so they can use the app while reviewing requests). An active
-  // subscription whose term has ended counts as expired → back to /checkout
-  // to renew.
+  // Gate: only accounts an admin has activated can record anything. Everyone
+  // else is sent to /checkout. Admins always pass (so they can use the app
+  // while reviewing requests). An active subscription whose term has ended
+  // counts as expired → back to /checkout to renew.
   //
   // A recent pass is carried in a signed, user-bound cookie so this doesn't
   // cost a database round-trip on literally every tap. See lib/paywall-gate.
-  if (await verifyGateTicket(request.cookies.get(GATE_COOKIE)?.value, user.id)) {
+  //
+  // Checkout skips the fast path deliberately: it needs the profile read below
+  // regardless, to know whether a contact number is on file.
+  if (
+    isPaid &&
+    (await verifyGateTicket(request.cookies.get(GATE_COOKIE)?.value, user.id))
+  ) {
     return response;
   }
 
@@ -85,20 +86,33 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // No contact number yet → collect one before anything else, including the
-  // paywall. Asking first is the whole point: someone who stalls at checkout
-  // is exactly the person worth being able to reach, and after they bounce it
-  // is too late. Google sign-in never supplies one, and no account created
-  // before migration 039 has one either, so this backfills as people return.
+  // No contact number yet → collect one, but only at the till.
+  //
+  // This used to fire on the first visit to /dashboard, so a brand new account
+  // was asked for a phone number before it had seen anything at all — the first
+  // of the two demands that made the old funnel fail. The reason for asking has
+  // not changed (someone who stalls mid-payment is exactly the person worth
+  // being able to reach) but that reason only applies once they are actually
+  // paying, so it now runs on /checkout alone.
+  //
+  // Deliberately not on the paid routes either: somebody who taps Progress on a
+  // free account should be told that Progress is part of the plan, not handed a
+  // phone form for a product they have not agreed to buy. They fall through to
+  // the /checkout redirect below and meet this on the next hop.
   //
   // Admins are exempt — locking the person who confirms payments out of the
   // admin panel over a missing phone number would be self-defeating.
-  if (!profile?.is_admin && !profile?.phone?.trim()) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/phone";
-    url.search = "";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+  if (isCheckout) {
+    if (!profile?.is_admin && !profile?.phone?.trim()) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/phone";
+      url.search = "";
+      url.searchParams.set("next", "/checkout");
+      return NextResponse.redirect(url);
+    }
+    // Checkout is never paywalled — that would be a redirect loop, and a lapsed
+    // customer has to be able to reach it to renew.
+    return response;
   }
 
   // Same predicate the paid Server Functions enforce, so the optimistic gate
@@ -106,6 +120,11 @@ export async function proxy(request: NextRequest) {
   if (!isSubscriptionActive(profile)) {
     const url = request.nextUrl.clone();
     url.pathname = "/checkout";
+    url.search = "";
+    // What they reached for, so checkout opens by naming it. Same vocabulary
+    // the in-app upgrade cards use, not the raw path.
+    const feature = featureForPath(pathname);
+    if (feature) url.searchParams.set("from", feature);
     const redirectResponse = NextResponse.redirect(url);
     // Never leave a stale pass behind on a user who just lost access.
     redirectResponse.cookies.delete(GATE_COOKIE);

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Dumbbell, Moon, Play } from "lucide-react";
+import { CheckCircle2, Dumbbell, Lock, Moon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t, type Locale } from "@/lib/i18n";
 
@@ -11,16 +11,44 @@ export type TodayWorkoutDay = {
   exerciseCount: number;
 };
 
-/** The Today screen hero: what training looks like *today*, one tap away. */
+/**
+ * The Today screen hero: what training looks like *today*, one tap away.
+ *
+ * `locked` keeps the day and its exercise count visible and swaps only the
+ * button. That is the point of the whole reverse-trial funnel in one component:
+ * the user can see that today is Pull and that it has seven exercises waiting,
+ * which is a far better argument for subscribing than a price list, and it is
+ * the argument the old flow never got to make.
+ */
 export function TodayWorkout({
   locale,
   state,
   day,
+  locked = false,
 }: {
   locale: Locale;
   state: TodayWorkoutState;
   day: TodayWorkoutDay | null;
+  locked?: boolean;
 }) {
+  const startButton = (href: string, labelKey: "today.start_workout" | "today.continue_workout") =>
+    locked ? (
+      <Link
+        href="/checkout?from=session"
+        className="mt-2 inline-flex w-max items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-display font-bold text-bg transition-transform hover:-translate-y-0.5"
+      >
+        <Lock className="h-4 w-4" />
+        {t(locale, "lock.cta")}
+      </Link>
+    ) : (
+      <Button asChild size="lg" className="mt-2 w-max">
+        <Link href={href}>
+          <Play className="h-5 w-5" />
+          {t(locale, labelKey)}
+        </Link>
+      </Button>
+    );
+
   return (
     <div className="relative overflow-hidden rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/[0.08] via-surface to-surface p-6">
       <div className="glow-accent pointer-events-none absolute inset-0" />
@@ -36,12 +64,7 @@ export function TodayWorkout({
               <Dumbbell className="h-4 w-4" />
               {day.exerciseCount} {t(locale, "today.exercises")}
             </p>
-            <Button asChild size="lg" className="mt-2 w-max">
-              <Link href={`/workout/session/${day.id}`}>
-                <Play className="h-5 w-5" />
-                {t(locale, "today.start_workout")}
-              </Link>
-            </Button>
+            {startButton(`/workout/session/${day.id}`, "today.start_workout")}
           </>
         )}
 
@@ -52,12 +75,7 @@ export function TodayWorkout({
               <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
               {t(locale, "session.other_in_progress")}
             </p>
-            <Button asChild size="lg" className="mt-2 w-max">
-              <Link href={`/workout/session/${day.id}`}>
-                <Play className="h-5 w-5" />
-                {t(locale, "today.continue_workout")}
-              </Link>
-            </Button>
+            {startButton(`/workout/session/${day.id}`, "today.continue_workout")}
           </>
         )}
 

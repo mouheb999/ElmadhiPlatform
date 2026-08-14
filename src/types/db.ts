@@ -158,6 +158,9 @@ export type Database = {
           created_at: string | null;
           resolved_at: string | null;
           resolved_by: string | null;
+          proof_path: string | null;
+          proof_note: string | null;
+          proof_uploaded_at: string | null;
         };
         Insert: {
           id?: string;
@@ -170,6 +173,9 @@ export type Database = {
           created_at?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
+          proof_path?: string | null;
+          proof_note?: string | null;
+          proof_uploaded_at?: string | null;
         };
         Update: {
           id?: string;
@@ -182,6 +188,9 @@ export type Database = {
           created_at?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
+          proof_path?: string | null;
+          proof_note?: string | null;
+          proof_uploaded_at?: string | null;
         };
         Relationships: [];
       };

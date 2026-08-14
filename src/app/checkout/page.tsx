@@ -6,7 +6,11 @@ import { CheckoutClient } from "./checkout-client";
 
 export const dynamic = "force-dynamic";
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
   const supabase = await createClient();
   const locale = await getLocale();
 
@@ -14,7 +18,12 @@ export default async function CheckoutPage() {
 
   if (!user) redirect("/login?next=/checkout");
 
-  const [{ data: profile }, { data: settings }, { data: methods }, { data: plans }] =
+  // Which locked control sent them here, so step 1 can open by naming the thing
+  // they reached for instead of a generic pitch. Set by the proxy redirect and
+  // by the in-app upgrade cards.
+  const { from } = await searchParams;
+
+  const [{ data: profile }, { data: settings }, { data: methods }, { data: plans }, { data: openRequest }] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -32,6 +41,12 @@ export default async function CheckoutPage() {
         .select("*")
         .eq("is_enabled", true)
         .order("months", { ascending: true }),
+      supabase
+        .from("payment_requests")
+        .select("proof_path")
+        .eq("user_id", user.id)
+        .eq("status", "pending")
+        .maybeSingle(),
     ]);
 
   const expired =
@@ -44,6 +59,8 @@ export default async function CheckoutPage() {
       paymentStatus={expired ? "unpaid" : (profile?.payment_status ?? "unpaid")}
       planExpiresAt={profile?.plan_expires_at ?? null}
       isRenewal={expired}
+      hasProof={!!openRequest?.proof_path}
+      from={from ?? null}
       settings={settings ?? null}
       methods={methods ?? []}
       plans={plans ?? []}

@@ -31,6 +31,8 @@ type Request = Database["public"]["Tables"]["payment_requests"]["Row"] & {
   /** The customer's own language — the WhatsApp draft is written in it. */
   userLocale: string | null;
   contactedAt: string | null;
+  /** Short-lived signed URL for the uploaded receipt; null when none was sent. */
+  proofUrl: string | null;
 };
 
 type Props = {
@@ -136,6 +138,38 @@ function RequestsCard({
                   ? new Date(r.created_at).toLocaleString()
                   : ""}
               </p>
+
+              {/* The receipt, inline. Confirming a manual transfer has always
+                  meant looking at one of these; it just used to mean finding it
+                  in a WhatsApp thread and matching it to a row by hand. */}
+              <div className="mt-2">
+                {r.proofUrl ? (
+                  <a
+                    href={r.proofUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block"
+                    title={t(locale, "admin.proof_open")}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={r.proofUrl}
+                      alt={t(locale, "admin.proof")}
+                      className="max-h-40 rounded-xl border border-hairline bg-black/40 object-contain transition-opacity hover:opacity-80"
+                    />
+                  </a>
+                ) : (
+                  <p className="text-xs font-semibold text-amber-500">
+                    {t(locale, "admin.proof_none")}
+                  </p>
+                )}
+                {r.proof_note && (
+                  <p className="mt-1 max-w-md text-xs text-muted">
+                    <span className="font-bold">{t(locale, "admin.proof_note")}:</span>{" "}
+                    {r.proof_note}
+                  </p>
+                )}
+              </div>
               <p className="text-sm" dir="ltr">
                 {r.phone ? (
                   <span className="text-ink">{formatPhone(r.phone)}</span>

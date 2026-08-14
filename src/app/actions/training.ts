@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasPaidAccess, requirePaidUser } from "@/lib/subscription-server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -51,10 +52,21 @@ function schemeForReps(reps: string): { sets: number; restSeconds: number } {
  * program with the sheet's reps and coaching advice. equipment/injury answers
  * are stored for the manual swap picker but never change what is generated.
  */
+/**
+ * Signed in is enough — building a program is the free half of the product.
+ *
+ * This is the moment the reverse trial is built around: somebody who has just
+ * watched their own split appear is in a position to judge whether the app is
+ * worth paying for, which the old checkout page never gave them. Recording a
+ * session against that program is still paid; generating it is not.
+ *
+ * Not an unlimited-work hole: the monthly redo quota below bounds how often one
+ * account can regenerate, and it applies to free and paid users alike.
+ */
 export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<ActionResult<{ programId: string }>> {
   const supabase = await createClient();
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const { data: previous } = await supabase
     .from("training_profiles")

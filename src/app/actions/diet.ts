@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasPaidAccess, requirePaidUser } from "@/lib/subscription-server";
+import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -178,10 +179,16 @@ async function buildAndSaveMealPlan(
   return plan.id;
 }
 
+/**
+ * Free, for the same reason as `submitWorkoutQuestions`: seeing your own macros
+ * and meal templates is what makes the subscription legible. Logging what you
+ * actually ate against them is the paid part. The monthly redo quota below
+ * bounds regeneration for free and paid accounts alike.
+ */
 export async function submitDietQuestions(answers: DietAnswers): Promise<ActionResult<{ dietProfileId: string }>> {
   const supabase = await createClient();
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   // Archive any existing active profile + plan (versioned, never deleted).
   const { data: previous } = await supabase

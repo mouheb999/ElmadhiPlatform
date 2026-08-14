@@ -3,12 +3,14 @@ import Link from "next/link";
 import { Flame, MessageCircleQuestion } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPaidAccess } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
 import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/components/dashboard/today-workout";
 import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
 import { Reveal } from "@/components/shared/reveal";
+import { Locked } from "@/components/shared/locked";
 import { NutritionSection, NutritionSectionSkeleton } from "./_sections/nutrition-section";
 import { QaSparkSection, QaSparkSectionSkeleton } from "./_sections/qa-spark-section";
 import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
@@ -37,10 +39,15 @@ function checkinStreak(datesDesc: string[]): number {
  * answer to "what does HYPE FITNESS want from me today, and what did it notice?"
  */
 export default async function DashboardPage() {
-  const [supabase, locale, user] = await Promise.all([
+  // `paid` decides whether the write controls on this page render as controls
+  // or as the upgrade card. The dashboard itself is free to reach — see
+  // lib/access — so an unpaid account lands here, reads its plan, and meets the
+  // wall only at the point of recording something.
+  const [supabase, locale, user, paid] = await Promise.all([
     createClient(),
     getLocale(),
     getCurrentUser(),
+    hasPaidAccess(),
   ]);
 
   // "Today" and "this week" in Africa/Tunis — never server-local time.
@@ -233,20 +240,28 @@ export default async function DashboardPage() {
       )}
 
       <Reveal>
-        <TodayWorkout locale={locale} state={workoutState} day={todayDay} />
+        <TodayWorkout locale={locale} state={workoutState} day={todayDay} locked={!paid} />
       </Reveal>
 
       <Reveal delay={0.05}>
-        <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+        {paid ? (
+          <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+        ) : (
+          <Locked locale={locale} feature="checkin" />
+        )}
       </Reveal>
 
       <Reveal delay={0.1}>
-        <ProgressTeaser
-          locale={locale}
-          points={teaserWeights}
-          weekDone={weekDone}
-          weekTarget={weekTarget}
-        />
+        {paid ? (
+          <ProgressTeaser
+            locale={locale}
+            points={teaserWeights}
+            weekDone={weekDone}
+            weekTarget={weekTarget}
+          />
+        ) : (
+          <Locked locale={locale} feature="progress" />
+        )}
       </Reveal>
 
       {/* Below the fold and independent of everything above, so neither gets

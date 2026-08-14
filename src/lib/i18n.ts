@@ -110,6 +110,97 @@ const STRINGS = {
     tn: "رقم واتساب مازال ما تحطّش. اتصل بالدعم.",
   },
 
+  // ---- locked features (free account reaching a paid control) ----
+  // The wall names what the user just reached for. One generic "upgrade" for
+  // every control tells them nothing about what they are buying.
+  "lock.title": { en: "Part of the full plan", tn: "من الاشتراك الكامل" },
+  "lock.session": {
+    en: "Recording your sets and reps is part of the full plan.",
+    tn: "تسجيل السيريات والتكرارات من الاشتراك الكامل.",
+  },
+  "lock.meal_log": {
+    en: "The food diary is part of the full plan.",
+    tn: "دفتر الماكلة من الاشتراك الكامل.",
+  },
+  "lock.checkin": {
+    en: "The morning check-in is part of the full plan.",
+    tn: "تسجيل الصباح من الاشتراك الكامل.",
+  },
+  "lock.progress": {
+    en: "Progress charts are part of the full plan.",
+    tn: "رسومات التقدّم من الاشتراك الكامل.",
+  },
+  "lock.ai": {
+    en: "The AI calorie camera is part of the full plan.",
+    tn: "كاميرا السعرات بالذكاء من الاشتراك الكامل.",
+  },
+  "lock.qa": {
+    en: "Asking the coach is part of the full plan.",
+    tn: "تسأل المدرّب من الاشتراك الكامل.",
+  },
+  "lock.free_note": {
+    en: "Your program and your macros stay free — always.",
+    tn: "البرنامج والماكرو متاعك يبقاو فابور — ديما.",
+  },
+  "lock.cta": { en: "See plans", tn: "شوف العروض" },
+  "lock.not_now": { en: "Not now", tn: "موش توّا" },
+
+  // ---- free-account banner ----
+  "free.title": { en: "Your plan is ready", tn: "البرنامج متاعك جاهز" },
+  "free.body": {
+    en: "Building it and reading it is free. Subscribe when you want to start logging your training and meals against it.",
+    tn: "تعملو وتقراه فابور. اشترك كي تحب تبدا تسجّل التمرين والماكلة متاعك.",
+  },
+
+  // ---- checkout, step by step ----
+  "co.step": { en: "Step", tn: "خطوة" },
+  "co.of": { en: "of", tn: "من" },
+  "co.s1": { en: "Pick your plan", tn: "اختار العرض" },
+  "co.s2": { en: "Make the transfer", tn: "ابعث الفلوس" },
+  "co.s3": { en: "Send the receipt", tn: "ابعث الوصل" },
+  "co.next": { en: "Continue", tn: "كمّل" },
+  "co.back": { en: "Back", tn: "لور" },
+  "co.you_pay": { en: "You pay", tn: "تخلّص" },
+  "co.send_to": { en: "Send it to", tn: "ابعثها لـ" },
+  "co.transfer_done": { en: "I've sent it", tn: "بعثتها" },
+  "co.upload_title": { en: "Send us the receipt", tn: "ابعثلنا الوصل" },
+  "co.upload_body": {
+    en: "A screenshot of the transfer is enough. We check it and open your account.",
+    tn: "تصويرة للتحويل تكفي. نشوفوها ونحلّولك الحساب.",
+  },
+  "co.choose_file": { en: "Choose screenshot", tn: "اختار التصويرة" },
+  "co.change_file": { en: "Choose a different one", tn: "بدّل التصويرة" },
+  "co.note_label": { en: "Anything we should know? (optional)", tn: "فما حاجة لازمنا نعرفوها؟ (اختياري)" },
+  "co.note_ph": {
+    en: "e.g. I paid from my brother's account",
+    tn: "مثال: خلّصت من حساب خويا",
+  },
+  "co.submit": { en: "Send for review", tn: "ابعث للمراجعة" },
+  "co.sending": { en: "Sending…", tn: "قاعد يتبعث…" },
+  "co.file_too_big": { en: "Image must be under 5 MB.", tn: "التصويرة لازم تكون أقل من 5 ميغا." },
+  "co.file_not_image": { en: "That file isn't an image.", tn: "هذا الملف موش تصويرة." },
+  "co.need_help": { en: "Something wrong? Message us", tn: "فما مشكلة؟ راسلنا" },
+  "co.review_title": { en: "We're checking your payment", tn: "قاعدين نشوفو في الخلاص متاعك" },
+  "co.review_body": {
+    en: "Usually within a few hours. We'll message you the moment your account opens.",
+    tn: "عادةً في ظرف ساعات. باش نراسلوك وقت ما يتحل حسابك.",
+  },
+  "co.review_have_proof": { en: "Receipt received", tn: "الوصل وصل" },
+  "co.review_no_proof": {
+    en: "We don't have your receipt yet — sending it gets you opened up faster.",
+    tn: "مازال ما وصلناش الوصل — كي تبعثو يتسرّع الأمر.",
+  },
+  "co.meanwhile": {
+    en: "Meanwhile, your program and macros are still yours to read.",
+    tn: "في الأثناء، البرنامج والماكرو متاعك تنجم تقراهم عادي.",
+  },
+
+  // ---- admin: payment proof ----
+  "admin.proof": { en: "Receipt", tn: "الوصل" },
+  "admin.proof_none": { en: "No receipt uploaded", tn: "ما فماش وصل" },
+  "admin.proof_note": { en: "Customer note", tn: "ملاحظة الحريف" },
+  "admin.proof_open": { en: "Open full size", tn: "افتح بالحجم الكامل" },
+
   // ---- admin ----
   "admin.title": { en: "Admin", tn: "الإدارة" },
   "admin.settings": { en: "Payment settings", tn: "إعدادات الخلاص" },
