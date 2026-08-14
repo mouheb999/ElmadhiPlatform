@@ -167,6 +167,17 @@ const STRINGS = {
     tn: "من بريميوم — يكلّفنا على كل تصويرة، على هكة ماهوش في ستاندرد.",
   },
 
+  // ---- one consolidated upgrade card, for the dashboard ----
+  "up.title": { en: "Ready to start tracking?", tn: "مستعد تبدا تسجّل؟" },
+  "up.body": {
+    en: "Your program and your macros are free to keep. A subscription adds the daily side:",
+    tn: "البرنامج والماكرو متاعك يبقاو فابور. الاشتراك يزيدلك الجزء اليومي:",
+  },
+  "up.i1": { en: "Log your sets, reps and weights", tn: "سجّل السيريات والتكرارات والأوزان" },
+  "up.i2": { en: "Food diary against your macros", tn: "دفتر ماكلة على حساب الماكرو متاعك" },
+  "up.i3": { en: "Progress charts and the weekly review", tn: "رسومات التقدّم ومراجعة الجمعة" },
+  "up.i4": { en: "Ask the coach your own questions", tn: "اسأل المدرّب أسئلتك إنت" },
+
   // ---- free-account banner ----
   "free.title": { en: "Your plan is ready", tn: "البرنامج متاعك جاهز" },
   "free.body": {

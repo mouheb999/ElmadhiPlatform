@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { type LockedFeature } from "@/lib/access";
 import { cn } from "@/lib/utils";
@@ -47,6 +47,39 @@ export function Locked({
       <p className="text-xs text-muted">{t(locale, "lock.free_note")}</p>
       <Link
         href={`/checkout?from=${feature}`}
+        className="mt-1 w-max rounded-full bg-accent px-5 py-2.5 font-display text-sm font-bold text-bg transition-transform hover:-translate-y-0.5"
+      >
+        {t(locale, "lock.cta")}
+      </Link>
+    </div>
+  );
+}
+
+/**
+ * One card, listing everything a subscription adds.
+ *
+ * The dashboard used to render a separate `Locked` per paid control, and three
+ * of them stacked read as a wall — the exact impression the free tier exists to
+ * avoid. Per-control prompts belong where the user reached for something
+ * specific; a screen they merely landed on gets one calm summary, placed after
+ * the things they already own.
+ */
+export function UpgradeSummary({ locale }: { locale: Locale }) {
+  const items: StringKey[] = ["up.i1", "up.i2", "up.i3", "up.i4"];
+  return (
+    <div className="flex flex-col gap-3 rounded-3xl border border-accent/25 bg-accent/[0.06] p-5">
+      <p className="font-extrabold">{t(locale, "up.title")}</p>
+      <p className="text-xs leading-relaxed text-muted">{t(locale, "up.body")}</p>
+      <ul className="flex flex-col gap-1.5">
+        {items.map((key) => (
+          <li key={key} className="flex items-start gap-2 text-sm">
+            <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+            {t(locale, key)}
+          </li>
+        ))}
+      </ul>
+      <Link
+        href="/checkout"
         className="mt-1 w-max rounded-full bg-accent px-5 py-2.5 font-display text-sm font-bold text-bg transition-transform hover:-translate-y-0.5"
       >
         {t(locale, "lock.cta")}

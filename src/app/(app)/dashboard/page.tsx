@@ -10,7 +10,7 @@ import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-c
 import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/components/dashboard/today-workout";
 import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
 import { Reveal } from "@/components/shared/reveal";
-import { Locked } from "@/components/shared/locked";
+import { UpgradeSummary } from "@/components/shared/locked";
 import { NutritionSection, NutritionSectionSkeleton } from "./_sections/nutrition-section";
 import { QaSparkSection, QaSparkSectionSkeleton } from "./_sections/qa-spark-section";
 import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
@@ -243,26 +243,27 @@ export default async function DashboardPage() {
         <TodayWorkout locale={locale} state={workoutState} day={todayDay} locked={!paid} />
       </Reveal>
 
-      <Reveal delay={0.05}>
-        {paid ? (
-          <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
-        ) : (
-          <Locked locale={locale} feature="checkin" />
-        )}
-      </Reveal>
+      {/* Both of these are write-first cards — an empty check-in form and a
+          chart of data an unpaid account has none of. Rendering a lock in place
+          of each turned Today into a column of padlocks, which is precisely the
+          impression the free tier exists to avoid. Unpaid users get the plan
+          they own, then one summary at the end. */}
+      {paid && (
+        <>
+          <Reveal delay={0.05}>
+            <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+          </Reveal>
 
-      <Reveal delay={0.1}>
-        {paid ? (
-          <ProgressTeaser
-            locale={locale}
-            points={teaserWeights}
-            weekDone={weekDone}
-            weekTarget={weekTarget}
-          />
-        ) : (
-          <Locked locale={locale} feature="progress" />
-        )}
-      </Reveal>
+          <Reveal delay={0.1}>
+            <ProgressTeaser
+              locale={locale}
+              points={teaserWeights}
+              weekDone={weekDone}
+              weekTarget={weekTarget}
+            />
+          </Reveal>
+        </>
+      )}
 
       {/* Below the fold and independent of everything above, so neither gets
           to decide when the coaching content paints. */}
@@ -271,6 +272,13 @@ export default async function DashboardPage() {
           <NutritionSection locale={locale} userId={user!.id} />
         </Suspense>
       </Reveal>
+
+      {/* After their program and their macros, not before. */}
+      {!paid && (
+        <Reveal delay={0.15}>
+          <UpgradeSummary locale={locale} />
+        </Reveal>
+      )}
 
       <Reveal delay={0.2}>
         <Suspense fallback={<QaSparkSectionSkeleton />}>
