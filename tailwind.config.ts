@@ -29,6 +29,14 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-cairo)", "Cairo", "Tajawal", "system-ui", "sans-serif"],
+        // --font-brand is Saira in English and Cairo in Arabic; see globals.css.
+        display: [
+          "var(--font-brand)",
+          "var(--font-cairo)",
+          "Cairo",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       borderRadius: {
         card: "28px",

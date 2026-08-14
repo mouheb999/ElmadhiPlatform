@@ -11,6 +11,20 @@
     --ink: #f8f8f8;
     --muted: rgba(248, 248, 248, 0.65);
     --hairline: rgba(255, 255, 255, 0.08);
+
+    /* Which face headings, buttons and nav labels use. */
+    --font-brand: var(--font-saira);
+  }
+
+  /*
+   * The Arabic UI stays entirely on Cairo. Saira carries no Arabic, so relying on
+   * glyph fallback alone would still hand it every Latin run inside Arabic copy —
+   * an exercise name like "Pull", a unit, a number — and those would render in a
+   * different face from the sentence around them. Swapping the variable keeps one
+   * typeface per locale instead.
+   */
+  html:lang(ar) {
+    --font-brand: var(--font-cairo);
   }
 
   * {
@@ -26,6 +40,23 @@
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+
+  /*
+   * Headings and controls take the display face; body copy stays on Cairo.
+   *
+   * `button` is matched here rather than through the Button component because plenty
+   * of controls are hand-rolled elements that never go through it. A button carrying
+   * a sentence of body copy rather than a label can opt back out with `font-sans`.
+   */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  button {
+    font-family: theme("fontFamily.display");
   }
 
   /*

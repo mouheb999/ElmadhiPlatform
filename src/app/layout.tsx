@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { cairo, tajawal } from "@/lib/fonts";
+import { cairo, saira, tajawal } from "@/lib/fonts";
 import { getLocale } from "@/lib/i18n-server";
 import { dir } from "@/lib/i18n";
 import "./globals.css";
@@ -38,7 +38,7 @@ export default async function RootLayout({
     <html
       lang={lang}
       dir={dir(locale)}
-      className={`${cairo.variable} ${tajawal.variable}`}
+      className={`${cairo.variable} ${saira.variable} ${tajawal.variable}`}
     >
       {/* Language switching lives in Settings only. */}
       <body className="min-h-dvh bg-bg font-sans text-ink antialiased">

@@ -31,7 +31,7 @@ export function AdminNav({ locale }: { locale: Locale }) {
             key={tab.href}
             href={tab.href}
             className={cn(
-              "rounded-full px-4 py-2 text-sm font-bold transition-colors",
+              "rounded-full px-4 py-2 font-display text-sm font-bold transition-colors",
               active
                 ? "bg-accent text-bg"
                 : "border border-hairline text-muted hover:text-ink",
@@ -43,7 +43,7 @@ export function AdminNav({ locale }: { locale: Locale }) {
       })}
       <Link
         href="/dashboard"
-        className="rounded-full border border-hairline px-4 py-2 text-sm font-bold text-accent transition-colors hover:text-ink"
+        className="rounded-full border border-hairline px-4 py-2 font-display text-sm font-bold text-accent transition-colors hover:text-ink"
       >
         {t(locale, "admin.nav_app")}
       </Link>
