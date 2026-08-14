@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { ExerciseCard, type EditorExercise, type ExerciseCandidate } from "@/components/workout/exercise-card";
 import { WarningBanner } from "@/components/shared/warning-banner";
+import { LockedDialog } from "@/components/shared/locked-dialog";
 import { validateProgram } from "@/lib/algorithms/validation";
 import { saveProgramExerciseEdit, swapProgramExercise, markProgramModified } from "@/app/actions/training";
 
@@ -31,14 +32,18 @@ export function ProgramEditor({
   programId,
   initialDays,
   dayStatus,
+  locked = false,
 }: {
   locale: Locale;
   programId: string;
   initialDays: EditorDay[];
   dayStatus: Record<string, DayStatus>;
+  /** Free account: the program is readable, but training against it is not. */
+  locked?: boolean;
 }) {
   const [days, setDays] = useState(initialDays);
   const [activeDay, setActiveDay] = useState(0);
+  const [showLock, setShowLock] = useState(false);
   const [, startTransition] = useTransition();
 
   const warnings = validateProgram(days.flatMap((d) => d.exercises.map((e) => e.primaryMuscle)));
@@ -85,6 +90,14 @@ export function ProgramEditor({
 
   return (
     <div className="flex flex-col gap-5">
+      {showLock && (
+        <LockedDialog
+          locale={locale}
+          feature="session"
+          onClose={() => setShowLock(false)}
+        />
+      )}
+
       {warnings.map((w) => (
         <WarningBanner key={w.type} message={pick(locale, w.message.en, w.message.ar)} />
       ))}
@@ -124,6 +137,8 @@ export function ProgramEditor({
           locale={locale}
           dayId={days[activeDay].id}
           status={dayStatus[days[activeDay].id] ?? { state: "available" }}
+          locked={locked}
+          onLockedClick={() => setShowLock(true)}
         />
       )}
 
@@ -147,10 +162,14 @@ function DayAction({
   locale,
   dayId,
   status,
+  locked,
+  onLockedClick,
 }: {
   locale: Locale;
   dayId: string;
   status: DayStatus;
+  locked: boolean;
+  onLockedClick: () => void;
 }) {
   if (status.state === "completed") {
     return (
@@ -177,15 +196,29 @@ function DayAction({
     );
   }
 
+  const label =
+    status.state === "in_progress"
+      ? t(locale, "workout.continue_day")
+      : t(locale, "workout.start_day");
+  const className =
+    "flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-display font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform hover:-translate-y-0.5";
+
+  // Reading the program is free; recording a session against it is not. Sending
+  // an unpaid user to /checkout from here would throw away the screen they came
+  // to look at, so the wall interrupts in place instead.
+  if (locked) {
+    return (
+      <button type="button" onClick={onLockedClick} className={className}>
+        <Lock className="h-4 w-4" />
+        {label}
+      </button>
+    );
+  }
+
   return (
-    <Link
-      href={`/workout/session/${dayId}`}
-      className="flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform hover:-translate-y-0.5"
-    >
+    <Link href={`/workout/session/${dayId}`} className={className}>
       <Play className="h-5 w-5" />
-      {status.state === "in_progress"
-        ? t(locale, "workout.continue_day")
-        : t(locale, "workout.start_day")}
+      {label}
     </Link>
   );
 }

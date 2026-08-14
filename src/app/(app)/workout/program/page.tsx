@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
+import { hasPaidAccess } from "@/lib/subscription-server";
 import { ProgramEditor, type DayStatus, type EditorDay } from "@/components/workout/program-editor";
 import { tunisWeekStartUtc } from "@/lib/dates";
 import { filterSafeExercises, type ExerciseRow } from "@/lib/algorithms/exercise-substitution";
@@ -207,6 +208,12 @@ export default async function WorkoutProgramPage() {
   }));
 
   return (
-    <ProgramEditor locale={locale} programId={program.id} initialDays={days} dayStatus={dayStatus} />
+    <ProgramEditor
+      locale={locale}
+      programId={program.id}
+      initialDays={days}
+      dayStatus={dayStatus}
+      locked={!(await hasPaidAccess())}
+    />
   );
 }

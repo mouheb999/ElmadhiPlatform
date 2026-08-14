@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Dumbbell, Lock, Moon, Play } from "lucide-react";
+import { CheckCircle2, Dumbbell, Eye, Moon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { t, type Locale } from "@/lib/i18n";
 
@@ -14,11 +14,13 @@ export type TodayWorkoutDay = {
 /**
  * The Today screen hero: what training looks like *today*, one tap away.
  *
- * `locked` keeps the day and its exercise count visible and swaps only the
- * button. That is the point of the whole reverse-trial funnel in one component:
- * the user can see that today is Pull and that it has seven exercises waiting,
- * which is a far better argument for subscribing than a price list, and it is
- * the argument the old flow never got to make.
+ * `locked` keeps the day and its exercise count visible and sends the button
+ * into the program instead of into checkout. Reading today's exercises is free,
+ * so the hero's job on an unpaid account is to get them looking at the thing
+ * they built — not to interrupt with a price the moment they arrive. What they
+ * cannot do is record a session against it, and the wall for that sits on the
+ * session screen and in the summary card lower down, where it is answering a
+ * question the user has actually asked by then.
  */
 export function TodayWorkout({
   locale,
@@ -33,13 +35,12 @@ export function TodayWorkout({
 }) {
   const startButton = (href: string, labelKey: "today.start_workout" | "today.continue_workout") =>
     locked ? (
-      <Link
-        href="/checkout?from=session"
-        className="mt-2 inline-flex w-max items-center gap-2 rounded-full bg-accent px-7 py-3.5 font-display font-bold text-bg transition-transform hover:-translate-y-0.5"
-      >
-        <Lock className="h-4 w-4" />
-        {t(locale, "lock.cta")}
-      </Link>
+      <Button asChild size="lg" className="mt-2 w-max">
+        <Link href="/workout/program">
+          <Eye className="h-5 w-5" />
+          {t(locale, "today.see_workout")}
+        </Link>
+      </Button>
     ) : (
       <Button asChild size="lg" className="mt-2 w-max">
         <Link href={href}>

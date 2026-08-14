@@ -863,6 +863,7 @@ const STRINGS = {
   "today.sessions_label": { en: "workouts", tn: "حصص" },
   "today.streak_label": { en: "day check-in streak", tn: "يوم تسجيل متتالي" },
   "today.open_plan": { en: "Open plan", tn: "حلّ البرنامج" },
+  "today.see_workout": { en: "See the workout", tn: "شوف التمرين" },
   "today.qa_answered": { en: "Your question was answered!", tn: "سؤالك تجاوب!" },
   "today.rest_day": {
     en: "Rest day — recovery is where you grow.",
