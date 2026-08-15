@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { hasPaidAccess, requirePaidUser } from "@/lib/subscription-server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
@@ -195,8 +194,8 @@ export async function saveProgramExerciseEdit(
   rowId: string,
   patch: { sets?: number; repRange?: string; restSeconds?: number },
 ): Promise<ActionResult> {
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -212,9 +211,22 @@ export async function saveProgramExerciseEdit(
   return ok(undefined);
 }
 
+/**
+ * Shaping the program is free, like generating it.
+ *
+ * Somebody whose gym lacks the machine, or whose shoulder rules the movement
+ * out, cannot judge a plan they are unable to make usable — and the
+ * questionnaire already asked about equipment and injuries, so refusing the
+ * swap contradicts what we asked. Recording a session against the program is
+ * still what the subscription buys.
+ *
+ * These used to require payment while the editor updated its own state first,
+ * so a free user watched the swap happen, the write got refused, and the old
+ * exercise came back on reload. Failing was bad; appearing to succeed was worse.
+ */
 export async function swapProgramExercise(rowId: string, newExerciseId: string): Promise<ActionResult> {
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -226,7 +238,7 @@ export async function swapProgramExercise(rowId: string, newExerciseId: string):
 }
 
 export async function markProgramModified(programId: string): Promise<void> {
-  if (!(await hasPaidAccess())) return;
+  if (!(await getCurrentUser())) return;
   const supabase = await createClient();
   await supabase.from("user_programs").update({ user_modified: true }).eq("id", programId);
 }

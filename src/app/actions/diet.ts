@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { hasPaidAccess, requirePaidUser } from "@/lib/subscription-server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
@@ -283,9 +282,15 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
   return ok({ dietProfileId: dietProfile.id });
 }
 
+/**
+ * Shaping the meal plan is free, matching the workout side: the plan is what a
+ * free account is here to read, and a plan it cannot adjust to what it actually
+ * eats is not much of a plan. Logging what was eaten — meal-logs.ts — is the
+ * paid half and is untouched.
+ */
 export async function saveMealPlanItemEdit(itemId: string, quantityG: number): Promise<ActionResult> {
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -297,8 +302,8 @@ export async function saveMealPlanItemEdit(itemId: string, quantityG: number): P
 }
 
 export async function removeMealPlanItem(itemId: string): Promise<ActionResult> {
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const supabase = await createClient();
   const { error } = await supabase.from("meal_plan_items").delete().eq("id", itemId);
@@ -311,8 +316,8 @@ export async function addMealPlanItem(
   ingredientId: string,
   quantityG: number,
 ): Promise<ActionResult<{ id: string }>> {
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -334,8 +339,8 @@ export async function swapMealPlanItem(
   itemId: string,
   newIngredientId: string,
 ): Promise<ActionResult<{ quantityG: number }>> {
-  const { user, denied } = await requirePaidUser();
-  if (!user) return fail(denied);
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
 
   const supabase = await createClient();
 
@@ -388,7 +393,7 @@ export async function swapMealPlanItem(
 }
 
 export async function markMealPlanModified(planId: string): Promise<void> {
-  if (!(await hasPaidAccess())) return;
+  if (!(await getCurrentUser())) return;
   const supabase = await createClient();
   await supabase.from("meal_plans").update({ user_modified: true }).eq("id", planId);
 }
