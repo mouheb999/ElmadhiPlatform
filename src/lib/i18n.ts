@@ -1353,7 +1353,42 @@ const STRINGS = {
 export type StringKey = keyof typeof STRINGS;
 
 /** Translate a known key for the given locale. */
+/**
+ * Admin-published copy, keyed `"<locale>:<key>"`, overlaid on STRINGS.
+ *
+ * Module-level rather than threaded through context, which is what lets `t()`
+ * stay a plain synchronous call at ~1500 existing call sites instead of every
+ * one of them becoming a hook.
+ *
+ * That is only safe because this data is global. It is the product's own
+ * wording — identical for every visitor, signed in or not — so a value cached
+ * in the server process cannot leak one user's data to another. Do not put
+ * anything user-specific in here; that reasoning stops holding immediately.
+ */
+let copyOverrides: Record<string, string> = {};
+
+export function applyCopyOverrides(next: Record<string, string> | null | undefined): void {
+  copyOverrides = next ?? {};
+}
+
 export function t(locale: Locale, key: StringKey): string {
+  const override = copyOverrides[`${locale}:${key}`];
+  if (override !== undefined) return override;
   const entry = STRINGS[key];
   return locale === "tn" ? entry.tn : entry.en;
+}
+
+/** Every key in the catalogue, for the admin copy editor's search. */
+export const STRING_KEYS = Object.keys(STRINGS) as StringKey[];
+
+/** What a key says with no override applied — the editor shows this as the
+ *  placeholder, so an admin can always see what they are replacing. */
+export function defaultCopy(locale: Locale, key: StringKey): string {
+  const entry = STRINGS[key];
+  return locale === "tn" ? entry.tn : entry.en;
+}
+
+/** Guards the publish action against writing keys that do not exist. */
+export function isStringKey(value: string): value is StringKey {
+  return Object.prototype.hasOwnProperty.call(STRINGS, value);
 }

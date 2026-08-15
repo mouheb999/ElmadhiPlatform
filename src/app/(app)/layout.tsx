@@ -9,6 +9,8 @@ import { countUnreadSupportReplies } from "@/lib/support";
 import { t } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
+import { AdminCopyBar } from "@/components/admin/copy-bar";
+import { getSubscription } from "@/lib/subscription-server";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +54,13 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, locale] = await Promise.all([getCurrentUser(), getLocale()]);
+  const [user, locale, subscription] = await Promise.all([
+    getCurrentUser(),
+    getLocale(),
+    // Already request-cached and already read for the paywall, so asking who is
+    // an admin here costs nothing extra.
+    getSubscription(),
+  ]);
   if (!user) redirect("/login");
 
   return (
@@ -84,6 +92,8 @@ export default async function AppLayout({
       <main className="container-page flex-1 py-6 pb-28">{children}</main>
 
       <AppBottomNav locale={locale} />
+
+      {subscription.is_admin && <AdminCopyBar locale={locale} />}
     </div>
   );
 }

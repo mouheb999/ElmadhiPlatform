@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { dir } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
 import { AdminNav } from "./admin-nav";
+import { AdminCopyBar } from "@/components/admin/copy-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export default async function AdminLayout({
         <AdminNav locale={locale} />
       </div>
       {children}
+
+      <AdminCopyBar locale={locale} />
     </main>
   );
 }

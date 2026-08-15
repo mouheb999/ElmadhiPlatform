@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { cairo, saira, tajawal } from "@/lib/fonts";
 import { getLocale } from "@/lib/i18n-server";
-import { dir } from "@/lib/i18n";
+import { getCopyOverrides } from "@/lib/copy";
+import { applyCopyOverrides, dir } from "@/lib/i18n";
+import { CopyBootstrap } from "@/components/shared/copy-bootstrap";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,8 +33,12 @@ export default async function RootLayout({
 }: {
   children: ReactNode;
 }) {
-  const locale = await getLocale();
+  const [locale, overrides] = await Promise.all([getLocale(), getCopyOverrides()]);
   const lang = locale === "tn" ? "ar" : "en";
+
+  // Applied here, before any child renders, so every server component below
+  // resolves published copy rather than the built-in defaults.
+  applyCopyOverrides(overrides);
 
   return (
     <html
@@ -42,6 +48,9 @@ export default async function RootLayout({
     >
       {/* Language switching lives in Settings only. */}
       <body className="min-h-dvh bg-bg font-sans text-ink antialiased">
+        {/* Must stay first: it primes the client's i18n module before any
+            sibling renders. See the component for why. */}
+        <CopyBootstrap overrides={overrides} />
         {children}
       </body>
     </html>

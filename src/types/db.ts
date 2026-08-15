@@ -146,6 +146,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      copy_overrides: {
+        Row: {
+          key: string;
+          locale: string;
+          value: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          key: string;
+          locale: string;
+          value: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          key?: string;
+          locale?: string;
+          value?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       payment_requests: {
         Row: {
           id: string;
