@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getLocale } from "@/lib/i18n-server";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { getAdminUser } from "@/lib/auth";
+import { EditModeToggle } from "@/components/admin/edit-mode-toggle";
 import { getCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getRedoQuotas, MONTHLY_REDO_LIMIT, type RedoQuota } from "@/lib/plan-redo";
@@ -88,10 +89,12 @@ export default async function SettingsPage() {
 
       {admin && (
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="flex flex-col p-0">
             <Link href="/admin" className="block p-6 font-bold text-accent hover:bg-white/5">
               {t(locale, "settings.admin_panel")}
             </Link>
+            <span className="border-t border-hairline" />
+            <EditModeToggle label={t(locale, "settings.edit_mode")} />
           </CardContent>
         </Card>
       )}

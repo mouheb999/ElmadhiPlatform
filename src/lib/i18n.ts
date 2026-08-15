@@ -514,6 +514,7 @@ const STRINGS = {
   "settings.redo_workout": { en: "Redo my workout goals", tn: "بدّل أهداف التمرين" },
   "settings.sign_out": { en: "Sign out", tn: "اخرج" },
   "settings.admin_panel": { en: "Admin panel", tn: "لوحة الأدمين" },
+  "settings.edit_mode": { en: "Edit mode", tn: "وضع التعديل" },
 
   // ---- monthly plan rebuild allowance ----
   "redo.remaining": {
