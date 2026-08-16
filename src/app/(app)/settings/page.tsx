@@ -18,15 +18,22 @@ const SPENT: RedoQuota = { limit: MONTHLY_REDO_LIMIT, used: MONTHLY_REDO_LIMIT, 
 /**
  * One "redo my plan" row. Once the month's rebuilds are spent the row stops
  * being a link — the questionnaire would refuse the answers at the end anyway.
+ *
+ * Both routes are offered, because a rebuild is exactly the moment somebody
+ * discovers they would rather do it themselves: they are here because the
+ * generated plan wasn't what they wanted, and sending them back through the
+ * same questionnaire is the least likely thing to change that.
  */
 function RedoRow({
   locale,
   href,
+  buildHref,
   labelKey,
   quota,
 }: {
   locale: Locale;
   href: string;
+  buildHref: string;
   labelKey: StringKey;
   quota: RedoQuota;
 }) {
@@ -44,10 +51,18 @@ function RedoRow({
   }
 
   return (
-    <Link href={href} className="p-6 hover:bg-white/5">
-      <span className="font-bold">{t(locale, labelKey)}</span>
-      <p className="mt-1 text-sm text-muted">{left}</p>
-    </Link>
+    <div className="flex flex-col gap-2 p-6">
+      <Link href={href} className="-m-2 p-2 hover:bg-white/5">
+        <span className="font-bold">{t(locale, labelKey)}</span>
+        <p className="mt-1 text-sm text-muted">{left}</p>
+      </Link>
+      <Link
+        href={buildHref}
+        className="self-start text-xs font-bold text-accent underline decoration-dotted underline-offset-4"
+      >
+        {t(locale, "build.switch_to_custom")}
+      </Link>
+    </div>
   );
 }
 
@@ -75,12 +90,14 @@ export default async function SettingsPage() {
           <RedoRow
             locale={locale}
             href="/diet/questions?redo=1"
+            buildHref="/diet/build?redo=1"
             labelKey="settings.redo_diet"
             quota={quotas.diet}
           />
           <RedoRow
             locale={locale}
             href="/workout/questions?redo=1"
+            buildHref="/workout/build?redo=1"
             labelKey="settings.redo_workout"
             quota={quotas.workout}
           />

@@ -6,6 +6,12 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
+import {
+  MAX_EXERCISES_PER_DAY,
+  MAX_REST_SECONDS,
+  MAX_SETS,
+  REP_RANGE_PATTERN,
+} from "@/lib/program-limits";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -190,6 +196,13 @@ export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<A
   return ok({ programId: userProgram.id });
 }
 
+/**
+ * `user_program_exercises` has no CHECK constraints on these columns, so
+ * whatever arrives here is what the session recorder will render. The bounds in
+ * `program-limits` are far outside anything the editor's steppers can produce;
+ * they exist to stop a direct POST writing 10,000 sets or a rep range of
+ * arbitrary length into a row every workout screen then has to display.
+ */
 export async function saveProgramExerciseEdit(
   rowId: string,
   patch: { sets?: number; repRange?: string; restSeconds?: number },
@@ -197,16 +210,32 @@ export async function saveProgramExerciseEdit(
   const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
+  const update: { sets?: number; rep_range?: string; rest_seconds?: number; is_user_modified: boolean } = {
+    is_user_modified: true,
+  };
+
+  if (patch.sets !== undefined) {
+    const sets = Math.round(Number(patch.sets));
+    if (!Number.isFinite(sets) || sets < 1 || sets > MAX_SETS) {
+      return fail("That set count doesn't look right.");
+    }
+    update.sets = sets;
+  }
+  if (patch.repRange !== undefined) {
+    const repRange = String(patch.repRange).trim();
+    if (!REP_RANGE_PATTERN.test(repRange)) return fail("That rep range doesn't look right.");
+    update.rep_range = repRange;
+  }
+  if (patch.restSeconds !== undefined) {
+    const rest = Math.round(Number(patch.restSeconds));
+    if (!Number.isFinite(rest) || rest < 0 || rest > MAX_REST_SECONDS) {
+      return fail("That rest time doesn't look right.");
+    }
+    update.rest_seconds = rest;
+  }
+
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("user_program_exercises")
-    .update({
-      ...(patch.sets !== undefined ? { sets: patch.sets } : {}),
-      ...(patch.repRange !== undefined ? { rep_range: patch.repRange } : {}),
-      ...(patch.restSeconds !== undefined ? { rest_seconds: patch.restSeconds } : {}),
-      is_user_modified: true,
-    })
-    .eq("id", rowId);
+  const { error } = await supabase.from("user_program_exercises").update(update).eq("id", rowId);
   if (error) return fail(error.message);
   return ok(undefined);
 }
@@ -237,10 +266,112 @@ export async function swapProgramExercise(rowId: string, newExerciseId: string):
   return ok(undefined);
 }
 
-export async function markProgramModified(programId: string): Promise<void> {
-  if (!(await getCurrentUser())) return;
+/**
+ * Add an exercise to a day of an existing program.
+ *
+ * The counterpart to the swap picker, and the other half of "fill a split with
+ * the exercises you choose": swapping trades one movement for another, this is
+ * for a day that is simply missing something. Free, for the same reason swapping
+ * is — a program you cannot finish shaping is not a program you can judge.
+ *
+ * `order_index` is computed here rather than sent: the client's idea of the
+ * order is whatever it last rendered, and two adds in flight at once would
+ * collide on it.
+ */
+export async function addProgramExercise(
+  dayId: string,
+  exerciseId: string,
+): Promise<ActionResult<{ id: string; orderIndex: number }>> {
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
+
   const supabase = await createClient();
-  await supabase.from("user_programs").update({ user_modified: true }).eq("id", programId);
+
+  // Ownership is enforced by RLS on every table below, but this join also gets
+  // us the current tail of the day in the same round-trip, and it turns "the
+  // insert silently affected nothing" into a sentence a user can act on.
+  const { data: day } = await supabase
+    .from("user_program_days")
+    .select("id, user_programs!inner(id, user_id)")
+    .eq("id", dayId)
+    .eq("user_programs.user_id", user.id)
+    .maybeSingle();
+  if (!day) return fail("That workout day isn't yours.");
+
+  const { data: existing } = await supabase
+    .from("user_program_exercises")
+    .select("exercise_id, order_index")
+    .eq("user_program_day_id", dayId)
+    .order("order_index", { ascending: false });
+
+  const rows = existing ?? [];
+  if (rows.length >= MAX_EXERCISES_PER_DAY) {
+    return fail(`A day can hold at most ${MAX_EXERCISES_PER_DAY} exercises.`);
+  }
+  if (rows.some((r) => r.exercise_id === exerciseId)) {
+    return fail("That exercise is already in this day.");
+  }
+
+  const orderIndex = (rows[0]?.order_index ?? -1) + 1;
+  const { data: inserted, error } = await supabase
+    .from("user_program_exercises")
+    .insert({
+      user_program_day_id: dayId,
+      exercise_id: exerciseId,
+      order_index: orderIndex,
+      sets: 3,
+      rep_range: "8-12",
+      rest_seconds: 90,
+      is_user_modified: true,
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) return fail(error?.message ?? "Could not add that exercise.");
+
+  return ok({ id: inserted.id, orderIndex });
+}
+
+/**
+ * Drop an exercise from a day.
+ *
+ * Refuses to empty a day: `/workout/program` renders a day with no exercises as
+ * a trainable session with nothing in it, and the session recorder would open
+ * on a blank list. Removing the last one is nearly always a mis-tap, and when it
+ * isn't, the thing the user wants is a different exercise — which is the swap.
+ */
+export async function removeProgramExercise(rowId: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
+
+  const supabase = await createClient();
+
+  const { data: row } = await supabase
+    .from("user_program_exercises")
+    .select("id, user_program_day_id")
+    .eq("id", rowId)
+    .maybeSingle();
+  if (!row) return fail("That exercise isn't in your program.");
+
+  const { count } = await supabase
+    .from("user_program_exercises")
+    .select("id", { count: "exact", head: true })
+    .eq("user_program_day_id", row.user_program_day_id);
+  if ((count ?? 0) <= 1) return fail("A training day needs at least one exercise.");
+
+  const { error } = await supabase.from("user_program_exercises").delete().eq("id", rowId);
+  if (error) return fail(error.message);
+  return ok(undefined);
+}
+
+export async function markProgramModified(programId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) return;
+  const supabase = await createClient();
+  await supabase
+    .from("user_programs")
+    .update({ user_modified: true })
+    .eq("id", programId)
+    .eq("user_id", user.id);
 }
 
 export async function redoWorkoutGoals() {

@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Clock, ImageUp, Lock, Sparkles } from "lucide-react";
-import { attachPaymentProof, startPaymentRequest } from "@/app/actions/payment";
+import { Check, Clock, ImageUp, Lock, Send, Sparkles } from "lucide-react";
+import {
+  attachPaymentProof,
+  markPaymentThreadSeen,
+  sendPaymentMessage,
+  startPaymentRequest,
+} from "@/app/actions/payment";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,6 +41,26 @@ const FROM_REASON: Record<LockedFeature, StringKey> = {
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 
+/**
+ * What the file input offers. Matches the server's allow-list — `image/*` also
+ * accepted SVG, which the server now refuses, and an accept filter that lets a
+ * user choose a file we will reject is worse than no filter.
+ */
+const PROOF_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif";
+
+export type PaymentThreadMessage = {
+  id: string;
+  sender: "user" | "admin";
+  body: string;
+  createdAt: string | null;
+};
+
+export type PaymentThread = {
+  ticketId: string;
+  hasUnreadReply: boolean;
+  messages: PaymentThreadMessage[];
+};
+
 type Props = {
   locale: Locale;
   email: string;
@@ -45,6 +70,8 @@ type Props = {
   hasProof: boolean;
   /** Their last attempt was turned down, and they have not started another. */
   wasRejected: boolean;
+  /** The conversation attached to the open request, once a receipt exists. */
+  thread: PaymentThread | null;
   from: string | null;
   settings: Settings | null;
   methods: Method[];
@@ -71,6 +98,7 @@ export function CheckoutClient({
   isRenewal,
   hasProof,
   wasRejected,
+  thread,
   from,
   settings,
   methods,
@@ -149,7 +177,9 @@ export function CheckoutClient({
   function pickFile(next: File | null) {
     setError(null);
     if (!next) return;
-    if (!next.type.startsWith("image/")) {
+    // Same allow-list the server enforces, so a rejected file is caught before
+    // the upload rather than after it.
+    if (!PROOF_ACCEPT.split(",").includes(next.type)) {
       setError(t(locale, "co.file_not_image"));
       return;
     }
@@ -262,10 +292,13 @@ export function CheckoutClient({
               <p className="text-sm text-muted">{t(locale, "co.review_body")}</p>
 
               {hasProof ? (
-                <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-accent">
-                  <Check className="h-4 w-4" />
-                  {t(locale, "co.review_have_proof")}
-                </p>
+                <>
+                  <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-accent">
+                    <Check className="h-4 w-4" />
+                    {t(locale, "co.review_have_proof")}
+                  </p>
+                  <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
+                </>
               ) : (
                 <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
                   <p className="text-sm font-semibold">{t(locale, "co.review_no_proof")}</p>
@@ -290,6 +323,8 @@ export function CheckoutClient({
               )}
             </CardContent>
           </Card>
+
+          {thread && <PaymentThreadPanel locale={locale} thread={thread} />}
 
           {/* The point of the whole rebuild: waiting on review is not being
               locked out. The plan they just built is still readable. */}
@@ -633,6 +668,112 @@ export function CheckoutClient({
   );
 }
 
+/**
+ * The conversation attached to an open payment.
+ *
+ * The one screen in the flow where the customer has already parted with money
+ * and cannot do anything but wait. Before this, "the transfer didn't come
+ * through" or "the screenshot is unreadable" had no way to reach them and no
+ * way for them to answer — the request was simply rejected and they landed back
+ * at step one with no idea why.
+ *
+ * Deliberately in place on the review card rather than a link to /support: a
+ * customer mid-payment should not have to discover a separate reporting flow
+ * and describe from memory which payment they mean.
+ */
+function PaymentThreadPanel({
+  locale,
+  thread,
+}: {
+  locale: Locale;
+  thread: PaymentThread;
+}) {
+  const router = useRouter();
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const { ticketId, hasUnreadReply } = thread;
+
+  // Opening the page is reading it. The dot exists to bring them back here; once
+  // they are here it has done its job.
+  useEffect(() => {
+    if (!hasUnreadReply) return;
+    void markPaymentThreadSeen(ticketId);
+  }, [hasUnreadReply, ticketId]);
+
+  function send() {
+    const text = draft.trim();
+    if (!text) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await sendPaymentMessage(text);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDraft("");
+      router.refresh();
+    });
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-3 p-4">
+        <p className="font-display font-bold">{t(locale, "pt.title")}</p>
+        <p className="text-xs leading-relaxed text-muted">{t(locale, "pt.opened")}</p>
+
+        <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+          {thread.messages.length === 0 ? (
+            <p className="py-3 text-center text-xs text-muted">{t(locale, "pt.empty")}</p>
+          ) : (
+            thread.messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "max-w-[85%] rounded-2xl px-3 py-2",
+                  message.sender === "admin"
+                    ? "self-start bg-white/5"
+                    : "self-end bg-accent/10 text-ink",
+                )}
+              >
+                <p className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                  {message.sender === "admin" ? t(locale, "pt.from_us") : t(locale, "pt.from_you")}
+                </p>
+                <p className="whitespace-pre-line text-sm">{message.body}</p>
+              </div>
+            ))
+          )}
+        </div>
+
+        {error && (
+          <p className="text-sm text-red-500" role="alert">
+            {error}
+          </p>
+        )}
+
+        <div className="flex items-end gap-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={2}
+            maxLength={2000}
+            placeholder={t(locale, "pt.placeholder")}
+            className="w-full flex-1 resize-none rounded-2xl border border-hairline bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/60 focus:border-accent/60"
+          />
+          <Button
+            size="icon"
+            onClick={send}
+            disabled={isPending || !draft.trim()}
+            aria-label={t(locale, "pt.send")}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 /** Three dots and a label — enough to say "this ends", which one screen never did. */
 function StepBar({ locale, step }: { locale: Locale; step: number }) {
   const labels: StringKey[] = ["co.s1", "co.s2", "co.s3"];
@@ -678,7 +819,7 @@ function ProofPicker({
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={PROOF_ACCEPT}
         className="hidden"
         onChange={(e) => onPick(e.target.files?.[0] ?? null)}
       />

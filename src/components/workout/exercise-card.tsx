@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Repeat } from "lucide-react";
+import { Repeat, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ExerciseMedia } from "@/components/workout/exercise-media";
 import { illustrationFor } from "@/lib/exercise-illustrations";
@@ -28,11 +28,14 @@ export function ExerciseCard({
   exercise,
   onSetsChange,
   onSwap,
+  onRemove,
 }: {
   locale: Locale;
   exercise: EditorExercise;
   onSetsChange: (sets: number) => void;
   onSwap: (candidate: ExerciseCandidate) => void;
+  /** Omitted when removing isn't allowed — a day must keep one exercise. */
+  onRemove?: () => void;
 }) {
   const [swapping, setSwapping] = useState(false);
 
@@ -70,6 +73,16 @@ export function ExerciseCard({
               className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:text-ink"
             >
               <Repeat className="h-4 w-4" />
+            </button>
+          )}
+          {onRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              aria-label="Remove exercise"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-red-400"
+            >
+              <Trash2 className="h-4 w-4" />
             </button>
           )}
         </div>

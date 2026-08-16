@@ -49,6 +49,7 @@ export type DiaryEntry = {
 };
 
 export type DiaryFood = ServingUnit & {
+  /** Encoded food ref — a catalog slug, or `uf:<uuid>` for the user's own. */
   id: string;
   nameEn: string | null;
   nameAr: string;
@@ -57,6 +58,8 @@ export type DiaryFood = ServingUnit & {
   carbsPer100g: number;
   fatPer100g: number;
   imageUrl: string | null;
+  /** One of the user's own foods. Cannot be favourited — see `toggleFav`. */
+  isOwn?: boolean;
 };
 
 /** Small food photo from the admin CMS; renders nothing when absent. */
@@ -516,7 +519,14 @@ function AddFoodSheet({
   }, [query, ingredients]);
   const loading = false;
 
+  /**
+   * Favourites are keyed on the shared catalog (`food_favorites.ingredient_id`
+   * is a NOT NULL foreign key to it), so a user's own food cannot be starred.
+   * The button is hidden for those rather than shown and refused — and they
+   * already sort to the top of the picker, which is what starring buys.
+   */
   function toggleFav(food: DiaryFood) {
+    if (food.isOwn) return;
     const isFav = favIds.has(food.id);
     setFavIds((prev) => {
       const next = new Set(prev);
@@ -536,7 +546,7 @@ function AddFoodSheet({
     startTransition(async () => {
       const result = await logFood({
         slot,
-        ingredientId: selected.id,
+        foodRef: selected.id,
         quantityG: grams,
         entryMethod:
           tab === "plan"
@@ -824,21 +834,30 @@ function AddFoodSheet({
                           className="flex flex-1 items-center gap-3 text-start"
                         >
                           <FoodThumb src={food.imageUrl} size="h-9 w-9" />
-                          <span className="flex-1 font-semibold">{pick(locale, food.nameEn, food.nameAr)}</span>
+                          <span className="flex flex-1 items-center gap-2">
+                            <span className="font-semibold">{pick(locale, food.nameEn, food.nameAr)}</span>
+                            {food.isOwn && (
+                              <span className="shrink-0 rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-accent">
+                                {t(locale, "uf.mine")}
+                              </span>
+                            )}
+                          </span>
                           <span className="shrink-0 text-xs tabular-nums text-muted">
                             {Math.round(food.caloriesPer100g)} kcal/100g
                           </span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleFav(food)}
-                          aria-label="Favorite"
-                          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted hover:text-ink"
-                        >
-                          <Star
-                            className={cn("h-4 w-4", favIds.has(food.id) && "fill-accent text-accent")}
-                          />
-                        </button>
+                        {!food.isOwn && (
+                          <button
+                            type="button"
+                            onClick={() => toggleFav(food)}
+                            aria-label="Favorite"
+                            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-muted hover:text-ink"
+                          >
+                            <Star
+                              className={cn("h-4 w-4", favIds.has(food.id) && "fill-accent text-accent")}
+                            />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

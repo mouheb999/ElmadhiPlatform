@@ -13,6 +13,7 @@ import {
   swapMealPlanItem,
 } from "@/app/actions/diet";
 import { swapQuantityG } from "@/lib/algorithms/meal-swap";
+import { UserFoodForm } from "@/components/diet/user-food-form";
 import type { IngredientOption } from "@/components/diet/ingredient-picker";
 import type { ServingUnit } from "@/lib/servings";
 import { pick, type Locale } from "@/lib/i18n";
@@ -42,7 +43,7 @@ export function PlanEditor({
   planId,
   target,
   initialMeals,
-  ingredients,
+  ingredients: initialIngredients,
 }: {
   locale: Locale;
   planId: string;
@@ -51,6 +52,10 @@ export function PlanEditor({
   ingredients: IngredientOption[];
 }) {
   const [meals, setMeals] = useState(initialMeals);
+  // Grows when the user adds a food of their own, so the new food is pickable
+  // in every other meal immediately rather than after a reload.
+  const [ingredients, setIngredients] = useState(initialIngredients);
+  const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const tempIdCounter = useRef(0);
 
@@ -111,7 +116,7 @@ export function PlanEditor({
                 ...m.items,
                 {
                   id: tempId,
-                  ingredientId: ing.id,
+                  foodRef: ing.id,
                   nameEn: ing.nameEn,
                   nameAr: ing.nameAr,
                   slot: ing.slot,
@@ -156,7 +161,7 @@ export function PlanEditor({
                 i.id === item.id
                   ? {
                       ...i,
-                      ingredientId: replacement.id,
+                      foodRef: replacement.id,
                       nameEn: replacement.nameEn,
                       nameAr: replacement.nameAr,
                       slot: replacement.slot,
@@ -209,18 +214,52 @@ export function PlanEditor({
 
       <div className="flex flex-col gap-3">
         {meals.map((meal, i) => (
-          <MealCard
-            key={meal.id}
-            locale={locale}
-            mealType={meal.mealType}
-            items={meal.items}
-            ingredients={ingredients}
-            defaultOpen={i === 0}
-            onQuantityChange={(itemId, qty) => handleQuantityChange(meal.id, itemId, qty)}
-            onRemove={(itemId) => handleRemove(meal.id, itemId)}
-            onAdd={(food) => handleAdd(meal.id, food)}
-            onSwap={(item, replacement) => handleSwap(meal.id, item, replacement)}
-          />
+          <div key={meal.id} className="flex flex-col gap-2">
+            <MealCard
+              locale={locale}
+              mealType={meal.mealType}
+              items={meal.items}
+              ingredients={ingredients}
+              defaultOpen={i === 0}
+              onQuantityChange={(itemId, qty) => handleQuantityChange(meal.id, itemId, qty)}
+              onRemove={(itemId) => handleRemove(meal.id, itemId)}
+              onAdd={(food) => handleAdd(meal.id, food)}
+              onSwap={(item, replacement) => handleSwap(meal.id, item, replacement)}
+              onCreateOwn={() => setCreatingFor(meal.id)}
+            />
+            {creatingFor === meal.id && (
+              <UserFoodForm
+                locale={locale}
+                onCancel={() => setCreatingFor(null)}
+                onCreated={(food) => {
+                  const option: IngredientOption = {
+                    id: food.id,
+                    nameEn: food.name,
+                    nameAr: food.name,
+                    slot: food.slot,
+                    caloriesPer100g: food.caloriesPer100g,
+                    proteinPer100g: food.proteinPer100g,
+                    carbsPer100g: food.carbsPer100g,
+                    fatPer100g: food.fatPer100g,
+                    imageUrl: null,
+                    unitEn: null,
+                    unitEnPlural: null,
+                    unitAr: null,
+                    unitArPlural: null,
+                    unitGrams: null,
+                    breakfastOk: true,
+                    isOwn: true,
+                  };
+                  setIngredients((prev) => [option, ...prev]);
+                  // Adding it straight to the meal they were filling: they
+                  // opened this form from inside that meal's picker, and making
+                  // them search for what they just typed would be absurd.
+                  handleAdd(meal.id, option);
+                  setCreatingFor(null);
+                }}
+              />
+            )}
+          </div>
         ))}
       </div>
     </div>

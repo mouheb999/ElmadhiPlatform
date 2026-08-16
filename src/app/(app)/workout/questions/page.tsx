@@ -53,7 +53,11 @@ export default async function WorkoutQuestionsPage({
 
   return (
     <div className="mx-auto max-w-lg">
-      <WorkoutQuestionsClient locale={locale} questions={active as QuestionRow[]} />
+      <WorkoutQuestionsClient
+        locale={locale}
+        questions={active as QuestionRow[]}
+        isRedo={!!redo}
+      />
     </div>
   );
 }

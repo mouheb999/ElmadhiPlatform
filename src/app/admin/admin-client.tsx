@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Send } from "lucide-react";
 import {
   updatePaymentSettings,
   updatePaymentMethod,
   updatePlanPrice,
   activateRequest,
+  markPaymentsSeen,
   rejectRequest,
+  replyToPaymentThread,
   setContacted,
   type SettingsInput,
   type MethodInput,
@@ -33,6 +36,13 @@ type Request = Database["public"]["Tables"]["payment_requests"]["Row"] & {
   contactedAt: string | null;
   /** Short-lived signed URL for the uploaded receipt; null when none was sent. */
   proofUrl: string | null;
+  /** Nobody has opened the queue since this request last changed. */
+  isNew: boolean;
+  /** The conversation with this customer, once a receipt has been uploaded. */
+  thread: {
+    ticketId: string;
+    messages: { id: string; sender: "user" | "admin"; body: string; createdAt: string | null }[];
+  } | null;
 };
 
 type Props = {
@@ -94,6 +104,16 @@ function RequestsCard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  // The queue is on screen, so the nav badge has done its job. Done here rather
+  // than in the page's render body: a write during render re-runs on every
+  // re-render, and a badge that clears before the page is readable is a badge
+  // that lies. `markPaymentsSeen` is idempotent, so a double fire costs nothing.
+  const hasUnseen = requests.some((r) => r.isNew);
+  useEffect(() => {
+    if (!hasUnseen) return;
+    void markPaymentsSeen();
+  }, [hasUnseen]);
+
   function act(fn: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
     startTransition(async () => {
@@ -123,8 +143,13 @@ function RequestsCard({
             className="flex flex-col gap-3 rounded-2xl border border-hairline p-3 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="min-w-0">
-              <p className="truncate font-bold text-ink">
+              <p className="flex items-center gap-2 truncate font-bold text-ink">
                 {r.fullName ?? r.email ?? r.user_id}
+                {r.isNew && (
+                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-bg">
+                    {t(locale, "admin.pay_unread")}
+                  </span>
+                )}
               </p>
               <p className="truncate text-sm text-muted">
                 {r.email ?? r.user_id}
@@ -179,6 +204,11 @@ function RequestsCard({
                   </span>
                 )}
               </p>
+
+              {/* Answering in place. The WhatsApp button beside it is still the
+                  right tool for chasing somebody who has gone quiet; this is for
+                  the far commoner case of one question about one transfer. */}
+              {r.thread && <PaymentThread locale={locale} thread={r.thread} />}
             </div>
             <div className="flex shrink-0 gap-2">
               {waLink(r) && (
@@ -239,6 +269,97 @@ function RequestsCard({
         ))}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * The conversation about one payment, inline in the queue.
+ *
+ * The customer's side of this lives on /checkout, on the very screen where they
+ * are waiting — so an answer typed here lands where they are already looking
+ * rather than in a channel they have to go and check.
+ */
+function PaymentThread({
+  locale,
+  thread,
+}: {
+  locale: Locale;
+  thread: NonNullable<Request["thread"]>;
+}) {
+  const router = useRouter();
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function send() {
+    const text = draft.trim();
+    if (!text) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await replyToPaymentThread(thread.ticketId, text);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDraft("");
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-3 flex max-w-md flex-col gap-2 rounded-2xl border border-hairline bg-surface p-3">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+        {t(locale, "admin.pay_thread")}
+      </p>
+
+      {thread.messages.length === 0 ? (
+        <p className="py-1 text-xs text-muted">{t(locale, "admin.pay_no_thread")}</p>
+      ) : (
+        <div className="flex max-h-48 flex-col gap-1.5 overflow-y-auto">
+          {thread.messages.map((message) => (
+            <div
+              key={message.id}
+              className={cn(
+                "max-w-[85%] rounded-xl px-2.5 py-1.5 text-sm",
+                message.sender === "admin"
+                  ? "self-end bg-accent/10"
+                  : "self-start bg-white/5",
+              )}
+            >
+              <span className="block text-[10px] font-bold uppercase tracking-wide text-muted">
+                {message.sender === "admin" ? t(locale, "pt.from_us") : t(locale, "pt.from_you")}
+              </span>
+              <span className="whitespace-pre-line">{message.body}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-500" role="alert">
+          {error}
+        </p>
+      )}
+
+      <div className="flex items-end gap-2">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={2}
+          maxLength={2000}
+          placeholder={t(locale, "admin.pay_reply_ph")}
+          className="w-full flex-1 resize-none rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/60 focus:border-accent/60"
+        />
+        <Button
+          size="icon"
+          onClick={send}
+          disabled={isPending || !draft.trim()}
+          aria-label={t(locale, "admin.pay_send")}
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
   );
 }
 

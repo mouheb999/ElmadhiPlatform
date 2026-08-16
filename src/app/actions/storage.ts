@@ -10,6 +10,21 @@ type Bucket = (typeof ALLOWED_BUCKETS)[number];
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
 /**
+ * Raster formats only, and an allow-list rather than an `image/*` prefix.
+ *
+ * `image/svg+xml` passes a prefix check and is not a picture — it is a document
+ * that can carry <script>. These buckets are PUBLIC and are served from the
+ * storage origin to every user in the app, so one stored SVG is script running
+ * against everyone who opens a food or exercise image.
+ */
+const ALLOWED_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+/**
  * Upload an image to a public content bucket and return its public URL.
  * Admin only. Uses the service-role client, which bypasses storage RLS.
  * Receives FormData so the browser can stream a File to the server action.
@@ -30,11 +45,14 @@ export async function uploadImage(
     return fail("Invalid bucket.");
   if (!(file instanceof File) || file.size === 0)
     return fail("No file provided.");
-  if (!file.type.startsWith("image/")) return fail("File must be an image.");
+  if (!ALLOWED_TYPES[file.type]) return fail("Use a JPG, PNG, WebP or GIF.");
   if (file.size > MAX_BYTES) return fail("Image must be under 5 MB.");
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const path = `${crypto.randomUUID()}.${ext}`;
+  // Extension chosen by us from the (allow-listed) type, not taken from the
+  // uploaded filename. `file.name` is entirely caller-controlled: splitting on
+  // "." and keeping the tail let a name like "x.jpg/../../thing" put slashes
+  // and traversal segments into the object key.
+  const path = `${crypto.randomUUID()}.${ALLOWED_TYPES[file.type]}`;
 
   const admin = createAdminClient();
   const { error } = await admin.storage.from(bucket).upload(path, file, {

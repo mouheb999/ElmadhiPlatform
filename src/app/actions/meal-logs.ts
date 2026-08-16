@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePaidUser } from "@/lib/subscription-server";
 import { tunisDateKey } from "@/lib/dates";
+import { resolveFood, macrosForPortion } from "@/lib/food-lookup";
+import { isUserFoodRef } from "@/lib/food-ref";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -58,13 +60,18 @@ function serverToday(): string {
 }
 
 /**
- * Log a catalog food. Macros are computed server-side from the foods table
- * (never trusted from the client) and denormalized onto the log row so the
- * entry survives later food edits.
+ * Log a food from the catalog or from the user's own list.
+ *
+ * Unchanged in every way that matters: macros are computed server-side from the
+ * stored per-100g values (never trusted from the client) and denormalized onto
+ * the log row, so the entry survives later edits to the food. The only new
+ * thing is which table the lookup reads — see `resolveFood`, which scopes a
+ * user food to its owner.
  */
 export async function logFood(input: {
   slot: MealSlot;
-  ingredientId: string;
+  /** Catalog slug, or `uf:<uuid>` for one of the user's own foods. */
+  foodRef: string;
   quantityG: number;
   entryMethod: ManualEntryMethod;
 }): Promise<ActionResult> {
@@ -79,24 +86,17 @@ export async function logFood(input: {
     return fail("Quantity looks off — please double-check.");
   }
 
-  const { data: food } = await supabase
-    .from("nutrition_ingredients")
-    .select("id, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-    .eq("id", input.ingredientId)
-    .maybeSingle();
+  const food = await resolveFood(supabase, user.id, input.foodRef);
   if (!food) return fail("Food not found.");
 
-  const factor = quantity / 100;
   const { error } = await supabase.from("meal_logs").insert({
     user_id: user.id,
     log_date: serverToday(),
     meal_slot: input.slot,
-    ingredient_id: food.id,
+    ingredient_id: food.ingredientId,
+    user_food_id: food.userFoodId,
     quantity_g: quantity,
-    calories: Math.round((food.calories_per_100g ?? 0) * factor * 10) / 10,
-    protein_g: Math.round((food.protein_per_100g ?? 0) * factor * 10) / 10,
-    carbs_g: Math.round((food.carbs_per_100g ?? 0) * factor * 10) / 10,
-    fat_g: Math.round((food.fat_per_100g ?? 0) * factor * 10) / 10,
+    ...macrosForPortion(food, quantity),
     entry_method: input.entryMethod === "plan" ? "template" : input.entryMethod,
   });
   if (error) return fail(error.message);
@@ -124,26 +124,32 @@ export async function logPlanMeal(
   const { user, denied } = await requirePaidUser();
   if (!user) return fail(denied);
 
+  type Macros = {
+    calories_per_100g: number;
+    protein_per_100g: number;
+    carbs_per_100g: number;
+    fat_per_100g: number;
+  };
   type PlanMealRow = {
     id: string;
     meal_type: string;
     meal_plans: { user_id: string } | null;
     meal_plan_items: {
       ingredient_id: string | null;
+      user_food_id: string | null;
       quantity_g: number;
-      nutrition_ingredients: {
-        calories_per_100g: number | null;
-        protein_per_100g: number | null;
-        carbs_per_100g: number | null;
-        fat_per_100g: number | null;
-      } | null;
+      nutrition_ingredients: Macros | null;
+      // A hand-built plan can name the user's own foods. RLS (migration 043)
+      // already guarantees a plan can only ever reference its owner's, so the
+      // join needs no extra scoping here.
+      user_foods: Macros | null;
     }[];
   };
 
   const { data: mealRaw } = await supabase
     .from("meal_plan_meals")
     .select(
-      "id, meal_type, meal_plans!inner(user_id), meal_plan_items(ingredient_id, quantity_g, nutrition_ingredients(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
+      "id, meal_type, meal_plans!inner(user_id), meal_plan_items(ingredient_id, user_food_id, quantity_g, nutrition_ingredients(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g), user_foods(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g))",
     )
     .eq("id", mealId)
     .eq("meal_plans.user_id", user.id)
@@ -151,7 +157,9 @@ export async function logPlanMeal(
   if (!mealRaw) return fail("Meal not found.");
 
   const meal = mealRaw as unknown as PlanMealRow;
-  const items = (meal.meal_plan_items ?? []).filter((i) => i.nutrition_ingredients);
+  const items = (meal.meal_plan_items ?? []).filter(
+    (i) => i.nutrition_ingredients ?? i.user_foods,
+  );
   if (items.length === 0) return fail("This meal has no foods yet.");
 
   // Log against the plan's own occasion, so the diary entry sits under the
@@ -163,18 +171,26 @@ export async function logPlanMeal(
 
   const { error } = await supabase.from("meal_logs").insert(
     items.map((item) => {
-      const factor = (item.quantity_g ?? 0) / 100;
-      const ing = item.nutrition_ingredients!;
+      const source = (item.nutrition_ingredients ?? item.user_foods)!;
+      const macros = macrosForPortion(
+        {
+          ingredientId: item.ingredient_id,
+          userFoodId: item.user_food_id,
+          caloriesPer100g: source.calories_per_100g,
+          proteinPer100g: source.protein_per_100g,
+          carbsPer100g: source.carbs_per_100g,
+          fatPer100g: source.fat_per_100g,
+        },
+        item.quantity_g ?? 0,
+      );
       return {
         user_id: user.id,
         log_date: today,
         meal_slot: slot,
         ingredient_id: item.ingredient_id,
+        user_food_id: item.user_food_id,
         quantity_g: item.quantity_g,
-        calories: Math.round((ing.calories_per_100g ?? 0) * factor * 10) / 10,
-        protein_g: Math.round((ing.protein_per_100g ?? 0) * factor * 10) / 10,
-        carbs_g: Math.round((ing.carbs_per_100g ?? 0) * factor * 10) / 10,
-        fat_g: Math.round((ing.fat_per_100g ?? 0) * factor * 10) / 10,
+        ...macros,
         entry_method: "template",
       };
     }),
@@ -211,15 +227,34 @@ export async function logQuick(input: {
     return fail("Calories look off — please double-check.");
   }
 
+  // The one entry path where the macros come from the client rather than from a
+  // food we looked up, so they need their own ceiling. Unbounded, they overflow
+  // NUMERIC(6,1) — and short of that they poison the weekly review and every
+  // adaptation that reads a protein average.
+  const macro = (value: number | null): number | null => {
+    if (value === null) return 0;
+    const n = Number(value);
+    if (!Number.isFinite(n) || n < 0 || n > 2000) return null;
+    return Math.round(n * 10) / 10;
+  };
+  const proteinG = macro(input.proteinG);
+  const carbsG = macro(input.carbsG);
+  const fatG = macro(input.fatG);
+  if (proteinG === null || carbsG === null || fatG === null) {
+    return fail("Those macros look off — please double-check.");
+  }
+
   const { error } = await supabase.from("meal_logs").insert({
     user_id: user.id,
     log_date: serverToday(),
     meal_slot: input.slot,
-    custom_name: input.name.trim() || null,
+    // Free text the user typed; bounded so a pasted document can't become a
+    // diary row every screen then has to render.
+    custom_name: input.name.trim().slice(0, 120) || null,
     calories,
-    protein_g: input.proteinG ?? 0,
-    carbs_g: input.carbsG ?? 0,
-    fat_g: input.fatG ?? 0,
+    protein_g: proteinG,
+    carbs_g: carbsG,
+    fat_g: fatG,
     entry_method: "quick",
   });
   if (error) return fail(error.message);
@@ -254,7 +289,9 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
 
   const { data: entries } = await supabase
     .from("meal_logs")
-    .select("meal_slot, ingredient_id, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g")
+    .select(
+      "meal_slot, ingredient_id, user_food_id, custom_name, quantity_g, calories, protein_g, carbs_g, fat_g",
+    )
     .eq("user_id", user.id)
     .eq("log_date", lastDayRow.log_date);
   if (!entries || entries.length === 0) return fail("No previous day to copy.");
@@ -265,6 +302,7 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
       log_date: today,
       meal_slot: e.meal_slot,
       ingredient_id: e.ingredient_id,
+      user_food_id: e.user_food_id,
       custom_name: e.custom_name,
       quantity_g: e.quantity_g,
       calories: e.calories,
@@ -311,6 +349,12 @@ export async function toggleFavoriteFood(
   const supabase = await createClient();
   const { user, denied } = await requirePaidUser();
   if (!user) return fail(denied);
+
+  // Favourites are keyed on the shared catalog — `food_favorites.ingredient_id`
+  // is a NOT NULL foreign key to it. The diary hides the star on the user's own
+  // foods; this is the matching refusal, so a direct POST gets a sentence
+  // rather than a foreign-key violation.
+  if (isUserFoodRef(ingredientId)) return fail("Your own foods can't be favourited.");
 
   const { error } = favorite
     ? (

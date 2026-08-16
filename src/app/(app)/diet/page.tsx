@@ -1,10 +1,9 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
-import { Button } from "@/components/ui/button";
+import { BuildModeChoice } from "@/components/shared/build-mode-choice";
 import { NutritionTabs, type NutritionView } from "@/components/diet/nutrition-tabs";
 import { TodayView } from "./_views/today-view";
 import { PlanView } from "./_views/plan-view";
@@ -48,15 +47,19 @@ export default async function DietPage({
     .eq("is_active", true)
     .maybeSingle();
 
+  // Before a plan exists, the fork: answer the wizard and be handed a plan, or
+  // open the builder and craft one from the same catalog. The single "Start"
+  // button that used to be here made the guided route look like the only route.
   if (!dietProfile) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center">
-        <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "dashboard.diet_title")}</h1>
-        <p className="max-w-xs text-muted">{t(locale, "dashboard.diet_not_started")}</p>
-        <Button asChild size="lg">
-          <Link href="/diet/questions">{t(locale, "dashboard.cta_start")}</Link>
-        </Button>
-      </div>
+      <BuildModeChoice
+        locale={locale}
+        title={t(locale, "dashboard.diet_title")}
+        guidedHref="/diet/questions"
+        guidedBody="build.guided_diet"
+        customHref="/diet/build"
+        customBody="build.custom_diet"
+      />
     );
   }
 

@@ -32,7 +32,7 @@ export default async function DietQuestionsPage({
 
   return (
     <div className="mx-auto max-w-lg">
-      <DietQuestionsClient locale={locale} />
+      <DietQuestionsClient locale={locale} isRedo={!!redo} />
     </div>
   );
 }

@@ -11,7 +11,8 @@ import { formatServing, type ServingUnit } from "@/lib/servings";
 
 export type EditorItem = ServingUnit & {
   id: string;
-  ingredientId: string;
+  /** Encoded food ref — a catalog slug, or `uf:<uuid>` for the user's own. */
+  foodRef: string;
   nameEn: string | null;
   nameAr: string;
   /** Catalog slot of the current food — swap offers alternatives from it. */
@@ -54,6 +55,7 @@ export function MealCard({
   onRemove,
   onAdd,
   onSwap,
+  onCreateOwn,
   defaultOpen = false,
 }: {
   locale: Locale;
@@ -65,6 +67,8 @@ export function MealCard({
   onAdd: (ingredient: IngredientOption) => void;
   /** Exchange a food for a same-slot alternative at an equivalent portion. */
   onSwap: (item: EditorItem, replacement: IngredientOption) => void;
+  /** Opens the "add a food" form; the created food is added to this meal. */
+  onCreateOwn?: () => void;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -160,7 +164,15 @@ export function MealCard({
                 onAdd(ing);
                 setAdding(false);
               }}
-              placeholder={locale === "tn" ? "لوّج على ماكلة…" : "Search foods…"}
+              onCreateOwn={
+                onCreateOwn
+                  ? () => {
+                      setAdding(false);
+                      onCreateOwn();
+                    }
+                  : undefined
+              }
+              placeholder={t(locale, "cd.search_foods")}
             />
           ) : (
             <button
@@ -203,7 +215,7 @@ function SwapOptions({
   const alternatives = ingredients.filter(
     (i) =>
       i.slot === item.slot &&
-      i.id !== item.ingredientId &&
+      i.id !== item.foodRef &&
       (mealType !== "meal_1" || i.breakfastOk),
   );
 

@@ -1,15 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, Lock, Play, Trophy } from "lucide-react";
+import { Check, CheckCircle2, Lock, Play, Plus, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { ExerciseCard, type EditorExercise, type ExerciseCandidate } from "@/components/workout/exercise-card";
+import { ExercisePicker, type PickableExercise } from "@/components/workout/exercise-picker";
+import { Button } from "@/components/ui/button";
 import { WarningBanner } from "@/components/shared/warning-banner";
 import { LockedDialog } from "@/components/shared/locked-dialog";
 import { validateProgram } from "@/lib/algorithms/validation";
-import { saveProgramExerciseEdit, swapProgramExercise, markProgramModified } from "@/app/actions/training";
+import { MAX_EXERCISES_PER_DAY as MAX_PER_DAY } from "@/lib/program-limits";
+import {
+  addProgramExercise,
+  removeProgramExercise,
+  saveProgramExerciseEdit,
+  swapProgramExercise,
+  markProgramModified,
+} from "@/app/actions/training";
 
 export type EditorDay = {
   id: string;
@@ -32,21 +41,27 @@ export function ProgramEditor({
   programId,
   initialDays,
   dayStatus,
+  catalog,
   locked = false,
 }: {
   locale: Locale;
   programId: string;
   initialDays: EditorDay[];
   dayStatus: Record<string, DayStatus>;
+  /** The whole exercise catalog, backing the "add an exercise" picker. */
+  catalog: PickableExercise[];
   /** Free account: the program is readable, but training against it is not. */
   locked?: boolean;
 }) {
   const [days, setDays] = useState(initialDays);
   const [activeDay, setActiveDay] = useState(0);
   const [showLock, setShowLock] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const warnings = validateProgram(days.flatMap((d) => d.exercises.map((e) => e.primaryMuscle)));
+  const catalogById = useMemo(() => new Map(catalog.map((e) => [e.id, e])), [catalog]);
 
   function handleSetsChange(dayIndex: number, rowId: string, sets: number) {
     setDays((prev) =>
@@ -87,6 +102,77 @@ export function ProgramEditor({
       markProgramModified(programId);
     });
   }
+
+  /**
+   * Add a movement to the open day.
+   *
+   * Unlike the sets stepper and the swap, this one waits for the server before
+   * showing anything: the new row's id comes back from the insert, and an
+   * optimistic card with a made-up id would break the very next edit made to it.
+   */
+  function handleAdd(dayIndex: number, exerciseId: string) {
+    const day = days[dayIndex];
+    const catalogEntry = catalogById.get(exerciseId);
+    if (!day || !catalogEntry) return;
+    setError(null);
+
+    startTransition(async () => {
+      const res = await addProgramExercise(day.id, exerciseId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDays((prev) =>
+        prev.map((d, i) =>
+          i === dayIndex
+            ? {
+                ...d,
+                exercises: [
+                  ...d.exercises,
+                  {
+                    id: res.data.id,
+                    exerciseId: catalogEntry.id,
+                    nameEn: catalogEntry.nameEn,
+                    nameAr: catalogEntry.nameAr,
+                    primaryMuscle: catalogEntry.primaryMuscle ?? "",
+                    sets: 3,
+                    repRange: "8-12",
+                    restSeconds: 90,
+                    notes: null,
+                    thumbnailUrl: null,
+                    videoUrl: null,
+                    substitutes: [],
+                  },
+                ],
+              }
+            : d,
+        ),
+      );
+      markProgramModified(programId);
+    });
+  }
+
+  function handleRemove(dayIndex: number, rowId: string) {
+    setError(null);
+    startTransition(async () => {
+      const res = await removeProgramExercise(rowId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setDays((prev) =>
+        prev.map((d, i) =>
+          i === dayIndex ? { ...d, exercises: d.exercises.filter((e) => e.id !== rowId) } : d,
+        ),
+      );
+      markProgramModified(programId);
+    });
+  }
+
+  const currentDay = days[activeDay];
+  const dayIsDone = currentDay
+    ? (dayStatus[currentDay.id] ?? { state: "available" }).state === "completed"
+    : false;
 
   return (
     <div className="flex flex-col gap-5">
@@ -143,15 +229,53 @@ export function ProgramEditor({
       )}
 
       <div className="flex flex-col gap-3">
-        {days[activeDay]?.exercises.map((exercise) => (
+        {currentDay?.exercises.map((exercise) => (
           <ExerciseCard
             key={exercise.id}
             locale={locale}
             exercise={exercise}
             onSetsChange={(sets) => handleSetsChange(activeDay, exercise.id, sets)}
             onSwap={(candidate) => handleSwap(activeDay, exercise.id, candidate)}
+            onRemove={
+              currentDay.exercises.length > 1
+                ? () => handleRemove(activeDay, exercise.id)
+                : undefined
+            }
           />
         ))}
+
+        {error && (
+          <p className="text-sm text-red-500" role="alert">
+            {error}
+          </p>
+        )}
+
+        {/* Shaping the program is free and stays free (see the note on
+            swapProgramExercise). A day already recorded this week is the one
+            exception: its session is history, and editing what was trained
+            after the fact would rewrite it. */}
+        {currentDay &&
+          !dayIsDone &&
+          (picking ? (
+            <ExercisePicker
+              locale={locale}
+              exercises={catalog}
+              chosenIds={new Set(currentDay.exercises.map((e) => e.exerciseId))}
+              full={currentDay.exercises.length >= MAX_PER_DAY}
+              onPick={(id) => handleAdd(activeDay, id)}
+              onClose={() => setPicking(false)}
+            />
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => setPicking(true)}
+              disabled={currentDay.exercises.length >= MAX_PER_DAY}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4" />
+              {t(locale, "cw.add_exercise")}
+            </Button>
+          ))}
       </div>
     </div>
   );

@@ -64,6 +64,42 @@ export default async function AdminPage() {
       .map((s) => [s.path as string, s.signedUrl]),
   );
 
+  // The conversation attached to each request (migration 044), so an admin can
+  // answer "your transfer is 5 DT short" without leaving the queue — which was
+  // previously only possible by copying a phone number into WhatsApp.
+  const requestIds = (requests ?? []).map((r) => r.id);
+  const { data: tickets } = requestIds.length
+    ? await db
+        .from("support_tickets")
+        .select("id, payment_request_id, support_messages(id, sender, body, created_at)")
+        .in("payment_request_id", requestIds)
+    : { data: [] };
+
+  type TicketRow = {
+    id: string;
+    payment_request_id: string | null;
+    support_messages: { id: string; sender: string; body: string; created_at: string | null }[];
+  };
+  const threadByRequest = new Map(
+    ((tickets ?? []) as unknown as TicketRow[])
+      .filter((ticket) => ticket.payment_request_id)
+      .map((ticket) => [
+        ticket.payment_request_id as string,
+        {
+          ticketId: ticket.id,
+          messages: (ticket.support_messages ?? [])
+            .slice()
+            .sort((a, b) => Date.parse(a.created_at ?? "") - Date.parse(b.created_at ?? ""))
+            .map((m) => ({
+              id: m.id,
+              sender: m.sender === "admin" ? ("admin" as const) : ("user" as const),
+              body: m.body,
+              createdAt: m.created_at,
+            })),
+        },
+      ]),
+  );
+
   const byId = new Map((people ?? []).map((p) => [p.id, p]));
   const pending = (requests ?? []).map((r) => {
     const person = byId.get(r.user_id);
@@ -75,6 +111,8 @@ export default async function AdminPage() {
       userLocale: person?.locale ?? null,
       contactedAt: person?.contacted_at ?? null,
       proofUrl: r.proof_path ? (proofUrlByPath.get(r.proof_path) ?? null) : null,
+      isNew: !r.admin_seen_at,
+      thread: threadByRequest.get(r.id) ?? null,
     };
   });
 

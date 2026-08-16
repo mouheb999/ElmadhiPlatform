@@ -185,6 +185,8 @@ export type Database = {
           proof_path: string | null;
           proof_note: string | null;
           proof_uploaded_at: string | null;
+          // migration 044 — drives the admin nav's unread payments badge
+          admin_seen_at: string | null;
         };
         Insert: {
           id?: string;
@@ -200,6 +202,7 @@ export type Database = {
           proof_path?: string | null;
           proof_note?: string | null;
           proof_uploaded_at?: string | null;
+          admin_seen_at?: string | null;
         };
         Update: {
           id?: string;
@@ -215,6 +218,7 @@ export type Database = {
           proof_path?: string | null;
           proof_note?: string | null;
           proof_uploaded_at?: string | null;
+          admin_seen_at?: string | null;
         };
         Relationships: [];
       };
@@ -253,6 +257,8 @@ export type Database = {
           food_restrictions: string[] | null;
           avoid_foods: string[] | null;
           selected_template_code: string | null;
+          // migration 043 — 'guided' (20-Q wizard) or 'custom' (hand-built)
+          build_mode: string;
           created_at: string | null;
         };
         Insert: {
@@ -288,6 +294,7 @@ export type Database = {
           food_restrictions?: string[] | null;
           avoid_foods?: string[] | null;
           selected_template_code?: string | null;
+          build_mode?: string;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["diet_profiles"]["Insert"]>;
@@ -323,8 +330,66 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["macro_targets"]["Insert"]>;
         Relationships: [];
       };
-      // migration 028 — the large `foods` catalog + `recipes`, `recipe_ingredients`
-      // and `user_foods` were dropped and replaced by the curated ingredient set.
+      // migration 028 — the large `foods` catalog + `recipes` and
+      // `recipe_ingredients` were dropped and replaced by the curated
+      // ingredient set below.
+      //
+      // migration 043 — `user_foods` (dropped along with them in 028) is
+      // recreated, because the catalog is global and read-only and "the thing I
+      // eat isn't in your list" needs somewhere private to land. Same column
+      // vocabulary as nutrition_ingredients so one picker can render both.
+      user_foods: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          name_ar: string | null;
+          slot: string;
+          calories_per_100g: number;
+          protein_per_100g: number;
+          carbs_per_100g: number;
+          fat_per_100g: number;
+          fiber_per_100g: number;
+          typical_serving_g: number | null;
+          unit_en: string | null;
+          unit_en_plural: string | null;
+          unit_ar: string | null;
+          unit_ar_plural: string | null;
+          unit_grams: number | null;
+          is_archived: boolean;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          name_ar?: string | null;
+          slot?: string;
+          calories_per_100g: number;
+          protein_per_100g: number;
+          carbs_per_100g: number;
+          fat_per_100g: number;
+          fiber_per_100g?: number;
+          typical_serving_g?: number | null;
+          unit_en?: string | null;
+          unit_en_plural?: string | null;
+          unit_ar?: string | null;
+          unit_ar_plural?: string | null;
+          unit_grams?: number | null;
+          is_archived?: boolean;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_foods"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "user_foods_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       nutrition_ingredients: {
         Row: {
           id: string;
@@ -432,6 +497,8 @@ export type Database = {
           user_modified: boolean | null;
           warnings_acknowledged: Json | null;
           template_code: string | null;
+          // migration 043 — built by hand rather than from a template
+          is_custom: boolean;
         };
         Insert: {
           id?: string;
@@ -443,6 +510,7 @@ export type Database = {
           user_modified?: boolean | null;
           warnings_acknowledged?: Json | null;
           template_code?: string | null;
+          is_custom?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
         Relationships: [];
@@ -474,6 +542,8 @@ export type Database = {
           id: string;
           meal_id: string;
           ingredient_id: string | null;
+          // migration 043 — exactly one of ingredient_id / user_food_id is set
+          user_food_id: string | null;
           quantity_g: number;
           role: string | null;
           is_optional: boolean;
@@ -483,6 +553,7 @@ export type Database = {
           id?: string;
           meal_id: string;
           ingredient_id?: string | null;
+          user_food_id?: string | null;
           quantity_g: number;
           role?: string | null;
           is_optional?: boolean;
@@ -526,6 +597,8 @@ export type Database = {
           weight_goal: string | null;
           cardio_preference: string | null;
           recovery_capacity: string | null;
+          // migration 043 — 'guided' (questionnaire) or 'custom' (builder)
+          build_mode: string;
         };
         Insert: {
           id?: string;
@@ -556,6 +629,7 @@ export type Database = {
           weight_goal?: string | null;
           cardio_preference?: string | null;
           recovery_capacity?: string | null;
+          build_mode?: string;
         };
         Update: Partial<
           Database["public"]["Tables"]["training_profiles"]["Insert"]
@@ -636,6 +710,8 @@ export type Database = {
           split_type: string;
           user_modified: boolean | null;
           warnings_acknowledged: Json | null;
+          // migration 043 — assembled in the builder, not copied from a split
+          is_custom: boolean;
           generated_at: string | null;
         };
         Insert: {
@@ -648,6 +724,7 @@ export type Database = {
           split_type: string;
           user_modified?: boolean | null;
           warnings_acknowledged?: Json | null;
+          is_custom?: boolean;
           generated_at?: string | null;
         };
         Update: Partial<
@@ -789,6 +866,8 @@ export type Database = {
           log_date: string;
           meal_slot: string | null;
           ingredient_id: string | null;
+          // migration 043 — set when the entry came from the user's own food
+          user_food_id: string | null;
           custom_name: string | null;
           quantity_g: number | null;
           calories: number;
@@ -805,6 +884,7 @@ export type Database = {
           log_date?: string;
           meal_slot?: string | null;
           ingredient_id?: string | null;
+          user_food_id?: string | null;
           custom_name?: string | null;
           quantity_g?: number | null;
           calories: number;
@@ -1037,6 +1117,8 @@ export type Database = {
           last_message_at: string | null;
           last_admin_reply_at: string | null;
           user_seen_at: string | null;
+          // migration 044 — set when the thread is about a payment request
+          payment_request_id: string | null;
           created_at: string | null;
         };
         Insert: {
@@ -1047,6 +1129,7 @@ export type Database = {
           last_message_at?: string | null;
           last_admin_reply_at?: string | null;
           user_seen_at?: string | null;
+          payment_request_id?: string | null;
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["support_tickets"]["Insert"]>;

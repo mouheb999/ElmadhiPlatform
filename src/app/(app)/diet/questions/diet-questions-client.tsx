@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QuestionWizard, type WizardStep } from "@/components/shared/question-wizard";
 import { OptionCardGroup } from "@/components/shared/option-card";
@@ -9,7 +10,14 @@ import { t, type Locale, type StringKey } from "@/lib/i18n";
 
 type WizardAnswers = DietAnswers;
 
-export function DietQuestionsClient({ locale }: { locale: Locale }) {
+export function DietQuestionsClient({
+  locale,
+  isRedo = false,
+}: {
+  locale: Locale;
+  /** Carried through to the builder so the same rebuild quota check applies. */
+  isRedo?: boolean;
+}) {
   const router = useRouter();
   const tr = (k: StringKey) => t(locale, k);
 
@@ -188,6 +196,7 @@ export function DietQuestionsClient({ locale }: { locale: Locale }) {
   }
 
   return (
+    <div className="flex flex-col gap-6">
     <QuestionWizard
       steps={steps}
       onComplete={handleComplete}
@@ -208,5 +217,14 @@ export function DietQuestionsClient({ locale }: { locale: Locale }) {
         trackingExperience: "never",
       }}
     />
+      {/* On screen the whole way through: twenty questions is a long way to
+          get to a plan somebody already knows how to write themselves. */}
+      <Link
+        href={isRedo ? "/diet/build?redo=1" : "/diet/build"}
+        className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink"
+      >
+        {t(locale, "build.switch_to_custom")}
+      </Link>
+    </div>
   );
 }

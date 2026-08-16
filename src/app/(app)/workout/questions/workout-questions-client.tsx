@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QuestionWizard, type WizardStep } from "@/components/shared/question-wizard";
 import { OptionCardGroup } from "@/components/shared/option-card";
 import { submitWorkoutQuestions, type WorkoutAnswers } from "@/app/actions/training";
 import { isQuestionVisible } from "@/lib/algorithms/split-fill";
-import { type Locale } from "@/lib/i18n";
+import { t, type Locale } from "@/lib/i18n";
 
 export type QuestionRow = {
   id: string;
@@ -41,9 +42,12 @@ function exclusiveOptionsFor(options: string[]): string[] {
 export function WorkoutQuestionsClient({
   locale,
   questions,
+  isRedo = false,
 }: {
   locale: Locale;
   questions: QuestionRow[];
+  /** Carried through to the builder so the same rebuild quota check applies. */
+  isRedo?: boolean;
 }) {
   const router = useRouter();
   const isAr = locale === "tn";
@@ -90,5 +94,18 @@ export function WorkoutQuestionsClient({
     );
   }
 
-  return <QuestionWizard steps={steps} onComplete={handleComplete} locale={locale} />;
+  return (
+    <div className="flex flex-col gap-6">
+      <QuestionWizard steps={steps} onComplete={handleComplete} locale={locale} />
+      {/* The escape hatch, on screen the whole way through: somebody who
+          realises three questions in that they already know their split
+          shouldn't have to finish answering to get out. */}
+      <Link
+        href={isRedo ? "/workout/build?redo=1" : "/workout/build"}
+        className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink"
+      >
+        {t(locale, "build.switch_to_custom")}
+      </Link>
+    </div>
+  );
 }

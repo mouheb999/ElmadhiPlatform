@@ -61,7 +61,10 @@ export function ImageUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          // Matches the server's allow-list in `uploadImage`. `image/*` also
+          // offered SVG, which is refused server-side — a picker that lets you
+          // choose a file we will reject is worse than one that doesn't.
+          accept="image/jpeg,image/png,image/webp,image/gif"
           className="hidden"
           onChange={onPick}
         />

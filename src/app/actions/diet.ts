@@ -18,6 +18,8 @@ import {
 } from "@/lib/algorithms/meal-template-fill";
 import { selectTemplate, type MealTemplate } from "@/lib/algorithms/meal-template-select";
 import { swapQuantityG, type SwapFood } from "@/lib/algorithms/meal-swap";
+import { resolveFood } from "@/lib/food-lookup";
+import { MAX_QUANTITY_G } from "@/lib/program-limits";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
@@ -292,10 +294,19 @@ export async function saveMealPlanItemEdit(itemId: string, quantityG: number): P
   const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
+  // `quantity_g` is NUMERIC(6,1) with no CHECK behind it, so an out-of-range
+  // value from a direct POST would either land in the plan and skew every macro
+  // total that reads it, or overflow the column and surface as a raw Postgres
+  // error. Neither is something the editor's stepper can produce.
+  const quantity = Math.round(Number(quantityG));
+  if (!Number.isFinite(quantity) || quantity <= 0 || quantity > MAX_QUANTITY_G) {
+    return fail("That portion looks off.");
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("meal_plan_items")
-    .update({ quantity_g: quantityG, is_user_modified: true })
+    .update({ quantity_g: quantity, is_user_modified: true })
     .eq("id", itemId);
   if (error) return fail(error.message);
   return ok(undefined);
@@ -311,18 +322,40 @@ export async function removeMealPlanItem(itemId: string): Promise<ActionResult> 
   return ok(undefined);
 }
 
+/**
+ * Add a food to a planned meal.
+ *
+ * `foodRef` is a catalog slug or `uf:<uuid>` for one of the user's own foods —
+ * the picker lists both, so this has to take both. `resolveFood` reads a user
+ * food scoped to the caller, which is what stops another account's food id
+ * being pasted in to read its macros back through the join.
+ */
 export async function addMealPlanItem(
   mealId: string,
-  ingredientId: string,
+  foodRef: string,
   quantityG: number,
 ): Promise<ActionResult<{ id: string }>> {
   const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
 
+  const quantity = Math.round(Number(quantityG));
+  if (!Number.isFinite(quantity) || quantity <= 0 || quantity > MAX_QUANTITY_G) {
+    return fail("That portion looks off.");
+  }
+
   const supabase = await createClient();
+  const food = await resolveFood(supabase, user.id, foodRef);
+  if (!food) return fail("Could not find that food.");
+
   const { data, error } = await supabase
     .from("meal_plan_items")
-    .insert({ meal_id: mealId, ingredient_id: ingredientId, quantity_g: quantityG, is_user_modified: true })
+    .insert({
+      meal_id: mealId,
+      ingredient_id: food.ingredientId,
+      user_food_id: food.userFoodId,
+      quantity_g: quantity,
+      is_user_modified: true,
+    })
     .select("id")
     .single();
   if (error || !data) return fail(error?.message ?? "Could not add food.");
@@ -337,7 +370,7 @@ export async function addMealPlanItem(
  */
 export async function swapMealPlanItem(
   itemId: string,
-  newIngredientId: string,
+  newFoodRef: string,
 ): Promise<ActionResult<{ quantityG: number }>> {
   const user = await getCurrentUser();
   if (!user) return fail("Not signed in.");
@@ -354,20 +387,22 @@ export async function swapMealPlanItem(
   const { data: itemRaw, error: itemError } = await supabase
     .from("meal_plan_items")
     .select(
-      "quantity_g, nutrition_ingredients(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)",
+      "quantity_g, nutrition_ingredients(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g), user_foods(calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g)",
     )
     .eq("id", itemId)
     .maybeSingle();
   if (itemError) return fail(itemError.message);
-  const item = itemRaw as unknown as { quantity_g: number; nutrition_ingredients: MacroRow | null } | null;
-  if (!item?.nutrition_ingredients) return fail("Could not find the food to swap.");
+  const item = itemRaw as unknown as {
+    quantity_g: number;
+    nutrition_ingredients: MacroRow | null;
+    user_foods: MacroRow | null;
+  } | null;
+  // Whichever of the two the row points at — the rescaling only needs its
+  // macros, and a hand-built plan's rows can be either.
+  const current = item?.nutrition_ingredients ?? item?.user_foods;
+  if (!item || !current) return fail("Could not find the food to swap.");
 
-  const { data: replacement, error: replacementError } = await supabase
-    .from("nutrition_ingredients")
-    .select("calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
-    .eq("id", newIngredientId)
-    .maybeSingle();
-  if (replacementError) return fail(replacementError.message);
+  const replacement = await resolveFood(supabase, user.id, newFoodRef);
   if (!replacement) return fail("Could not find the replacement food.");
 
   const toSwapFood = (row: MacroRow): SwapFood => ({
@@ -377,15 +412,21 @@ export async function swapMealPlanItem(
     fatPer100g: row.fat_per_100g,
   });
 
-  const quantityG = swapQuantityG(
-    toSwapFood(item.nutrition_ingredients),
-    item.quantity_g,
-    toSwapFood(replacement),
-  );
+  const quantityG = swapQuantityG(toSwapFood(current), item.quantity_g, {
+    caloriesPer100g: replacement.caloriesPer100g,
+    proteinPer100g: replacement.proteinPer100g,
+    carbsPer100g: replacement.carbsPer100g,
+    fatPer100g: replacement.fatPer100g,
+  });
 
   const { error } = await supabase
     .from("meal_plan_items")
-    .update({ ingredient_id: newIngredientId, quantity_g: quantityG, is_user_modified: true })
+    .update({
+      ingredient_id: replacement.ingredientId,
+      user_food_id: replacement.userFoodId,
+      quantity_g: quantityG,
+      is_user_modified: true,
+    })
     .eq("id", itemId);
   if (error) return fail(error.message);
 
@@ -393,9 +434,14 @@ export async function swapMealPlanItem(
 }
 
 export async function markMealPlanModified(planId: string): Promise<void> {
-  if (!(await getCurrentUser())) return;
+  const user = await getCurrentUser();
+  if (!user) return;
   const supabase = await createClient();
-  await supabase.from("meal_plans").update({ user_modified: true }).eq("id", planId);
+  await supabase
+    .from("meal_plans")
+    .update({ user_modified: true })
+    .eq("id", planId)
+    .eq("user_id", user.id);
 }
 
 export async function redoDietGoals() {

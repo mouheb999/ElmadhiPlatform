@@ -7,14 +7,32 @@ import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { GATE_COOKIE } from "@/lib/paywall-gate";
 import { normalizePhone } from "@/lib/phone";
 
-async function siteUrl() {
+/**
+ * The origin confirmation and OAuth links come back to.
+ *
+ * `NEXT_PUBLIC_SITE_URL` is the answer. The Host header is only a development
+ * convenience and is deliberately NOT trusted in production: it is set by the
+ * caller, so a request with `Host: attacker.example` would mint a sign-up
+ * confirmation link pointing there — and following that link hands the token in
+ * it to whoever owns that host. Better to fail loudly at deploy time than to
+ * send one poisoned email.
+ */
+async function siteUrl(): Promise<string | null> {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (envUrl) return envUrl;
+  // Misconfigured in production: refuse rather than guess. Callers turn this
+  // into a plain error message instead of silently sending a poisoned link.
+  if (process.env.NODE_ENV === "production") {
+    console.error("[auth] NEXT_PUBLIC_SITE_URL is not set — refusing to derive it from Host.");
+    return null;
+  }
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "http";
   return `${proto}://${host}`;
 }
+
+const MISCONFIGURED = "Sign-in is misconfigured. Please contact support.";
 
 export async function signInWithPassword(
   email: string,
@@ -49,6 +67,9 @@ export async function signUpWithPassword(
   const normalized = normalizePhone(phone);
   if (phone?.trim() && !normalized) return fail("invalid_phone");
 
+  const origin = await siteUrl();
+  if (!origin) return fail(MISCONFIGURED);
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email,
@@ -58,7 +79,7 @@ export async function signUpWithPassword(
         ...(fullName ? { full_name: fullName } : {}),
         ...(normalized ? { phone: normalized } : {}),
       },
-      emailRedirectTo: `${await siteUrl()}/dashboard`,
+      emailRedirectTo: `${origin}/dashboard`,
     },
   });
   if (error) return fail(error.message);
@@ -66,10 +87,13 @@ export async function signUpWithPassword(
 }
 
 export async function signInWithGoogle(): Promise<ActionResult<string>> {
+  const origin = await siteUrl();
+  if (!origin) return fail(MISCONFIGURED);
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${await siteUrl()}/auth/callback` },
+    options: { redirectTo: `${origin}/auth/callback` },
   });
   if (error) return fail(error.message);
   return ok(data.url);

@@ -91,6 +91,86 @@ export async function updatePaymentMethod(
   return ok(undefined);
 }
 
+/**
+ * Mark every open request as looked at, clearing the nav badge.
+ *
+ * Called once the payments queue has actually rendered, rather than while it
+ * renders: a write inside a Server Component's render body runs again on every
+ * re-render and re-execution, and "the badge cleared itself while the page was
+ * still loading" is exactly the failure that makes a badge untrustworthy.
+ *
+ * The badge counts *unseen*, not *open*. A request an admin has read and
+ * deliberately left open must stop shouting, or the count only ever grows and
+ * stops being information.
+ */
+export async function markPaymentsSeen(): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+  } catch {
+    return fail("Not authorized.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("payment_requests")
+    .update({ admin_seen_at: new Date().toISOString() })
+    .eq("status", "pending")
+    .is("admin_seen_at", null);
+  if (error) return fail(error.message);
+
+  revalidatePath("/admin");
+  return ok(undefined);
+}
+
+/**
+ * Answer a customer on their payment thread.
+ *
+ * Separate from `answerSupportTicket` only in what it revalidates and where it
+ * is reachable from — the thread itself is an ordinary support ticket, and the
+ * same rule holds: an admin reply is written with the service-role client
+ * because `support_messages` refuses a user-authored row with sender 'admin'.
+ */
+export async function replyToPaymentThread(
+  ticketId: string,
+  body: string,
+): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+  } catch {
+    return fail("Not authorized.");
+  }
+
+  const text = body.trim().slice(0, 2000);
+  if (!text) return fail("Write an answer first.");
+
+  const admin = createAdminClient();
+
+  // The ticket must actually be a payment thread. Without this, the payments
+  // queue would be a second, less careful door into every support ticket.
+  const { data: ticket } = await admin
+    .from("support_tickets")
+    .select("id, payment_request_id")
+    .eq("id", ticketId)
+    .maybeSingle();
+  if (!ticket?.payment_request_id) return fail("That isn't a payment conversation.");
+
+  const { error } = await admin
+    .from("support_messages")
+    .insert({ ticket_id: ticketId, sender: "admin", body: text });
+  if (error) return fail(error.message);
+
+  const now = new Date().toISOString();
+  const { error: ticketError } = await admin
+    .from("support_tickets")
+    .update({ status: "answered", last_message_at: now, last_admin_reply_at: now })
+    .eq("id", ticketId);
+  if (ticketError) return fail(ticketError.message);
+
+  revalidatePath("/admin");
+  revalidatePath("/checkout");
+  return ok(undefined);
+}
+
 /** Confirm a request and activate the user's account. */
 export async function activateRequest(requestId: string): Promise<ActionResult> {
   let adminUserId: string;

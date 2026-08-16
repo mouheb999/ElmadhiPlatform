@@ -24,7 +24,11 @@ export async function submitQaRequest(
   const supabase = await createClient();
   const { user, denied } = await requirePaidUser();
   if (!user) return fail(denied);
-  if (!questionText.trim()) return fail("Question can't be empty.");
+  // `question_text` is unbounded TEXT and this string is rendered in the admin
+  // queue and, once published, becomes a library card. A question is a
+  // question, not a document.
+  const question = questionText.trim().slice(0, 1000);
+  if (!question) return fail("Question can't be empty.");
 
   const locale = await getLocale();
   const quota = await getQaQuota(supabase, user.id);
@@ -34,7 +38,7 @@ export async function submitQaRequest(
     );
   }
 
-  const { error } = await supabase.from("qa_requests").insert({ user_id: user.id, question_text: questionText.trim() });
+  const { error } = await supabase.from("qa_requests").insert({ user_id: user.id, question_text: question });
   if (error) {
     // The trigger fires when two submissions race past the check above.
     if (error.message.includes("qa_monthly_quota_exceeded")) {

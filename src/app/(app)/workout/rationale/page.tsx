@@ -30,11 +30,37 @@ export default async function WorkoutRationalePage() {
 
   const { data: program } = await supabase
     .from("user_programs")
-    .select("id, name, split_type")
+    .select("id, name, split_type, is_custom")
     .eq("training_profile_id", trainingProfile.id)
     .eq("is_active", true)
     .maybeSingle();
   if (!program) redirect("/workout/questions");
+
+  // A hand-built program was not matched to anything, so there is no sheet row
+  // to look up and nothing here to explain. Saying "this split matches how many
+  // days you can train" over the top of a program the user wrote themselves
+  // would be the page inventing reasoning it did not do.
+  if (program.is_custom) {
+    return (
+      <div className="mx-auto flex max-w-lg flex-col gap-5">
+        <h1 className="text-center text-2xl font-extrabold tracking-tight">
+          {t(locale, "workout.rationale_title")}
+        </h1>
+        <RationaleCard
+          headline={program.name}
+          body={
+            locale === "tn"
+              ? `هذا البرنامج بنيتو إنت: ${trainingProfile.days_per_week} أيام في الجمعة، والتمارين اللي اخترتهم إنت. تنجم تبدّل أو تزيد أي تمرين من صفحة البرنامج وقت ما تحب.`
+              : `You built this one yourself: ${trainingProfile.days_per_week} days a week, with the exercises you picked. You can swap or add anything from the program page whenever you like.`
+          }
+          emphasis
+        />
+        <Button asChild size="lg" className="mt-2">
+          <Link href="/workout/program">{t(locale, "workout.see_program")}</Link>
+        </Button>
+      </div>
+    );
+  }
 
   const { data: split } = await supabase
     .from("fixed_splits")

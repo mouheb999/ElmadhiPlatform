@@ -4,9 +4,47 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/current-user";
+import { notifyTelegram } from "@/lib/notify/telegram";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024; // 5 MB
+
+/**
+ * The formats a phone camera or a banking app actually produces. Deliberately
+ * an allow-list rather than `image/*`: that accepted SVG, which is a script
+ * container, and these files are rendered in an admin's browser from a signed
+ * URL on our own storage origin.
+ */
+const ALLOWED_PROOF_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+
+/** Ceiling on one payment conversation. See `sendPaymentMessage`. */
+const MAX_THREAD_MESSAGES = 50;
+
+/** Extension written into the storage path, chosen by us from the MIME type. */
+const EXTENSION_FOR_TYPE: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/heic": "heic",
+  "image/heif": "heif",
+};
+
+/** Who the admin is looking at, for the notification. */
+async function notifyContext(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+): Promise<{ name: string | null; email: string | null; phone: string | null }> {
+  const { data } = await admin
+    .from("profiles")
+    .select("full_name, email, phone")
+    .eq("id", userId)
+    .maybeSingle();
+  return {
+    name: data?.full_name ?? null,
+    email: data?.email ?? null,
+    phone: data?.phone ?? null,
+  };
+}
 
 /**
  * Records a manual payment request: the user picked a plan + method and said
@@ -76,7 +114,22 @@ export async function startPaymentRequest(
     .single();
   if (insertError) return fail(insertError.message);
 
+  // Ping before the receipt exists, because this is already actionable: it is
+  // somebody who says they have transferred money. If they then close the app
+  // without uploading anything — the case the old flow lost entirely — there is
+  // now a name and a number to chase.
+  const admin = createAdminClient();
+  await notifyTelegram({
+    kind: "payment_started",
+    ...(await notifyContext(admin, user.id)),
+    amountTnd: plan.price_tnd,
+    planTier: plan.tier,
+    planMonths: plan.months,
+    methodKey,
+  });
+
   revalidatePath("/checkout");
+  revalidatePath("/admin");
   return ok({ requestId: inserted.id });
 }
 
@@ -105,19 +158,34 @@ export async function attachPaymentProof(
   const note = typeof noteRaw === "string" ? noteRaw.trim().slice(0, 500) : null;
 
   if (!(file instanceof File) || file.size === 0) return fail("No file provided.");
-  if (!file.type.startsWith("image/")) return fail("File must be an image.");
+  // An allow-list, not `image/*`. That prefix check accepted `image/svg+xml`,
+  // which is a document that can carry script — and these files are rendered
+  // for an admin from a signed URL on our own storage origin, so a stored SVG
+  // is a script the admin's session would run.
+  if (!ALLOWED_PROOF_TYPES.includes(file.type)) {
+    return fail("Send a photo or screenshot (JPG, PNG or WebP).");
+  }
   if (file.size > MAX_PROOF_BYTES) return fail("Image must be under 5 MB.");
 
   const supabase = await createClient();
   const { data: request } = await supabase
     .from("payment_requests")
-    .select("id")
+    .select("id, amount_tnd, proof_path")
     .eq("user_id", user.id)
     .eq("status", "pending")
     .maybeSingle();
   if (!request) return fail("No payment in progress.");
 
-  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  // Replacing a receipt is a real thing to do — the first screenshot was
+  // cropped, or of the wrong transfer. Uploading unboundedly is not: each one
+  // is 5 MB of private storage that nothing ever reclaimed, and each one pinged
+  // an admin. The previous object is removed once the new one is in place.
+  const previousPath = request.proof_path;
+
+  // Extension derived from the (validated) MIME type rather than the uploaded
+  // filename. The old version sanitised whatever the client sent, which still
+  // let the caller choose what the object is stored as.
+  const ext = EXTENSION_FOR_TYPE[file.type] ?? "jpg";
   const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
 
   const admin = createAdminClient();
@@ -137,7 +205,185 @@ export async function attachPaymentProof(
     .eq("user_id", user.id);
   if (updateError) return fail(updateError.message);
 
+  // Only after the row points at the new object, so a failure here leaves a
+  // stray file rather than a request whose receipt has been deleted.
+  if (previousPath && previousPath !== path) {
+    const { error: removeError } = await admin.storage
+      .from("payment-proofs")
+      .remove([previousPath]);
+    if (removeError) console.error("[payment] stale proof not removed:", removeError);
+  }
+
+  // The receipt opens a conversation. Until now this step ended in a screen
+  // that said "we're checking" and offered no way to say anything else — so a
+  // transfer we couldn't match, or an amount that was short, had no route back
+  // to the customer except the WhatsApp link the rest of this flow spent two
+  // migrations demoting.
+  await openPaymentThread(admin, user.id, request.id, note);
+
+  await notifyTelegram({
+    kind: "proof_uploaded",
+    ...(await notifyContext(admin, user.id)),
+    amountTnd: request.amount_tnd,
+    note,
+  });
+
   revalidatePath("/checkout");
   revalidatePath("/admin");
+  return ok(undefined);
+}
+
+/**
+ * Open (or reuse) the support thread attached to a payment request.
+ *
+ * A payment conversation is a support ticket in category 'payment' that knows
+ * which request it is about — see migration 044 for why that beat a second
+ * messaging system. Written with the service-role client because the opening
+ * message is ours, not the user's, and `support_messages` deliberately refuses
+ * a user-authored row with `sender = 'admin'`.
+ *
+ * Best-effort: a failure here must not fail an upload that already succeeded.
+ * The receipt is attached and the admin queue has it either way.
+ */
+async function openPaymentThread(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  requestId: string,
+  note: string | null,
+): Promise<void> {
+  try {
+    const { data: existing } = await admin
+      .from("support_tickets")
+      .select("id")
+      .eq("payment_request_id", requestId)
+      .maybeSingle();
+    if (existing) {
+      // Re-uploading a receipt on the same request reopens the thread rather
+      // than starting a second one, so the history stays in one place.
+      await admin
+        .from("support_tickets")
+        .update({ status: "open", last_message_at: new Date().toISOString() })
+        .eq("id", existing.id);
+      if (note) {
+        await admin
+          .from("support_messages")
+          .insert({ ticket_id: existing.id, sender: "user", body: note });
+      }
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const { data: ticket } = await admin
+      .from("support_tickets")
+      .insert({
+        user_id: userId,
+        category: "payment",
+        status: "open",
+        payment_request_id: requestId,
+        last_message_at: now,
+        // Nothing to catch up on yet — the unread dot belongs to our reply.
+        user_seen_at: now,
+      })
+      .select("id")
+      .single();
+    if (!ticket) return;
+
+    // The customer's own note becomes the first message, so the thread opens
+    // with what they said rather than with an empty box under a system line.
+    if (note) {
+      await admin
+        .from("support_messages")
+        .insert({ ticket_id: ticket.id, sender: "user", body: note });
+    }
+  } catch (err) {
+    console.error("[payment] could not open the payment thread:", err);
+  }
+}
+
+/**
+ * The customer writes on their own payment thread.
+ *
+ * Deliberately not behind the paywall, and deliberately not `requirePaidUser`:
+ * the entire population of this screen is people who have paid and are waiting
+ * to be let in. Gating it would be the exact failure it exists to fix.
+ */
+export async function sendPaymentMessage(body: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
+
+  const text = body.trim().slice(0, 2000);
+  if (!text) return fail("Write your message first.");
+
+  const supabase = await createClient();
+
+  // Their own open request, and the thread hanging off it. RLS scopes both to
+  // the caller (migrations 034 and 044), so there is nothing to widen here.
+  const { data: request } = await supabase
+    .from("payment_requests")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .maybeSingle();
+  if (!request) return fail("No payment in progress.");
+
+  const { data: ticket } = await supabase
+    .from("support_tickets")
+    .select("id")
+    .eq("payment_request_id", request.id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!ticket) return fail("No conversation to write to yet.");
+
+  // A conversation about one transfer, not a message queue. Without a ceiling
+  // this is an unauthenticated-in-effect way to fire an unbounded number of
+  // Telegram notifications at an admin's phone, and to grow one thread past
+  // what the checkout card can render. Fifty is far past any real exchange.
+  const { count } = await supabase
+    .from("support_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("ticket_id", ticket.id)
+    .eq("sender", "user");
+  if ((count ?? 0) >= MAX_THREAD_MESSAGES) {
+    return fail("This conversation is full — please contact us directly.");
+  }
+
+  const { error } = await supabase
+    .from("support_messages")
+    .insert({ ticket_id: ticket.id, sender: "user", body: text });
+  if (error) return fail(error.message);
+
+  const now = new Date().toISOString();
+  await supabase
+    .from("support_tickets")
+    .update({ status: "open", last_message_at: now, user_seen_at: now })
+    .eq("id", ticket.id)
+    .eq("user_id", user.id);
+
+  const admin = createAdminClient();
+  const context = await notifyContext(admin, user.id);
+  await notifyTelegram({
+    kind: "payment_message",
+    name: context.name,
+    email: context.email,
+    body: text,
+  });
+
+  revalidatePath("/checkout");
+  revalidatePath("/admin");
+  return ok(undefined);
+}
+
+/** The customer opened the thread — clears the unread dot on their side. */
+export async function markPaymentThreadSeen(ticketId: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("support_tickets")
+    .update({ user_seen_at: new Date().toISOString() })
+    .eq("id", ticketId)
+    .eq("user_id", user.id);
+  if (error) return fail(error.message);
   return ok(undefined);
 }

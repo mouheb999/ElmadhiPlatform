@@ -207,12 +207,26 @@ export default async function WorkoutProgramPage() {
       }),
   }));
 
+  // The full catalog backs the "add an exercise" picker, which is a different
+  // question from the swap list: swapping stays inside the safety filter (same
+  // muscle, equipment they have, nothing their injury rules out), but adding is
+  // the user saying what they want in their own program. Filtering that down to
+  // four suggestions would be the generator overruling a deliberate choice.
+  const catalog = allExercises.map((e) => ({
+    id: e.id,
+    nameEn: e.name_en,
+    nameAr: e.name_ar,
+    primaryMuscle: e.primary_muscle,
+    equipment: e.equipment,
+  }));
+
   return (
     <ProgramEditor
       locale={locale}
       programId={program.id}
       initialDays={days}
       dayStatus={dayStatus}
+      catalog={catalog}
       locked={!(await hasPaidAccess())}
     />
   );
