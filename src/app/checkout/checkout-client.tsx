@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Check, Clock, ImageUp, Lock, Send, Sparkles } from "lucide-react";
 import {
   attachPaymentProof,
+  isAccountActive,
   markPaymentThreadSeen,
   sendPaymentMessage,
   startPaymentRequest,
@@ -47,6 +48,18 @@ const MAX_PROOF_BYTES = 5 * 1024 * 1024;
  * user choose a file we will reject is worse than no filter.
  */
 const PROOF_ACCEPT = "image/jpeg,image/png,image/webp,image/heic,image/heif";
+
+/**
+ * How often a waiting customer asks whether they have been let in.
+ *
+ * Six seconds is chosen against the human on the other side, not the server:
+ * an admin confirms a payment while the customer is watching the screen and
+ * telling them it went through, so the gap between the tap and the screen
+ * changing is the whole experience. Cheap enough to leave running — one
+ * primary-key read, only for people parked on this page, and it stops the
+ * moment they are activated.
+ */
+const ACTIVATION_POLL_MS = 6000;
 
 export type PaymentThreadMessage = {
   id: string;
@@ -133,6 +146,41 @@ export function CheckoutClient({
     () => methods.find((m) => m.key === methodKey) ?? null,
     [methods, methodKey],
   );
+
+  /**
+   * Wait for the admin, without making the customer reload.
+   *
+   * Activation happens in somebody else's browser, so this tab has no way to
+   * find out on its own. While the account is not active this asks every few
+   * seconds; the moment it flips, `router.refresh()` re-renders the page from
+   * the server and the "you're in" card replaces whatever step they were on.
+   *
+   * Paused while the tab is hidden — a phone in a pocket with the app open
+   * should not be asking a question nobody is there to read the answer to, and
+   * `visibilitychange` fires on the way back, which makes returning to the tab
+   * itself a check. That is the moment a waiting customer looks, so it is the
+   * moment that most needs to be right.
+   */
+  useEffect(() => {
+    if (paymentStatus === "active") return;
+
+    let stopped = false;
+    async function check() {
+      if (stopped || document.hidden) return;
+      if (await isAccountActive()) {
+        stopped = true;
+        router.refresh();
+      }
+    }
+
+    const timer = setInterval(check, ACTIVATION_POLL_MS);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, [paymentStatus, router]);
 
   const activeMonths = selectedPlan?.months ?? months;
   const premiumUpgradePerMonth = useMemo(() => {

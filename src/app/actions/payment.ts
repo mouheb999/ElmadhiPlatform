@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/current-user";
 import { notifyTelegram } from "@/lib/notify/telegram";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
+import { isSubscriptionActive } from "@/lib/subscription";
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -386,4 +387,40 @@ export async function markPaymentThreadSeen(ticketId: string): Promise<ActionRes
     .eq("user_id", user.id);
   if (error) return fail(error.message);
   return ok(undefined);
+}
+
+/**
+ * Has this account been activated yet?
+ *
+ * Polled by the checkout screen while somebody waits on an admin. Activation
+ * happens in a different browser entirely — an admin taps Confirm in
+ * /admin — so nothing in the customer's tab knows it happened, and before this
+ * the flow ended with them staring at a review screen, reloading by hand until
+ * it changed.
+ *
+ * A poll rather than a Supabase realtime subscription, deliberately. Realtime
+ * would mean adding `profiles` to the publication, which is a migration, and
+ * migrations on this project are applied by hand in the SQL editor. This needs
+ * no schema change and no new infrastructure, and the traffic is one indexed
+ * primary-key read every few seconds from the handful of people sitting on the
+ * checkout screen at any moment — which stops the instant they are let in.
+ *
+ * Returns a plain boolean, never the profile: this is called on a timer from
+ * the client and has no business widening what that client can see.
+ */
+export async function isAccountActive(): Promise<boolean> {
+  const user = await getCurrentUser();
+  if (!user) return false;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("payment_status, is_admin, plan_expires_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  // The same predicate the proxy and the paid actions use. A separate "is
+  // payment_status active?" check here would let this screen wave somebody
+  // through that the gate then turns straight back around.
+  return isSubscriptionActive(data);
 }
