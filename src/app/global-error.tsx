@@ -31,15 +31,16 @@ export default function GlobalError({
             "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
         }}
       >
-        <h1 style={{ fontSize: "1.25rem", fontWeight: 800, margin: 0 }}>
-          HYPE FITNESS hit a snag
-        </h1>
+        {/* No heading, and no brand name in it: naming the product in a failure
+            makes the product look like the thing that broke, on a screen that
+            fires for a network blip as readily as for a real fault. What is
+            left is the only part that helps — what to do next. */}
         <p
           style={{
             margin: 0,
             maxWidth: "22rem",
-            fontSize: "0.9rem",
-            color: "rgba(248,248,248,0.65)",
+            fontSize: "1rem",
+            fontWeight: 600,
           }}
         >
           Reload to pick up where you left off.
