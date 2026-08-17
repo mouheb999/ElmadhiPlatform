@@ -213,6 +213,12 @@ value becomes the `emailRedirectTo` on sign-up confirmation links. Dead code as
 long as the env var is set in production — which makes "confirm it is set" a
 launch-checklist item rather than a code change.
 
+**Fixed** in `src/lib/site-url.ts`. The Host fallback now exists only outside
+production. Resolution order is `SITE_URL` (runtime, so a bad value is fixed by
+a redeploy rather than a rebuild) → `NEXT_PUBLIC_SITE_URL` → the hosting
+platform's own hostname; in production, none of the three means the action
+fails with a message instead of guessing.
+
 ### S8 — Meal logs are dated in UTC while everything reading them uses Tunis — HIGH (correctness)
 
 Not an attack, but it is a data-integrity bug that will read to users as the app
@@ -270,7 +276,7 @@ Code work is **done** (2026-07-31). Build passes, 129 tests pass, lint clean.
 | 4 | **S4** Properly sign the payment webhook | ✅ done |
 | 5 | **S8** Use `tunisDateKey()` for meal-log dates | ✅ done |
 | 6 | **1.1** Get the support badge off the critical path | ✅ done |
-| 7 | **S7** Confirm `NEXT_PUBLIC_SITE_URL` is set in prod | ⚠️ **needs you** — hosting env |
+| 7 | **S7** Confirm `NEXT_PUBLIC_SITE_URL` is set in prod | ✅ done — resolves at runtime now, no config needed on Vercel |
 
 #### What was changed
 

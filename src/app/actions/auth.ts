@@ -6,26 +6,29 @@ import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { GATE_COOKIE } from "@/lib/paywall-gate";
 import { normalizePhone } from "@/lib/phone";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * The origin confirmation and OAuth links come back to.
  *
- * `NEXT_PUBLIC_SITE_URL` is the answer. The Host header is only a development
- * convenience and is deliberately NOT trusted in production: it is set by the
- * caller, so a request with `Host: attacker.example` would mint a sign-up
- * confirmation link pointing there — and following that link hands the token in
- * it to whoever owns that host. Better to fail loudly at deploy time than to
- * send one poisoned email.
+ * Resolution — and the reasons behind its order — lives in `lib/site-url.ts`.
+ * The Host header appears only below, and only outside production: it is set by
+ * the caller, so a request with `Host: attacker.example` would mint a sign-up
+ * confirmation link pointing there, and following that link hands the token in
+ * it to whoever owns that host. Locally there is no attacker and no email, and
+ * it saves needing any config to run the app.
  */
 async function siteUrl(): Promise<string | null> {
-  const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
-  if (envUrl) return envUrl;
-  // Misconfigured in production: refuse rather than guess. Callers turn this
-  // into a plain error message instead of silently sending a poisoned link.
+  const resolved = siteOrigin();
+  if (resolved) return resolved;
+
   if (process.env.NODE_ENV === "production") {
-    console.error("[auth] NEXT_PUBLIC_SITE_URL is not set — refusing to derive it from Host.");
+    // Nothing configured and no platform hostname to fall back on. Refuse
+    // rather than guess; callers turn this into a plain error message.
+    console.error("[auth] No site origin: set SITE_URL to this deployment's public URL.");
     return null;
   }
+
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "http";
