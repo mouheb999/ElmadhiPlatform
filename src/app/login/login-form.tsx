@@ -21,6 +21,7 @@ import {
 import { type Locale, t } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
+import { REVERSE_TRIAL } from "@/lib/access";
 
 type Mode = "signin" | "signup";
 
@@ -83,6 +84,23 @@ export function LoginForm({ locale }: { locale: Locale }) {
               ? t(locale, "phone.invalid")
               : res.error,
           );
+          return;
+        }
+        // Signed up and signed in, which is the configured behaviour: straight
+        // in, no inbox to check. The notice below is not dead code — it is what
+        // this has to say if email confirmation is ever switched back on in
+        // Supabase, and without it a signup would silently do nothing.
+        //
+        // A new account goes to /checkout rather than `next`. With the paywall
+        // on, `next` is /dashboard, which the proxy bounces to /checkout
+        // anyway — so this is the same destination minus a redirect the user
+        // watches happen. The point is that the first screen after signing up
+        // is the one that explains what the plans are and what it costs, in the
+        // three steps it takes, rather than a flash of somewhere they cannot
+        // stay. With the trial back on, `next` is a real destination again.
+        if (res.data.signedIn) {
+          router.push(REVERSE_TRIAL ? next : "/checkout");
+          router.refresh();
           return;
         }
         setNotice(t(locale, "login.check_inbox"));

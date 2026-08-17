@@ -57,12 +57,23 @@ export async function signInWithPassword(
   return ok({ isAdmin: !!profile?.is_admin });
 }
 
+/**
+ * Sign up, and report whether that already signed the user in.
+ *
+ * Supabase is configured with `mailer_autoconfirm` on, so `signUp` returns a
+ * session and no confirmation mail is ever sent — telling someone to check an
+ * inbox nothing was delivered to is how a signup dead-ends. But that is a
+ * dashboard setting, not a fact about this code, so the answer is read off the
+ * response rather than assumed: `session` is null exactly when Supabase has
+ * decided to send a confirmation instead, and the caller shows the inbox notice
+ * only then.
+ */
 export async function signUpWithPassword(
   email: string,
   password: string,
   fullName?: string,
   phone?: string,
-): Promise<ActionResult> {
+): Promise<ActionResult<{ signedIn: boolean }>> {
   // Normalised here rather than taken as typed: the trigger in migration 039
   // copies this metadata straight into `profiles.phone`, which carries a CHECK
   // on the E.164 shape. A raw "26 341 616" would fail that at INSERT time and
@@ -74,7 +85,7 @@ export async function signUpWithPassword(
   if (!origin) return fail(MISCONFIGURED);
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -86,7 +97,7 @@ export async function signUpWithPassword(
     },
   });
   if (error) return fail(error.message);
-  return ok(undefined);
+  return ok({ signedIn: !!data.session });
 }
 
 export async function signInWithGoogle(): Promise<ActionResult<string>> {

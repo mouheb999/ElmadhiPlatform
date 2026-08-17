@@ -279,7 +279,21 @@ export function CheckoutClient({
   }
 
   // ---- Under review ----
-  if (paymentStatus === "pending") {
+  //
+  // Only once a receipt actually exists. `payment_status` goes to 'pending' the
+  // moment a request row is inserted — a database trigger does it — and that
+  // insert happens when the user taps "I've paid" at step 2, before any proof
+  // is uploaded. Keyed on the status alone, this screen therefore captured
+  // anybody who tapped that button once and then backed out: every later visit
+  // showed "we're checking your payment" for a payment that was never made,
+  // with no route back to the plans. With the paywall on and /checkout the only
+  // page an unpaid account can reach, that was the whole product for them.
+  //
+  // So the flow below renders instead, and startPaymentRequest updates the
+  // existing row rather than inserting a second one (migration 041 makes
+  // one-pending-per-user an invariant), which is what makes re-walking the
+  // steps safe.
+  if (paymentStatus === "pending" && hasProof) {
     return (
       <Shell direction={direction}>
         <div className="flex w-full max-w-sm flex-col gap-4">
