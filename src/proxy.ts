@@ -9,15 +9,20 @@ import {
 import { isSubscriptionActive } from "@/lib/subscription";
 import { featureForPath, isPaidPath } from "@/lib/access";
 
-// Which routes cost money now lives in lib/access, because the client
-// components that grey out a locked control need the same answer. Everything
-// else — the questionnaires, the generated program, the diet plan, the
-// dashboard — is reachable unpaid by design; see the note at the top of that
-// file for why the wall moved rather than softened.
+// Which routes cost money lives in lib/access, because the client components
+// that grey out a locked control need the same answer.
 //
-// Deliberately not paywalled: /support. "I paid and I'm still locked out" is
-// precisely the report that must be able to reach an admin. The (app) layout
-// still requires a signed-in user, and RLS still scopes every row to its owner.
+// `REVERSE_TRIAL` there is currently OFF, so that is every route but the
+// handful in ALWAYS_FREE_PREFIXES: a new signup is redirected to /checkout
+// before it sees a questionnaire, a program or a dashboard. Nothing in this
+// file encodes that choice — flipping the flag moves this gate with it.
+//
+// Deliberately never paywalled, in either mode: /support ("I paid and I'm still
+// locked out" is precisely the report that must reach an admin), /checkout and
+// /phone (gating them is a redirect loop), and /settings (it holds the only
+// sign-out button, so gating it strands a locked-out account in its own
+// session). The (app) layout still requires a signed-in user, and RLS still
+// scopes every row to its owner.
 
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {

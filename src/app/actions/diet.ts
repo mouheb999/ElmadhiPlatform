@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePlanUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -188,8 +188,8 @@ async function buildAndSaveMealPlan(
  */
 export async function submitDietQuestions(answers: DietAnswers): Promise<ActionResult<{ dietProfileId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   // Archive any existing active profile + plan (versioned, never deleted).
   const { data: previous } = await supabase
@@ -291,8 +291,8 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
  * paid half and is untouched.
  */
 export async function saveMealPlanItemEdit(itemId: string, quantityG: number): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   // `quantity_g` is NUMERIC(6,1) with no CHECK behind it, so an out-of-range
   // value from a direct POST would either land in the plan and skew every macro
@@ -313,8 +313,8 @@ export async function saveMealPlanItemEdit(itemId: string, quantityG: number): P
 }
 
 export async function removeMealPlanItem(itemId: string): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const supabase = await createClient();
   const { error } = await supabase.from("meal_plan_items").delete().eq("id", itemId);
@@ -335,8 +335,8 @@ export async function addMealPlanItem(
   foodRef: string,
   quantityG: number,
 ): Promise<ActionResult<{ id: string }>> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const quantity = Math.round(Number(quantityG));
   if (!Number.isFinite(quantity) || quantity <= 0 || quantity > MAX_QUANTITY_G) {
@@ -372,8 +372,8 @@ export async function swapMealPlanItem(
   itemId: string,
   newFoodRef: string,
 ): Promise<ActionResult<{ quantityG: number }>> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const supabase = await createClient();
 
@@ -434,7 +434,7 @@ export async function swapMealPlanItem(
 }
 
 export async function markMealPlanModified(planId: string): Promise<void> {
-  const user = await getCurrentUser();
+  const { user } = await requirePlanUser();
   if (!user) return;
   const supabase = await createClient();
   await supabase

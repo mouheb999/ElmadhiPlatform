@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type Locale, dir, pick, t, type StringKey } from "@/lib/i18n";
-import { type LockedFeature } from "@/lib/access";
+import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
 import type { Database } from "@/types/db";
 
 type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
@@ -374,10 +374,15 @@ export function CheckoutClient({
             )}
 
             {/* Says out loud that not paying is a real option. Without this the
-                page still reads as "pay or leave", which is what it used to. */}
-            <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-xs leading-relaxed text-muted">
-              {t(locale, "co.free_line")}
-            </p>
+                page still reads as "pay or leave", which is what it used to.
+                Hidden while REVERSE_TRIAL is off, because then it *is* "pay or
+                leave" and promising a free tier that no longer exists is worse
+                than the blunt version. */}
+            {REVERSE_TRIAL && (
+              <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-xs leading-relaxed text-muted">
+                {t(locale, "co.free_line")}
+              </p>
+            )}
 
             {plans.length === 0 ? (
               <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-center text-sm text-muted">
@@ -508,12 +513,17 @@ export function CheckoutClient({
                   {selectedPlan && ` · ${dt(selectedPlan.price_tnd)} DT`}
                 </Button>
 
-                <Link
-                  href="/dashboard"
-                  className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink"
-                >
-                  {t(locale, "co.stay_free")}
-                </Link>
+                {/* With the trial off this is a trapdoor: /dashboard is gated,
+                    so "keep using the free plan" would bounce straight back
+                    here. An unpaid account leaves via Settings → sign out. */}
+                {REVERSE_TRIAL && (
+                  <Link
+                    href="/dashboard"
+                    className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink"
+                  >
+                    {t(locale, "co.stay_free")}
+                  </Link>
+                )}
               </>
             )}
           </>

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePlanUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -70,8 +70,8 @@ function schemeForReps(reps: string): { sets: number; restSeconds: number } {
  */
 export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<ActionResult<{ programId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const { data: previous } = await supabase
     .from("training_profiles")
@@ -207,8 +207,8 @@ export async function saveProgramExerciseEdit(
   rowId: string,
   patch: { sets?: number; repRange?: string; restSeconds?: number },
 ): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const update: { sets?: number; rep_range?: string; rest_seconds?: number; is_user_modified: boolean } = {
     is_user_modified: true,
@@ -254,8 +254,8 @@ export async function saveProgramExerciseEdit(
  * exercise came back on reload. Failing was bad; appearing to succeed was worse.
  */
 export async function swapProgramExercise(rowId: string, newExerciseId: string): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -282,8 +282,8 @@ export async function addProgramExercise(
   dayId: string,
   exerciseId: string,
 ): Promise<ActionResult<{ id: string; orderIndex: number }>> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const supabase = await createClient();
 
@@ -340,8 +340,8 @@ export async function addProgramExercise(
  * isn't, the thing the user wants is a different exercise — which is the swap.
  */
 export async function removeProgramExercise(rowId: string): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const supabase = await createClient();
 
@@ -364,7 +364,7 @@ export async function removeProgramExercise(rowId: string): Promise<ActionResult
 }
 
 export async function markProgramModified(programId: string): Promise<void> {
-  const user = await getCurrentUser();
+  const { user } = await requirePlanUser();
   if (!user) return;
   const supabase = await createClient();
   await supabase

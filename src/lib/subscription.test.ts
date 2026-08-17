@@ -42,7 +42,13 @@ describe("isSubscriptionActive", () => {
 });
 
 describe("subscriptionStanding", () => {
-  const now = new Date("2026-07-31T12:00:00.000Z");
+  // Anchored to real time rather than a fixed date. Two of these compare
+  // subscriptionStanding(), which takes an injected `now`, against
+  // isSubscriptionActive(), which reads the system clock and has no such
+  // parameter — so a hardcoded anchor only kept them agreeing while that date
+  // was still in the future. It was 2026-07-31, and the suite went red on its
+  // own once real time passed it. Offsets stay exact, so nothing gets flaky.
+  const now = new Date();
   const at = (days: number) =>
     new Date(now.getTime() + days * DAY).toISOString();
 

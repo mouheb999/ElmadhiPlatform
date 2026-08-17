@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePlanUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -190,8 +190,8 @@ export async function createCustomProgram(
   input: CustomProgramInput,
 ): Promise<ActionResult<{ programId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   // Validate against the real catalog before touching anything. Only the ids
   // the payload actually names are fetched — the alternative is pulling all 213

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getCurrentUser } from "@/lib/current-user";
+import { requirePlanUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -119,8 +119,8 @@ export async function createCustomMealPlan(
   input: CustomPlanInput,
 ): Promise<ActionResult<{ dietProfileId: string; planId: string }>> {
   const supabase = await createClient();
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const essentialsError = validEssentials(input.essentials);
   if (essentialsError) return fail(essentialsError);
@@ -386,8 +386,8 @@ const MAX_USER_FOODS = 200;
 export async function createUserFood(
   input: UserFoodInput,
 ): Promise<ActionResult<{ id: string }>> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const name = String(input.name ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
   if (!name) return fail("Give the food a name.");
@@ -455,8 +455,8 @@ export async function createUserFood(
  * out of the picker and leaves the record intact.
  */
 export async function archiveUserFood(foodId: string): Promise<ActionResult> {
-  const user = await getCurrentUser();
-  if (!user) return fail("Not signed in.");
+  const { user, denied } = await requirePlanUser();
+  if (!user) return fail(denied);
 
   const supabase = await createClient();
   const { error } = await supabase

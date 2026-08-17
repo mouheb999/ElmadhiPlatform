@@ -6,6 +6,7 @@ import {
   isSubscriptionActive,
   type SubscriptionProfile,
 } from "@/lib/subscription";
+import { REVERSE_TRIAL } from "@/lib/access";
 
 import { PREMIUM_REQUIRED, SUBSCRIPTION_REQUIRED } from "@/lib/subscription";
 
@@ -92,6 +93,29 @@ export async function requirePaidUser(): Promise<
 /** True when the caller may use the paid product. For void actions. */
 export async function hasPaidAccess(): Promise<boolean> {
   return (await getSubscription()).active;
+}
+
+/**
+ * Guard for the plan-building actions — the questionnaires, and the edits and
+ * swaps on the program and meal plan they produce.
+ *
+ * Which is to say: the actions whose price depends on which mode the product is
+ * in. With `REVERSE_TRIAL` on they are free, because a plan you cannot shape is
+ * not a plan you can judge. With it off they are paid like everything else.
+ *
+ * They need a guard of their own rather than just the route gate because a
+ * Server Function is reachable by a direct POST — /checkout and /support stay
+ * open by design, so "the proxy will have redirected them" is not true of an
+ * action. Same reasoning as `requirePaidUser`; the difference is only that this
+ * one is a no-op while the trial is running.
+ */
+export async function requirePlanUser(): Promise<
+  { user: CurrentUser; denied?: never } | { user?: never; denied: string }
+> {
+  if (!REVERSE_TRIAL) return requirePaidUser();
+  const user = await getCurrentUser();
+  if (!user) return { denied: "Not signed in." };
+  return { user };
 }
 
 /** True when the caller is on Premium (or an admin). */
