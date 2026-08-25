@@ -34,7 +34,14 @@ export function LoginForm({ locale }: { locale: Locale }) {
   // single best moment to phish them.
   const next = safeNextPath(params.get("next"));
 
-  const [mode, setMode] = useState<Mode>("signin");
+  // ?mode=signup opens on the signup form. The landing site's "Join us" button
+  // sets it: everyone arriving from there is new by definition, and dropping
+  // them on "Sign in" makes them hunt for the small "create one" link before
+  // they can do the thing they just clicked. Anything else falls back to
+  // sign-in, which is the right default for someone who typed the URL.
+  const [mode, setMode] = useState<Mode>(
+    params.get("mode") === "signup" ? "signup" : "signin",
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
