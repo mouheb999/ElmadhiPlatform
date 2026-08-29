@@ -267,6 +267,8 @@ const STRINGS = {
   "tour.t_start": { en: "Start the session", tn: "ابدا الحصة" },
   "tour.t_checkin": { en: "Morning check-in", tn: "تسجيل الصباح" },
   "tour.t_weight": { en: "Weight", tn: "الوزن" },
+  "tour.t_on_track": { en: "On track", tn: "ماشي مليح" },
+  "tour.t_progress": { en: "Weight, 8 weeks", tn: "الوزن، 8 جماعي" },
 
   // Program
   "tour.p_title": { en: "Your program", tn: "البرنامج متاعك" },
@@ -278,6 +280,8 @@ const STRINGS = {
   "tour.p_ex2": { en: "Incline Dumbbell Press", tn: "ضغط دمبل مائل" },
   "tour.p_ex3": { en: "Lateral Raise", tn: "رفع جانبي" },
   "tour.p_ex4": { en: "Triceps Pushdown", tn: "دفع الترايسبس" },
+  "tour.p_ex5": { en: "Cable Crossover", tn: "تقاطع الكابل" },
+  "tour.p_rest": { en: "90 s rest", tn: "90 ثانية راحة" },
   "tour.p_swap": { en: "Swap an exercise", tn: "بدّل تمرين" },
 
   // Nutrition
@@ -289,6 +293,8 @@ const STRINGS = {
   "tour.f_l_items": { en: "Chicken, rice, salad", tn: "دجاج، رز، سلاطة" },
   "tour.f_d": { en: "Dinner", tn: "العشا" },
   "tour.f_d_items": { en: "Tuna, couscous, vegetables", tn: "تن، كسكسي، خضرة" },
+  "tour.f_s": { en: "Snack", tn: "سناك" },
+  "tour.f_s_items": { en: "Yoghurt, almonds", tn: "ياغورت، لوز" },
   "tour.f_swap": { en: "Swap this meal", tn: "بدّل هذي الوجبة" },
 
   // AI camera
@@ -298,6 +304,34 @@ const STRINGS = {
   "tour.ai_i2": { en: "White rice · 150 g", tn: "رز أبيض · 150 غ" },
   "tour.ai_i3": { en: "Olive oil · 10 g", tn: "زيت زيتون · 10 غ" },
   "tour.ai_shoot": { en: "Take a photo", tn: "صوّر" },
+
+  // Q&A
+  "tour.qa_title": { en: "Answers", tn: "الأسئلة" },
+  "tour.qa_q1": {
+    en: "Should I train if I'm still sore?",
+    tn: "نتمرّن وأنا مازلت موجوع؟",
+  },
+  "tour.qa_a1": {
+    en: "Mild soreness is fine — train. Sharp pain in a joint is not; move that muscle later in the week.",
+    tn: "وجيعة خفيفة عادي — تمرّن. أما وجيعة حادة في مفصل لا؛ أجّل ذاك العضل لآخر الجمعة.",
+  },
+  "tour.qa_q2": {
+    en: "Do I have to eat exactly what the plan says?",
+    tn: "لازم ناكل بالضبط اللي في البرنامج؟",
+  },
+  "tour.qa_a2": {
+    en: "No. Hit your protein and stay near the calories — swap anything else for what you actually have at home.",
+    tn: "لا. كمّل البروتين وابقى قريب من السعرات — بدّل أي حاجة أخرى باللي عندك في الدار.",
+  },
+  "tour.qa_q3": {
+    en: "How fast should I be losing weight?",
+    tn: "قداش لازم ننقص بالسرعة؟",
+  },
+  "tour.qa_a3": {
+    en: "About 0.5–1% of your bodyweight a week. Faster than that and you start giving back muscle.",
+    tn: "تقريباً 0.5 حتى 1% من وزنك في الجمعة. أسرع من هكّا تبدا تخسر عضل.",
+  },
+  "tour.qa_ask": { en: "Ask the coach", tn: "اسأل المدرب" },
 
   // The wall
   "tour.lock_title": { en: "This part becomes yours", tn: "هذا الجزء يولّي متاعك" },
