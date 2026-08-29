@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/current-user";
 import { requireAdmin } from "@/lib/auth";
 import { toSupportCategory } from "@/lib/support";
+import { notifyTelegram } from "@/lib/notify/telegram";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
 /**
@@ -57,9 +58,33 @@ export async function submitSupportTicket(input: {
     .insert({ ticket_id: ticket.id, sender: "user", body });
   if (messageError) {
     // An empty thread would show the admin a report with no text in it.
-    await supabase.from("support_tickets").delete().eq("id", ticket.id);
+    //
+    // With the service-role client, because there is no DELETE policy on
+    // `support_tickets` — through the session client this statement matched no
+    // rows, reported success, and left exactly the empty ticket it was written
+    // to clean up.
+    await createAdminClient().from("support_tickets").delete().eq("id", ticket.id);
     return fail(messageError.message);
   }
+
+  // Same reason the payment flow pings: a report sitting in a table nobody has
+  // been told about is a report nobody answers, and "I paid and I'm still
+  // locked out" arrives through this door. Best-effort — a notification
+  // failure must never fail a report that was filed successfully.
+  const db = createAdminClient();
+  const { data: reporter } = await db
+    .from("profiles")
+    .select("full_name, email, phone")
+    .eq("id", user.id)
+    .maybeSingle();
+  await notifyTelegram({
+    kind: "support_ticket",
+    name: reporter?.full_name ?? null,
+    email: reporter?.email ?? null,
+    phone: reporter?.phone ?? null,
+    category,
+    body,
+  });
 
   revalidatePath("/support");
   return ok({ ticketId: ticket.id });

@@ -1,3 +1,7 @@
+// Makes "never import into client code" a build error rather than a comment
+// somebody has to notice. The key below bypasses RLS on every table in the
+// product; the cost of one accidental client import is the whole database.
+import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/db";
 
