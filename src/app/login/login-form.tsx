@@ -18,12 +18,30 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Locale, t } from "@/lib/i18n";
+import { type Locale, t, type StringKey } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
 import { REVERSE_TRIAL } from "@/lib/access";
 
 type Mode = "signin" | "signup";
+
+/**
+ * The codes `actions/auth.ts` returns, in the reader's own language.
+ *
+ * The form used to print whatever came back from the auth server. That is
+ * English in an Arabic UI at best, and at worst a JavaScript parse error shown
+ * to somebody halfway through creating an account. Anything not in this map
+ * falls back to the generic line rather than being displayed raw.
+ */
+const AUTH_ERRORS: Record<string, StringKey> = {
+  auth_bad_credentials: "login.err_bad_credentials",
+  auth_email_taken: "login.err_email_taken",
+  auth_weak_password: "login.err_weak_password",
+  auth_email_unconfirmed: "login.err_email_unconfirmed",
+  auth_rate_limited: "login.err_rate_limited",
+  auth_unavailable: "login.err_unavailable",
+  invalid_phone: "phone.invalid",
+};
 
 export function LoginForm({ locale }: { locale: Locale }) {
   const router = useRouter();
@@ -53,6 +71,12 @@ export function LoginForm({ locale }: { locale: Locale }) {
   const [showAdminChoice, setShowAdminChoice] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  /** A code from the auth actions, localised; anything else, the generic line. */
+  function authMessage(code: string): string {
+    const key = AUTH_ERRORS[code];
+    return key ? t(locale, key) : t(locale, "login.failed");
+  }
+
   function goTo(path: string) {
     startTransition(() => {
       router.push(path);
@@ -69,7 +93,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
       if (mode === "signin") {
         const res = await signInWithPassword(email, password);
         if (!res.ok) {
-          setError(res.error);
+          setError(authMessage(res.error));
           return;
         }
         // Admins pick a destination; regular users go straight in.
@@ -86,11 +110,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
         }
         const res = await signUpWithPassword(email, password, fullName, phone);
         if (!res.ok) {
-          setError(
-            res.error === "invalid_phone"
-              ? t(locale, "phone.invalid")
-              : res.error,
-          );
+          setError(authMessage(res.error));
           return;
         }
         // Signed up and signed in, which is the configured behaviour: straight
@@ -121,7 +141,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
     startTransition(async () => {
       const res = await signInWithGoogle();
       if (!res.ok) {
-        setError(res.error);
+        setError(authMessage(res.error));
         return;
       }
       window.location.href = res.data;

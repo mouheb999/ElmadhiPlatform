@@ -440,6 +440,35 @@ const STRINGS = {
     en: "Sign-in failed. Please try again.",
     tn: "الدخول فشل. عاود جرّب.",
   },
+  // What a failed sign-in or sign-up actually says. The auth server's own
+  // messages are English whatever the user is reading, and some of them are
+  // not sentences at all (a JSON parse error, when something between us and
+  // Supabase returns a page instead of an answer). `actions/auth.ts` maps
+  // every failure onto one of these codes.
+  "login.err_bad_credentials": {
+    en: "Wrong email or password.",
+    tn: "الإيميل ولا كلمة السر ماهمش صحاح.",
+  },
+  "login.err_email_taken": {
+    en: "That email already has an account — sign in instead.",
+    tn: "الإيميل هذا عندو حساب من قبل — أدخل بيه.",
+  },
+  "login.err_weak_password": {
+    en: "Pick a longer password — at least 6 characters.",
+    tn: "أعمل كلمة سر أطول — 6 حروف على الأقل.",
+  },
+  "login.err_email_unconfirmed": {
+    en: "Confirm your email first — check your inbox.",
+    tn: "أكّد إيميلك الأول — شوف صندوق الوارد.",
+  },
+  "login.err_rate_limited": {
+    en: "Too many attempts. Wait a minute and try again.",
+    tn: "برشا محاولات. استنّى دقيقة وعاود.",
+  },
+  "login.err_unavailable": {
+    en: "We couldn't reach the server. Check your connection and try again.",
+    tn: "ما نجّمناش نوصلو للسيرفر. شوف الكونيكسيون وعاود جرّب.",
+  },
   "login.check_inbox": {
     en: "Check your inbox to confirm your email, then sign in.",
     tn: "شوف إيميلك باش تأكّدو، ومبعد أدخل.",

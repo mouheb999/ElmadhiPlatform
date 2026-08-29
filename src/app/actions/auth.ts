@@ -37,6 +37,54 @@ async function siteUrl(): Promise<string | null> {
 
 const MISCONFIGURED = "Sign-in is misconfigured. Please contact support.";
 
+/**
+ * Turn whatever the auth server said into something a customer can act on.
+ *
+ * These messages went to the screen verbatim, and most of them were never
+ * written for a customer to read. Driving a sign-up while Supabase was
+ * unreachable put this in front of the user, in a right-to-left Arabic form,
+ * under the password field:
+ *
+ *     Unexpected token 'H', "Host not i"... is not valid JSON
+ *
+ * That is auth-js reporting that an error page came back where JSON was
+ * expected — any outage, gateway or WAF between the app and Supabase produces
+ * one. Launch day is exactly when that happens, and the person seeing it is
+ * someone trying to hand us money.
+ *
+ * So: a small set of stable codes the form localises itself, because the
+ * message from Supabase is English regardless of which language the user is
+ * reading. Anything without a `code` is not an answer from the auth API at all
+ * — it is a network or parse failure — and becomes "try again", never the raw
+ * text.
+ */
+function authFailure(error: { code?: string; message?: string }): string {
+  const code = typeof error.code === "string" ? error.code : "";
+  const message = (error.message ?? "").toLowerCase();
+
+  if (code === "invalid_credentials" || message.includes("invalid login credentials")) {
+    return "auth_bad_credentials";
+  }
+  if (code === "user_already_exists" || message.includes("already registered")) {
+    return "auth_email_taken";
+  }
+  if (code === "weak_password" || message.includes("password should be")) {
+    return "auth_weak_password";
+  }
+  if (code === "email_not_confirmed") return "auth_email_unconfirmed";
+  if (code.startsWith("over_") || message.includes("rate limit")) {
+    return "auth_rate_limited";
+  }
+  // No code means auth-js could not read a reply from the auth API: offline,
+  // a proxy, an outage, a captive portal. Never surfaced verbatim.
+  if (!code) {
+    console.error("[auth] unexpected auth failure:", error.message);
+    return "auth_unavailable";
+  }
+  console.error("[auth] unhandled auth error:", code, error.message);
+  return "auth_unavailable";
+}
+
 export async function signInWithPassword(
   email: string,
   password: string,
@@ -46,7 +94,7 @@ export async function signInWithPassword(
     email,
     password,
   });
-  if (error) return fail(error.message);
+  if (error) return fail(authFailure(error));
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -96,7 +144,7 @@ export async function signUpWithPassword(
       emailRedirectTo: `${origin}/dashboard`,
     },
   });
-  if (error) return fail(error.message);
+  if (error) return fail(authFailure(error));
   return ok({ signedIn: !!data.session });
 }
 
@@ -109,7 +157,7 @@ export async function signInWithGoogle(): Promise<ActionResult<string>> {
     provider: "google",
     options: { redirectTo: `${origin}/auth/callback` },
   });
-  if (error) return fail(error.message);
+  if (error) return fail(authFailure(error));
   return ok(data.url);
 }
 
