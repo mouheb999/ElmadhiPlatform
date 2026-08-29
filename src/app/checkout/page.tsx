@@ -95,6 +95,7 @@ export default async function CheckoutPage({
       planExpiresAt={profile?.plan_expires_at ?? null}
       isRenewal={expired}
       hasProof={openRequest?.status === "pending" && !!openRequest.proof_path}
+      hasOpenRequest={openRequest?.status === "pending"}
       wasRejected={openRequest?.status === "rejected"}
       thread={thread}
       from={from ?? null}

@@ -88,7 +88,22 @@ export async function startPaymentRequest(
     .maybeSingle();
 
   if (existing) {
-    const { error } = await supabase
+    // Written with the service-role client, and this is not an oversight.
+    //
+    // `payment_requests` has RLS policies for INSERT and SELECT and none for
+    // UPDATE, so this statement through the user's own session matched zero
+    // rows — and PostgREST reports a zero-row UPDATE as success, not as an
+    // error. The whole re-selection path therefore returned `ok` while quietly
+    // keeping the plan the customer first chose: pick 1 month, back out, pick
+    // 6 months, tap "I've transferred" — and the admin queue still says one
+    // month at one month's price. Somebody pays for six and is granted one.
+    //
+    // The fix is not an RLS UPDATE policy. That would let a caller PATCH their
+    // own row over PostgREST and set `amount_tnd` to 1 and `plan_months` to 12,
+    // which is the tampering the server-side price lookup above exists to
+    // prevent. So the write bypasses RLS, and stays scoped to a row this user
+    // owns and has not had resolved yet.
+    const { data: updated, error } = await createAdminClient()
       .from("payment_requests")
       .update({
         method_key: methodKey,
@@ -96,8 +111,17 @@ export async function startPaymentRequest(
         plan_tier: plan.tier,
         plan_months: plan.months,
       })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
     if (error) return fail(error.message);
+    // Nothing matched: the request was confirmed or rejected between the read
+    // above and this write. Falling through to the insert would be wrong (an
+    // activated account does not need a second request), and reporting success
+    // would repeat the bug this replaced.
+    if (!updated) return fail("That payment request is no longer open.");
     revalidatePath("/checkout");
     return ok({ requestId: existing.id });
   }

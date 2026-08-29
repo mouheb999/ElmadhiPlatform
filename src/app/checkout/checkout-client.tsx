@@ -81,6 +81,8 @@ type Props = {
   planExpiresAt: string | null;
   isRenewal: boolean;
   hasProof: boolean;
+  /** There is an open request: they have said they transferred the money. */
+  hasOpenRequest: boolean;
   /** Their last attempt was turned down, and they have not started another. */
   wasRejected: boolean;
   /** The conversation attached to the open request, once a receipt exists. */
@@ -110,6 +112,7 @@ export function CheckoutClient({
   planExpiresAt,
   isRenewal,
   hasProof,
+  hasOpenRequest,
   wasRejected,
   thread,
   from,
@@ -120,7 +123,18 @@ export function CheckoutClient({
   const router = useRouter();
   const direction = dir(locale);
 
-  const [step, setStep] = useState(1);
+  /**
+   * Where a returning customer picks up.
+   *
+   * Somebody with an open request and no receipt has already told us they
+   * transferred the money; the only thing left is the screenshot. Starting them
+   * at step 1 dropped them back on the plan grid with nothing saying what was
+   * outstanding, and in production that state is where the funnel dies —
+   * every open request on the account today is one with no receipt attached.
+   * They still get "choose a different plan" out of step 3, so a mis-tap is
+   * one link from the plans rather than trapped on the upload.
+   */
+  const [step, setStep] = useState(hasOpenRequest && !hasProof ? 3 : 1);
   const [tier, setTier] = useState<Tier>("premium");
   // Psychological default: the middle option, not the cheapest.
   const [months, setMonths] = useState<number>(3);
@@ -148,6 +162,17 @@ export function CheckoutClient({
   );
 
   /**
+   * Is anybody actually being waited on?
+   *
+   * `payment_status` is 'pending' from the moment a request row exists, and
+   * step 3 is the gap before this page has re-rendered with that status.
+   * Everyone else here is reading prices, and the poll below was running for
+   * them too: a Server Function POST every six seconds, per visitor, asking a
+   * question whose answer cannot change until they have done something.
+   */
+  const awaitingReview = paymentStatus === "pending" || step === 3;
+
+  /**
    * Wait for the admin, without making the customer reload.
    *
    * Activation happens in somebody else's browser, so this tab has no way to
@@ -162,7 +187,7 @@ export function CheckoutClient({
    * moment that most needs to be right.
    */
   useEffect(() => {
-    if (paymentStatus === "active") return;
+    if (paymentStatus === "active" || !awaitingReview) return;
 
     let stopped = false;
     async function check() {
@@ -180,7 +205,7 @@ export function CheckoutClient({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", check);
     };
-  }, [paymentStatus, router]);
+  }, [paymentStatus, awaitingReview, router]);
 
   const activeMonths = selectedPlan?.months ?? months;
   const premiumUpgradePerMonth = useMemo(() => {
@@ -353,47 +378,37 @@ export function CheckoutClient({
               <h1 className="text-xl font-extrabold">{t(locale, "co.review_title")}</h1>
               <p className="text-sm text-muted">{t(locale, "co.review_body")}</p>
 
-              {hasProof ? (
-                <>
-                  <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-accent">
-                    <Check className="h-4 w-4" />
-                    {t(locale, "co.review_have_proof")}
-                  </p>
-                  <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
-                </>
-              ) : (
-                <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
-                  <p className="text-sm font-semibold">{t(locale, "co.review_no_proof")}</p>
-                  <ProofPicker
-                    locale={locale}
-                    file={file}
-                    previewUrl={previewUrl}
-                    note={note}
-                    setNote={setNote}
-                    onPick={pickFile}
-                    inputRef={fileInput}
-                  />
-                  {error && (
-                    <p className="text-sm text-red-500" role="alert">
-                      {error}
-                    </p>
-                  )}
-                  <Button onClick={sendProof} disabled={isPending || !file} className="w-full">
-                    {isPending ? t(locale, "co.sending") : t(locale, "co.submit")}
-                  </Button>
-                </div>
-              )}
+              {/* This screen is only reached with a receipt on file — the
+                  no-receipt branch that used to live here was unreachable, and
+                  a customer in that state now opens on step 3 instead, which
+                  is the screen that actually asks for the thing. */}
+              <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-accent">
+                <Check className="h-4 w-4" />
+                {t(locale, "co.review_have_proof")}
+              </p>
+              <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
             </CardContent>
           </Card>
 
           {thread && <PaymentThreadPanel locale={locale} thread={thread} />}
 
-          {/* The point of the whole rebuild: waiting on review is not being
-              locked out. The plan they just built is still readable. */}
-          <p className="text-center text-xs text-muted">{t(locale, "co.meanwhile")}</p>
-          <Button asChild variant="secondary" className="w-full">
-            <Link href="/dashboard">{t(locale, "checkout.go_dashboard")}</Link>
-          </Button>
+          {/* The point of the trial: waiting on review is not being locked
+              out, and the plan they just built is still readable.
+
+              Hidden while REVERSE_TRIAL is off, for the same reason "stay on
+              the free plan" is hidden at step 1: /dashboard is paywalled in
+              that mode, so this button bounced the customer straight back to
+              this screen. Offering someone who has just paid a way out of the
+              waiting room that returns them to the waiting room reads as the
+              app being broken at the worst possible moment. */}
+          {REVERSE_TRIAL && (
+            <>
+              <p className="text-center text-xs text-muted">{t(locale, "co.meanwhile")}</p>
+              <Button asChild variant="secondary" className="w-full">
+                <Link href="/dashboard">{t(locale, "checkout.go_dashboard")}</Link>
+              </Button>
+            </>
+          )}
           {helpLink}
         </div>
       </Shell>
@@ -711,6 +726,14 @@ export function CheckoutClient({
               <p className="mt-1 text-sm text-muted">{t(locale, "co.upload_body")}</p>
             </div>
 
+            {/* Only for somebody coming back to an open request, not for the
+                person who arrived here one tap ago and knows why. */}
+            {hasOpenRequest && !hasProof && (
+              <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold">
+                {t(locale, "co.review_no_proof")}
+              </p>
+            )}
+
             <Card>
               <CardContent className="flex flex-col gap-4 p-4">
                 <ProofPicker
@@ -732,6 +755,18 @@ export function CheckoutClient({
                 </Button>
               </CardContent>
             </Card>
+            {/* The way out. Without it, opening on this step for a returning
+                customer would be a trap for anyone who tapped "I've
+                transferred" without meaning it — and changing the plan from
+                here re-points the same open request rather than opening a
+                second one. */}
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="text-center text-xs font-bold text-muted hover:text-ink"
+            >
+              ← {t(locale, "co.back")}
+            </button>
             {helpLink}
           </>
         )}
