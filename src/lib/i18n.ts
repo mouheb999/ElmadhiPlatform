@@ -363,7 +363,43 @@ const STRINGS = {
   },
   "tour.qa_ask": { en: "Ask the coach", tn: "اسأل المدرب" },
 
+  // Inside the session
+  "tour.back": { en: "Back", tn: "لور" },
+  "tour.s_kg": { en: "kg", tn: "كغ" },
+  "tour.s_reps": { en: "reps", tn: "تكرار" },
+  "tour.s_done": { en: "sets done", tn: "مجموعة تعملت" },
+  "tour.s_volume": { en: "Volume", tn: "الحجم" },
+  "tour.s_rest": { en: "Rest 90 s", tn: "راحة 90 ثانية" },
+  "tour.s_finish": { en: "Finish the session", tn: "كمّل الحصة" },
+  "tour.s_tap": { en: "Tap a set to log it", tn: "اضغط على مجموعة باش تسجّلها" },
+
+  // Inside the diary
+  "tour.f_eaten": { en: "eaten", tn: "تاكلو" },
+  "tour.f_target": { en: "target", tn: "الهدف" },
+  "tour.f_add": { en: "Add food", tn: "زيد ماكلة" },
+  "tour.f_log": { en: "Log it", tn: "سجّلها" },
+  "tour.f_logged": { en: "Logged", tn: "تسجّلت" },
+  "tour.f_pick": { en: "Choose a food", tn: "اختار ماكلة" },
+  "tour.fd_1": { en: "Eggs · 2", tn: "عظم · 2" },
+  "tour.fd_2": { en: "Bread · 80 g", tn: "خبز · 80 غ" },
+  "tour.fd_3": { en: "Tuna · 100 g", tn: "تن · 100 غ" },
+  "tour.fd_4": { en: "Chicken · 150 g", tn: "دجاج · 150 غ" },
+  "tour.fd_5": { en: "Rice · 150 g", tn: "رز · 150 غ" },
+  "tour.fd_6": { en: "Yoghurt · 1", tn: "ياغورت · 1" },
+  "tour.fd_7": { en: "Almonds · 30 g", tn: "لوز · 30 غ" },
+  "tour.fd_8": { en: "Dates · 3", tn: "تمر · 3" },
+
+  // The camera
+  "tour.ai_scan": { en: "Reading the plate…", tn: "قاعد يقرا الصحن…" },
+  "tour.ai_add": { en: "Add to my diary", tn: "زيدها للدفتر" },
+  "tour.ai_retake": { en: "Take another", tn: "صوّر وحدة أخرى" },
+
   // The wall
+  "tour.lock_save_title": { en: "This is the part that saves", tn: "هذا هو الجزء اللي يسجّل" },
+  "tour.lock_save_body": {
+    en: "You just logged a session and a day of food. With an account it stays — the charts move, the coach adapts next week's plan, and none of it is typed twice.",
+    tn: "توّا سجّلت حصة ونهار ماكلة. بحساب، الكل يتسجّل — الرسوم تتحرّك، والمدرب يبدّل برنامج الجمعة الجاية، وما تعاودش تكتب شيء.",
+  },
   "tour.lock_title": { en: "This part becomes yours", tn: "هذا الجزء يولّي متاعك" },
   "tour.lock_body": {
     en: "Everything here fills with your own numbers — your split, your macros, your meals — built from eight questions. Pick a plan and we open it today.",
