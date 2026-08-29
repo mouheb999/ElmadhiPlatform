@@ -216,6 +216,14 @@ const STRINGS = {
     tn: "نحلّولك الحساب في ظرف بضع ساعات، ونراسلوك على واتساب كي يتحل.",
   },
   "co.next": { en: "Continue", tn: "كمّل" },
+  // The same button for somebody who has not made an account yet. It says what
+  // the tap does, because a button labelled "continue" that produces a sign-up
+  // form reads as a bait-and-switch.
+  "co.next_signup": { en: "Create my account", tn: "أعمل حسابي" },
+  "co.next_signup_why": {
+    en: "Takes a minute. We need it to open your plan and to reach you when your payment lands.",
+    tn: "دقيقة برك. نحتاجوه باش نحلّولك البرنامج ونوصلولك كي يوصل الخلاص.",
+  },
   "co.back": { en: "Back", tn: "لور" },
   "co.you_pay": { en: "You pay", tn: "تخلّص" },
   "co.send_to": { en: "Send it to", tn: "ابعثها لـ" },

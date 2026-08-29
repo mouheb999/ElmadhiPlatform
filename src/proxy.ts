@@ -45,8 +45,23 @@ export async function proxy(request: NextRequest) {
   // the route's own auth check and RLS are still in force, so nothing leaks.
   if (indeterminate) return response;
 
-  // Must be signed in.
+  // Must be signed in — except at the till.
+  //
+  // /checkout is the sales page. Everything that argues for the product lives
+  // there: the walkable preview of the app, the plans, the prices. Requiring an
+  // account to see any of it meant a stranger from the landing site had to hand
+  // over a name, a number, an address and a password before being shown a
+  // single screen of what they were buying — the same mistake as asking for
+  // money before showing the product, one step earlier.
+  //
+  // So the pitch is public and the account is asked for at the last moment
+  // before money: choosing a plan. Not after, deliberately. Payment here is a
+  // bank transfer confirmed by hand hours later, so the person will close the
+  // app and come back; an anonymous purchase that dies with the session is a
+  // customer who paid and cannot prove it. The screen behind the account —
+  // where the RIB and the receipt live — still requires one.
   if (!user) {
+    if (isCheckout) return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);

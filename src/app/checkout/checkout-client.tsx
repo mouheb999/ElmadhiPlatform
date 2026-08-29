@@ -77,6 +77,10 @@ export type PaymentThread = {
 
 type Props = {
   locale: Locale;
+  /** False for a visitor who has not made an account yet. */
+  signedIn: boolean;
+  /** A plan chosen before signing up, carried back through `?plan=`. */
+  initialPlanId: string | null;
   email: string;
   paymentStatus: string;
   planExpiresAt: string | null;
@@ -109,6 +113,8 @@ type Props = {
  */
 export function CheckoutClient({
   locale,
+  signedIn,
+  initialPlanId,
   paymentStatus,
   planExpiresAt,
   isRenewal,
@@ -135,9 +141,21 @@ export function CheckoutClient({
    * for anyone who tapped without meaning it.
    */
   const [step, setStep] = useState(hasOpenRequest && !hasProof ? 2 : 1);
-  const [tier, setTier] = useState<Tier>("premium");
+
+  /**
+   * What they were looking at before the form.
+   *
+   * Somebody who picked Premium / 6 months, made an account and came back to
+   * Premium / 3 months would reasonably conclude the page had changed its mind
+   * about what they were buying. `?plan=` carries the choice through signup;
+   * the defaults below are for everyone else.
+   */
+  const chosen = initialPlanId ? plans.find((p) => p.id === initialPlanId) : undefined;
+  const [tier, setTier] = useState<Tier>(
+    chosen?.tier === "standard" ? "standard" : "premium",
+  );
   // Psychological default: the middle option, not the cheapest.
-  const [months, setMonths] = useState<number>(3);
+  const [months, setMonths] = useState<number>(chosen?.months ?? 3);
   const [methodKey, setMethodKey] = useState<string | null>(methods[0]?.key ?? null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -151,6 +169,29 @@ export function CheckoutClient({
   /** The only way out of the preview's wall, and its skip link. */
   function scrollToPlans() {
     plansRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /**
+   * Step 1 → step 2, with the account collected in between if there isn't one.
+   *
+   * This is where the account is asked for: after the preview, after the
+   * plans, at the point the visitor has decided what they want and not one
+   * screen earlier. The chosen plan rides along in `?plan=` so signing up does
+   * not quietly reset the choice they just made, and `next` brings them back
+   * here rather than to a dashboard they cannot reach yet.
+   */
+  function continueWithPlan() {
+    if (!selectedPlan) return;
+    if (signedIn) {
+      setStep(2);
+      return;
+    }
+    const plan = encodeURIComponent(selectedPlan.id);
+    const next = encodeURIComponent(`/checkout?plan=${plan}`);
+    // `plan` twice on purpose: once for the sign-up screen, which shows what
+    // they are buying above the form, and once inside `next`, which is where
+    // they land afterwards.
+    router.push(`/login?mode=signup&plan=${plan}&next=${next}`);
   }
 
   const whatsappNumber = (settings?.whatsapp_number ?? "").replace(/[^\d]/g, "");
@@ -212,13 +253,17 @@ export function CheckoutClient({
   }, [paymentStatus, awaitingReview, router]);
 
   const activeMonths = selectedPlan?.months ?? months;
-  const premiumUpgradePerMonth = useMemo(() => {
+  // Plain arithmetic over six rows; the compiler memoizes it. The hand-written
+  // useMemo that used to be here could no longer be preserved once the plan
+  // preselection landed above, and a `useMemo` the compiler bails out of makes
+  // the whole component opt out of optimisation.
+  const premiumUpgradePerMonth = ((): number | null => {
     const std = plans.find((p) => p.tier === "standard" && p.months === activeMonths);
     const prem = plans.find((p) => p.tier === "premium" && p.months === activeMonths);
     if (!std || !prem) return null;
     const delta = (prem.price_tnd - std.price_tnd) / activeMonths;
     return delta > 0 ? delta : null;
-  }, [plans, activeMonths]);
+  })();
 
   function savingsPct(plan: Plan): number | null {
     if (!monthlyBase || plan.months === 1) return null;
@@ -638,14 +683,24 @@ export function CheckoutClient({
                     label. */}
 
                 <Button
-                  onClick={() => setStep(2)}
+                  onClick={continueWithPlan}
                   disabled={!selectedPlan}
                   size="lg"
                   className="w-full"
                 >
-                  {t(locale, "co.next")}
+                  {signedIn ? t(locale, "co.next") : t(locale, "co.next_signup")}
                   {selectedPlan && ` · ${dt(selectedPlan.price_tnd)} DT`}
                 </Button>
+
+                {/* Names the form before it arrives. Somebody who taps a button
+                    that says "continue" and gets an account form instead reads
+                    that as a bait; the button says what happens, and this says
+                    why it is needed at all. */}
+                {!signedIn && (
+                  <p className="-mt-1 text-center text-xs leading-relaxed text-muted">
+                    {t(locale, "co.next_signup_why")}
+                  </p>
+                )}
 
                 {/* With the trial off this is a trapdoor: /dashboard is gated,
                     so "keep using the free plan" would bounce straight back

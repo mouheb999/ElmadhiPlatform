@@ -43,7 +43,14 @@ const AUTH_ERRORS: Record<string, StringKey> = {
   invalid_phone: "phone.invalid",
 };
 
-export function LoginForm({ locale }: { locale: Locale }) {
+export function LoginForm({
+  locale,
+  plan,
+}: {
+  locale: Locale;
+  /** The plan they picked before being sent here, if they came from checkout. */
+  plan?: { tier: string; months: number; price_tnd: number } | null;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   // Narrowed to a same-origin path: `?next=` is attacker-controlled, and
@@ -123,10 +130,17 @@ export function LoginForm({ locale }: { locale: Locale }) {
         // anyway — so this is the same destination minus a redirect the user
         // watches happen. The point is that the first screen after signing up
         // is the one that explains what the plans are and what it costs, in the
-        // three steps it takes, rather than a flash of somewhere they cannot
+        // two steps it takes, rather than a flash of somewhere they cannot
         // stay. With the trial back on, `next` is a real destination again.
+        //
+        // The exception is a `next` that is already a checkout URL: that is
+        // somebody who walked the preview, chose a plan and was sent here to
+        // make an account, and it carries the plan they chose. Dropping it for
+        // a bare /checkout would land them back on the grid having apparently
+        // forgotten the decision they just made.
         if (res.data.signedIn) {
-          router.push(REVERSE_TRIAL ? next : "/checkout");
+          const backToCheckout = next.startsWith("/checkout");
+          router.push(REVERSE_TRIAL || backToCheckout ? next : "/checkout");
           router.refresh();
           return;
         }
@@ -191,6 +205,27 @@ export function LoginForm({ locale }: { locale: Locale }) {
       </div>
 
       <Card className="w-full max-w-sm">
+        {/* The purchase, restated above the form, so this reads as the next
+            step in something they already decided rather than a gate. */}
+        {plan && mode === "signup" && (
+          <div className="flex items-center justify-between gap-3 border-b border-hairline px-6 py-4">
+            <span className="flex flex-col">
+              <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
+              <span className="font-bold text-ink">
+                {plan.tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")}
+                {" · "}
+                {plan.months === 1
+                  ? t(locale, "plans.month_1")
+                  : plan.months === 3
+                    ? t(locale, "plans.months_3")
+                    : t(locale, "plans.months_6")}
+              </span>
+            </span>
+            <span className="text-lg font-extrabold tabular-nums text-ink">
+              <bdi dir="ltr">{Math.round(plan.price_tnd * 10) / 10} DT</bdi>
+            </span>
+          </div>
+        )}
         <CardHeader>
           <CardTitle>
             {mode === "signin"
