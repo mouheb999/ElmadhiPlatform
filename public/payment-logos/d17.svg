@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="D17">
+  <title>D17</title>
+  <!--
+    D17 (DigiPost Bank), redrawn from the app icon to identify the payment
+    method at 36px. Trademark of La Poste Tunisienne.
+    Type is set with textLength so the lockup holds its proportions whatever
+    sans-serif the device actually has.
+  -->
+  <rect width="64" height="64" rx="14" fill="#FFFFFF"/>
+  <rect x="8.5" y="12.5" width="47" height="26" rx="5.5" fill="none" stroke="#1B3A6E" stroke-width="2.6"/>
+  <text x="32" y="33.4" text-anchor="middle" textLength="34" lengthAdjust="spacingAndGlyphs"
+        font-family="Helvetica, Arial, sans-serif" font-size="20" font-weight="700">
+    <tspan fill="#1B3A6E">D</tspan><tspan fill="#3C9DD8">17</tspan>
+  </text>
+  <text x="32" y="51.5" text-anchor="middle" textLength="44" lengthAdjust="spacingAndGlyphs"
+        font-family="Helvetica, Arial, sans-serif" font-size="9.5" font-weight="700" letter-spacing="0.2">
+    <tspan fill="#1B3A6E">DIGI</tspan><tspan fill="#F5B31E">POST</tspan><tspan fill="#1B3A6E">BANK</tspan>
+  </text>
+</svg>

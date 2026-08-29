@@ -179,6 +179,16 @@ function BrandMark({ method }: { method: Method }) {
     );
   }
 
+  // A full-colour mark of its own: rendered as-is, on a light tile, because
+  // these were drawn for a white app icon and lose their edges on our black.
+  if (spec.file) {
+    return (
+      <span className="relative h-9 w-9 overflow-hidden rounded-xl bg-white/95">
+        <Image src={spec.file} alt="" fill sizes="36px" className="object-contain p-[3px]" />
+      </span>
+    );
+  }
+
   return (
     <span
       className="grid h-9 w-9 place-items-center rounded-xl"

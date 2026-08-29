@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Wafacash">
+  <title>Wafacash</title>
+  <!--
+    Wafacash, redrawn from the brand mark to identify the payment method at
+    36px. Trademark of Wafacash. Only the square symbol is used — the
+    wordmark beside it in the full logo is unreadable at this size, and the
+    tile carries the method's name underneath it anyway.
+  -->
+  <rect x="7" y="7" width="50" height="50" fill="#FFFFFF"/>
+  <!-- Grey left field, yellow right field. -->
+  <rect x="9.5" y="9.5" width="18" height="45" fill="#A7A9AC"/>
+  <rect x="27.5" y="9.5" width="27" height="45" fill="#F5E520"/>
+  <!-- The chevron: a thick arrow pointing right, its spine on the boundary. -->
+  <path d="M22 9.5h9.5L46 32 31.5 54.5H22l14.5-22.5z" fill="#111111"/>
+  <!-- The notch that squares off the chevron's tail into the grey field. -->
+  <rect x="16.5" y="28.5" width="7" height="7" fill="#111111"/>
+  <!-- Keyline. -->
+  <rect x="8.2" y="8.2" width="47.6" height="47.6" fill="none" stroke="#111111" stroke-width="2.6"/>
+</svg>
