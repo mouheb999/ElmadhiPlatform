@@ -14,9 +14,24 @@ export default async function Home() {
         {t(locale, "home.hero")}
       </h1>
       <p className="max-w-md text-balance text-muted">{t(locale, "home.sub")}</p>
+      {/* Straight to the product, not to a form.
+          /checkout is the sales page — the walkable preview of the app, the
+          plans, the prices — and it is reachable signed out. Pointing the only
+          button on this page at /login put an account form in front of the one
+          screen built to convince somebody they want an account, which is the
+          mistake the whole funnel rework exists to undo. Someone already active
+          who lands here gets the "you're in" card on /checkout, so this is safe
+          for returning customers too. */}
       <Button size="lg" asChild>
-        <Link href="/login">{t(locale, "home.cta")}</Link>
+        <Link href="/checkout">{t(locale, "home.cta")}</Link>
       </Button>
+
+      <p className="-mt-3 text-sm text-muted">
+        {t(locale, "login.have_account")}{" "}
+        <Link href="/login" className="font-bold text-accent hover:underline">
+          {t(locale, "login.sign_in_link")}
+        </Link>
+      </p>
     </main>
   );
 }
