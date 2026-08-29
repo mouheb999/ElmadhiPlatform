@@ -38,6 +38,8 @@ type Request = Database["public"]["Tables"]["payment_requests"]["Row"] & {
   proofUrl: string | null;
   /** Nobody has opened the queue since this request last changed. */
   isNew: boolean;
+  /** Whole hours this request has been open, measured on the server. */
+  waitingHours: number | null;
   /** The conversation with this customer, once a receipt has been uploaded. */
   thread: {
     ticketId: string;
@@ -150,6 +152,7 @@ function RequestsCard({
                     {t(locale, "admin.pay_unread")}
                   </span>
                 )}
+                <WaitingFor locale={locale} hours={r.waitingHours} />
               </p>
               <p className="truncate text-sm text-muted">
                 {r.email ?? r.user_id}
@@ -671,5 +674,45 @@ function Field({
       <Label>{label}</Label>
       {children}
     </div>
+  );
+}
+
+/**
+ * How long this request has been open.
+ *
+ * The average time from a request to somebody resolving it is around twelve
+ * hours, and the customer is locked out for all of it. The queue is sorted
+ * newest-first — correct for working through new payments, and precisely wrong
+ * for spotting the person who has been left. This puts the age on the row so
+ * the oldest are visible without re-sorting the list somebody already knows how
+ * to read.
+ *
+ * Amber past two hours, red past twelve. Both thresholds are about the promise
+ * the checkout screen now makes out loud ("within a few hours"), not about
+ * anything in the data.
+ */
+function WaitingFor({ locale, hours }: { locale: Locale; hours: number | null }) {
+  if (hours === null) return null;
+
+  const label =
+    hours < 1
+      ? t(locale, "admin.waiting_new")
+      : hours < 48
+        ? t(locale, "admin.waiting_h").replace("{n}", String(hours))
+        : t(locale, "admin.waiting_d").replace("{n}", String(Math.floor(hours / 24)));
+
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold",
+        hours >= 12
+          ? "border-red-500/50 text-red-400"
+          : hours >= 2
+            ? "border-amber-500/50 text-amber-400"
+            : "border-hairline text-muted",
+      )}
+    >
+      {label}
+    </span>
   );
 }

@@ -71,3 +71,20 @@ export function prevDateKey(key: string): string {
 export function tunisWeekKey(iso: string): string {
   return tunisDateKey(tunisWeekStartUtc(new Date(iso)));
 }
+
+/**
+ * Whole hours since an ISO timestamp, or null if there isn't one.
+ *
+ * Lives here rather than inline at the call site for two reasons: the admin
+ * queue and anything else that wants to say "waiting 14h" should agree on what
+ * that means, and reading the clock inline in a render body is a purity
+ * violation the lint rules (rightly) refuse. A named helper is the honest
+ * version of the same snapshot — and it is testable, which an inline
+ * `Date.now()` is not.
+ */
+export function hoursSince(iso: string | null | undefined, now: number = Date.now()): number | null {
+  if (!iso) return null;
+  const then = Date.parse(iso);
+  if (!Number.isFinite(then)) return null;
+  return Math.max(0, Math.floor((now - then) / 3_600_000));
+}
