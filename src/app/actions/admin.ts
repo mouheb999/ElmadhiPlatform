@@ -60,6 +60,11 @@ export type MethodInput = {
   account_value: string | null;
   instructions_en: string | null;
   instructions_ar: string | null;
+  /** The one line the checkout screen actually shows. Migration 048. */
+  hint_en: string | null;
+  hint_ar: string | null;
+  /** Brand logo; empty falls back to a monogram tile. Migration 048. */
+  logo_url: string | null;
 };
 
 export async function updatePaymentMethod(
@@ -81,6 +86,9 @@ export async function updatePaymentMethod(
       account_value: input.account_value,
       instructions_en: input.instructions_en,
       instructions_ar: input.instructions_ar,
+      hint_en: input.hint_en,
+      hint_ar: input.hint_ar,
+      logo_url: input.logo_url,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.id);

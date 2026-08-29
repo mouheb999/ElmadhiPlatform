@@ -246,6 +246,28 @@ const STRINGS = {
   "co.file_not_image": { en: "That file isn't an image.", tn: "هذا الملف موش تصويرة." },
   "co.need_help": { en: "Something wrong? Message us", tn: "فما مشكلة؟ راسلنا" },
 
+  // ---- the payment method picker ----
+  //
+  // The long walkthroughs are gone from this screen. Each method gets one line
+  // in the database (`hint_*`, migration 048) answering whatever the account
+  // number does not already say; these are the strings around it.
+  "co.method_no_account": {
+    en: "This method isn't ready yet — pick another one.",
+    tn: "الطريقة هاذي مازالت ما تحضّرتش — اختار وحدة أخرى.",
+  },
+  "co.suggest_cta": { en: "My method isn't here", tn: "الطريقة متاعي ماهيش موجودة" },
+  "co.suggest_title": { en: "How do you want to pay?", tn: "كيفاش تحب تخلّص؟" },
+  "co.suggest_ph": { en: "e.g. Poste, e-Dinar, cash", tn: "مثال: البريد، e-Dinar، كاش" },
+  "co.suggest_send": { en: "Send", tn: "ابعث" },
+  "co.suggest_note": {
+    en: "We'll message you on WhatsApp to sort it out.",
+    tn: "باش نراسلوك على واتساب باش نرتّبوها.",
+  },
+  "co.suggest_sent": {
+    en: "Got it — we'll be in touch shortly.",
+    tn: "وصلتنا — باش نتصلو بيك قريب.",
+  },
+
   // ---- the app preview on checkout ----
   //
   // With the paywall in front of everything, a stranger reaches the price
@@ -384,6 +406,12 @@ const STRINGS = {
 
   // ---- admin: payment proof ----
   "admin.proof": { en: "Receipt", tn: "الوصل" },
+  "admin.hint_en": { en: "One line, shown at checkout (EN)", tn: "سطر واحد، يظهر في الخلاص (EN)" },
+  "admin.hint_ar": { en: "One line, shown at checkout (AR)", tn: "سطر واحد، يظهر في الخلاص (AR)" },
+  "admin.logo_url": {
+    en: "Logo URL — blank draws a monogram tile",
+    tn: "رابط اللوقو — كان فارغ يتعمل مربّع بالحروف",
+  },
   "admin.proof_none": { en: "No receipt uploaded", tn: "ما فماش وصل" },
   // How long this person has been waiting. The queue is newest-first, which is
   // right for confirming payments and wrong for noticing who has been left —

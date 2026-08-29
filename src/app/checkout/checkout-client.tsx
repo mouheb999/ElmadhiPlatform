@@ -12,11 +12,12 @@ import {
   startPaymentRequest,
 } from "@/app/actions/payment";
 import { AppPreview } from "@/components/checkout/app-preview";
+import { PaymentMethods } from "@/components/checkout/payment-methods";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { type Locale, dir, pick, t, type StringKey } from "@/lib/i18n";
+import { type Locale, dir, t, type StringKey } from "@/lib/i18n";
 import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
 import type { Database } from "@/types/db";
 
@@ -157,7 +158,6 @@ export function CheckoutClient({
   // Psychological default: the middle option, not the cheapest.
   const [months, setMonths] = useState<number>(chosen?.months ?? 3);
   const [methodKey, setMethodKey] = useState<string | null>(methods[0]?.key ?? null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -286,15 +286,6 @@ export function CheckoutClient({
     return value === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard");
   }
 
-  async function copy(value: string, key: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1500);
-    } catch {
-      /* clipboard not available */
-    }
-  }
 
   function pickFile(next: File | null) {
     setError(null);
@@ -750,75 +741,13 @@ export function CheckoutClient({
             </div>
 
             <Card>
-              <CardContent className="flex flex-col gap-3 p-4">
-                <p className="text-sm font-bold text-ink">{t(locale, "checkout.choose_method")}</p>
-                {methods.map((m) => {
-                  const label = pick(locale, m.label_en, m.label_ar);
-                  const instructions = pick(locale, m.instructions_en, m.instructions_ar);
-                  const isOpen = methodKey === m.key;
-                  return (
-                    <div
-                      key={m.id}
-                      className={cn(
-                        "overflow-hidden rounded-2xl border transition-colors",
-                        isOpen ? "border-accent/50 bg-white/5" : "border-hairline",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setMethodKey(m.key)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start"
-                      >
-                        <span className="font-bold text-ink">{label}</span>
-                        <span
-                          className={cn(
-                            "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
-                            isOpen ? "border-accent bg-accent text-bg" : "border-hairline",
-                          )}
-                          aria-hidden
-                        >
-                          {isOpen && <Check className="h-3 w-3" />}
-                        </span>
-                      </button>
-
-                      {isOpen && (
-                        <div className="flex flex-col gap-3 border-t border-hairline px-4 py-3">
-                          {instructions && (
-                            <p className="whitespace-pre-line text-sm text-muted">{instructions}</p>
-                          )}
-                          {m.account_value && (
-                            <>
-                              <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                                {t(locale, "co.send_to")}
-                              </p>
-                              <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline bg-surface px-3 py-2">
-                                <code className="truncate text-sm text-ink" dir="ltr">
-                                  {m.account_value}
-                                </code>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => copy(m.account_value!, m.key)}
-                                >
-                                  {copiedKey === m.key
-                                    ? t(locale, "checkout.copied")
-                                    : t(locale, "checkout.copy")}
-                                </Button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {error && (
-                  <p className="text-sm text-red-500" role="alert">
-                    {error}
-                  </p>
-                )}
+              <CardContent className="p-4">
+                <PaymentMethods
+                  locale={locale}
+                  methods={methods}
+                  selectedKey={methodKey}
+                  onSelect={setMethodKey}
+                />
               </CardContent>
             </Card>
 

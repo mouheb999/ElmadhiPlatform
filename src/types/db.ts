@@ -118,6 +118,11 @@ export type Database = {
           account_value: string | null;
           instructions_en: string | null;
           instructions_ar: string | null;
+          /** One line under the account number. Migration 048. */
+          hint_en: string | null;
+          hint_ar: string | null;
+          /** Brand logo; null falls back to a monogram tile. Migration 048. */
+          logo_url: string | null;
           updated_at: string | null;
         };
         Insert: {
@@ -130,6 +135,9 @@ export type Database = {
           account_value?: string | null;
           instructions_en?: string | null;
           instructions_ar?: string | null;
+          hint_en?: string | null;
+          hint_ar?: string | null;
+          logo_url?: string | null;
           updated_at?: string | null;
         };
         Update: {
@@ -142,6 +150,9 @@ export type Database = {
           account_value?: string | null;
           instructions_en?: string | null;
           instructions_ar?: string | null;
+          hint_en?: string | null;
+          hint_ar?: string | null;
+          logo_url?: string | null;
           updated_at?: string | null;
         };
         Relationships: [];

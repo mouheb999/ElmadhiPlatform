@@ -45,6 +45,20 @@ type TelegramEvent =
     }
   | {
       /**
+       * Somebody could not find their payment method in the list.
+       *
+       * Worth a ping rather than a row in a table: it is a person standing at
+       * the till holding money we currently have no way to take, and the
+       * window in which answering them still converts is short.
+       */
+      kind: "method_suggestion";
+      name: string | null;
+      email: string | null;
+      phone: string | null;
+      method: string;
+    }
+  | {
+      /**
        * A support report opened from /support.
        *
        * Here for the same reason the payment pings are: the queue is only as
@@ -121,6 +135,17 @@ function render(event: TelegramEvent): string {
         ...who(event.name, event.email),
         "",
         clip(event.body, 500),
+      ].join("\n");
+
+    case "method_suggestion":
+      return [
+        "🧭 Payment method we don't offer",
+        "",
+        ...who(event.name, event.email, event.phone),
+        "",
+        `💳 ${clip(event.method, 120)}`,
+        "",
+        "👉 Reply on their payment thread in the admin panel.",
       ].join("\n");
 
     case "support_ticket":

@@ -566,6 +566,9 @@ function MethodCard({ locale, method }: { locale: Locale; method: Method }) {
     account_value: method.account_value,
     instructions_en: method.instructions_en,
     instructions_ar: method.instructions_ar,
+    hint_en: method.hint_en,
+    hint_ar: method.hint_ar,
+    logo_url: method.logo_url,
   });
   const [isPending, startTransition] = useTransition();
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
@@ -623,6 +626,32 @@ function MethodCard({ locale, method }: { locale: Locale; method: Method }) {
             onChange={(e) =>
               setForm({ ...form, account_value: e.target.value || null })
             }
+          />
+        </Field>
+        {/* The two fields the checkout screen renders. Everything below them
+            is the old long-form walkthrough, kept because it is the only copy
+            of it, and no longer shown to customers. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label={t(locale, "admin.hint_en")}>
+            <Input
+              value={form.hint_en ?? ""}
+              onChange={(e) => setForm({ ...form, hint_en: e.target.value || null })}
+            />
+          </Field>
+          <Field label={t(locale, "admin.hint_ar")}>
+            <Input
+              dir="rtl"
+              value={form.hint_ar ?? ""}
+              onChange={(e) => setForm({ ...form, hint_ar: e.target.value || null })}
+            />
+          </Field>
+        </div>
+        <Field label={t(locale, "admin.logo_url")}>
+          <Input
+            dir="ltr"
+            placeholder="/payment-logos/d17.svg"
+            value={form.logo_url ?? ""}
+            onChange={(e) => setForm({ ...form, logo_url: e.target.value || null })}
           />
         </Field>
         <Field label={t(locale, "admin.instructions_en")}>
