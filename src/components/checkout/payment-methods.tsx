@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { Bitcoin, Check, Copy, Landmark, Plus, Send } from "lucide-react";
+import { Check, Copy, Landmark, Plus, Send } from "lucide-react";
 import { suggestPaymentMethod } from "@/app/actions/payment";
+import { BRAND_MARKS } from "./brand-marks";
 import { cn } from "@/lib/utils";
 import { type Locale, pick, t } from "@/lib/i18n";
 import type { Database } from "@/types/db";
@@ -140,12 +141,11 @@ export function PaymentMethods({
 }
 
 /**
- * The brand, or a stand-in for it.
+ * The brand, at 36px.
  *
- * `logo_url` is the real thing once somebody uploads one. Until then this
- * draws a tile from the method's key — a monogram or a glyph in a colour of
- * its own — so the grid reads as a set of distinct things from the first
- * deploy rather than as six identical grey squares waiting on an asset.
+ * Three sources, in order: a logo somebody uploaded, the open path data for
+ * the brands that publish it, and the brand's name set in our own typeface for
+ * the ones that do not. See `brand-marks.tsx` for why the third exists.
  */
 function BrandMark({ method }: { method: Method }) {
   if (method.logo_url) {
@@ -156,47 +156,65 @@ function BrandMark({ method }: { method: Method }) {
     );
   }
 
-  const brand = BRANDS[method.key] ?? {
-    tint: "#8E9280",
-    // Anything an admin adds later gets its first letter rather than nothing.
-    text: method.label_en.slice(0, 2).toUpperCase(),
-  };
+  const spec = BRAND_MARKS[method.key];
+
+  // No brand at all — a bank transfer is not a product with a logo — and
+  // anything an admin adds later, which gets its first letters rather than a
+  // blank square.
+  if (!spec) {
+    const generic = GENERIC_ICONS[method.key];
+    return (
+      <span
+        className="grid h-9 w-9 place-items-center rounded-xl bg-white/[0.07] text-muted"
+        aria-hidden
+      >
+        {generic ? (
+          <generic.icon className="h-[18px] w-[18px]" />
+        ) : (
+          <span className="font-display text-[11px] font-extrabold uppercase leading-none">
+            {method.label_en.slice(0, 2)}
+          </span>
+        )}
+      </span>
+    );
+  }
 
   return (
     <span
       className="grid h-9 w-9 place-items-center rounded-xl"
-      style={{ backgroundColor: `${brand.tint}22`, color: brand.tint }}
+      style={{ backgroundColor: `${spec.tint}1F`, color: spec.tint }}
       aria-hidden
     >
-      {brand.icon ? (
-        <brand.icon className="h-[18px] w-[18px]" />
+      {spec.path ? (
+        <svg viewBox="0 0 24 24" className="h-[19px] w-[19px]" fill="currentColor">
+          <path d={spec.path} />
+        </svg>
       ) : (
-        <span className="font-display text-[11px] font-extrabold leading-none tracking-tight">
-          {brand.text}
-        </span>
+        // `textLength` makes the word fill the tile whatever its length, so
+        // "D17" and "wafacash" sit at the same optical weight instead of one
+        // shouting and the other squinting.
+        <svg viewBox="0 0 32 12" className="w-[28px]" aria-hidden>
+          <text
+            x="16"
+            y="9.5"
+            textAnchor="middle"
+            textLength="30"
+            lengthAdjust="spacingAndGlyphs"
+            fill="currentColor"
+            className="font-display"
+            style={{ fontSize: 11, fontWeight: 800, letterSpacing: "-0.01em" }}
+          >
+            {spec.word}
+          </text>
+        </svg>
       )}
     </span>
   );
 }
 
-/**
- * Tints, not trademarks.
- *
- * Each mark is a monogram or a generic glyph in a colour that tells it apart
- * from its neighbours. Deliberately not an attempt to reproduce a brand's
- * actual logo from memory — a nearly-right logo looks worse than an honest
- * placeholder, and `logo_url` is there for the real files.
- */
-const BRANDS: Record<
-  string,
-  { tint: string; text?: string; icon?: typeof Landmark }
-> = {
-  d17: { tint: "#F5A623", text: "D17" },
-  flouci: { tint: "#4C8DFF", text: "FL" },
-  bank: { tint: "#9DA18B", icon: Landmark },
-  crypto: { tint: "#26A17B", icon: Bitcoin },
-  western_union: { tint: "#FFCC00", text: "WU" },
-  wafacash: { tint: "#E8622D", text: "WC" },
+/** Methods that are a mechanism rather than a brand. */
+const GENERIC_ICONS: Record<string, { icon: typeof Landmark }> = {
+  bank: { icon: Landmark },
 };
 
 /**
