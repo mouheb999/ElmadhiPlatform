@@ -132,24 +132,13 @@ export function CheckoutClient({
   const direction = dir(locale);
 
   /**
-   * Where a returning customer picks up.
-   *
-   * Somebody with an open request and no receipt has an order saved and no
-   * proof against it — every open request in production today is in exactly
-   * that state. Starting them at step 1 put them back on the plan grid with
-   * nothing saying what was outstanding. They open on step 2 instead, under a
-   * line naming what is missing, and "← Back" is still one tap from the plans
-   * for anyone who tapped without meaning it.
-   */
-  const [step, setStep] = useState(hasOpenRequest && !hasProof ? 2 : 1);
-
-  /**
    * What they were looking at before the form.
    *
    * Somebody who picked Premium / 6 months, made an account and came back to
    * Premium / 3 months would reasonably conclude the page had changed its mind
    * about what they were buying. `?plan=` carries the choice through signup;
-   * the defaults below are for everyone else.
+   * the defaults below are for everyone else. Resolved against the real plans,
+   * so a stale or mistyped id falls back rather than pretending.
    */
   const chosen = initialPlanId ? plans.find((p) => p.id === initialPlanId) : undefined;
   const [tier, setTier] = useState<Tier>(
@@ -157,6 +146,26 @@ export function CheckoutClient({
   );
   // Psychological default: the middle option, not the cheapest.
   const [months, setMonths] = useState<number>(chosen?.months ?? 3);
+
+  /**
+   * Where a returning customer picks up. Two ways to open on step 2:
+   *
+   * An **open request with no receipt** — an order saved and nothing proving
+   * it, which is the state every open request in production is in. Starting
+   * them at step 1 put them back on the plan grid with nothing saying what was
+   * outstanding.
+   *
+   * A **signed-in visitor carrying a resolved `?plan=`** — somebody who chose
+   * a plan, was sent to make an account, and has just come back. They already
+   * made this decision; showing them the grid again and asking them to press
+   * Continue a second time is asking them to make it twice.
+   *
+   * "← Back" is one tap from the plans either way, for anyone who wants to
+   * change their mind.
+   */
+  const [step, setStep] = useState(
+    (hasOpenRequest && !hasProof) || (signedIn && !!chosen) ? 2 : 1,
+  );
   const [methodKey, setMethodKey] = useState<string | null>(methods[0]?.key ?? null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
