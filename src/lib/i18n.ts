@@ -181,9 +181,41 @@ const STRINGS = {
   "co.step": { en: "Step", tn: "خطوة" },
   "co.of": { en: "of", tn: "من" },
   "co.s1": { en: "Pick your plan", tn: "اختار العرض" },
-  "co.s2": { en: "Make the transfer", tn: "ابعث الفلوس" },
+  // Step 2 is now the transfer *and* the receipt on one screen. They used to be
+  // two, and the second one converted at 5%: a customer who had already done
+  // the thing they think of as paying had no reason left to come back.
+  "co.s2": { en: "Pay and send the receipt", tn: "خلّص وابعث الوصل" },
   "co.s3": { en: "Send the receipt", tn: "ابعث الوصل" },
+  "co.attach_receipt": { en: "Attach your receipt", tn: "حمّل الوصل" },
+  "co.pay_and_send": {
+    en: "Send the receipt and open my account",
+    tn: "ابعث الوصل وافتحلي الحساب",
+  },
+  "co.later": { en: "I'll send the receipt later", tn: "باش نبعث الوصل من بعد" },
+  // What a customer sees when they come back to an order they never finished.
+  // Deliberately not "we're checking your payment" — nothing is being checked
+  // until a receipt exists, and saying otherwise is how 83 people ended up
+  // waiting for a review that was never going to happen.
+  "co.saved_title": { en: "Your order is saved", tn: "طلبك تسجّل" },
+  "co.saved_body": {
+    en: "Once you've made the transfer, come back here and attach the receipt — that is what opens your account.",
+    tn: "كي تكمّل التحويل، ارجع لهوني وحمّل الوصل — هو اللي يحلّلك الحساب.",
+  },
+  // The wait, stated where the decision is made rather than on the screen after
+  // it. Real average today is about twelve hours.
+  "co.promise": {
+    en: "We open your account within a few hours, and message you on WhatsApp the moment it's done.",
+    tn: "نحلّولك الحساب في ظرف بضع ساعات، ونراسلوك على واتساب كي يتحل.",
+  },
   "co.next": { en: "Continue", tn: "كمّل" },
+  // The same button for somebody who has not made an account yet. It says what
+  // the tap does, because a button labelled "continue" that produces a sign-up
+  // form reads as a bait-and-switch.
+  "co.next_signup": { en: "Create my account", tn: "أعمل حسابي" },
+  "co.next_signup_why": {
+    en: "Takes a minute. We need it to open your plan and to reach you when your payment lands.",
+    tn: "دقيقة برك. نحتاجوه باش نحلّولك البرنامج ونوصلولك كي يوصل الخلاص.",
+  },
   "co.back": { en: "Back", tn: "لور" },
   "co.you_pay": { en: "You pay", tn: "تخلّص" },
   "co.send_to": { en: "Send it to", tn: "ابعثها لـ" },
@@ -205,6 +237,168 @@ const STRINGS = {
   "co.file_too_big": { en: "Image must be under 5 MB.", tn: "التصويرة لازم تكون أقل من 5 ميغا." },
   "co.file_not_image": { en: "That file isn't an image.", tn: "هذا الملف موش تصويرة." },
   "co.need_help": { en: "Something wrong? Message us", tn: "فما مشكلة؟ راسلنا" },
+
+  // ---- the payment method picker ----
+  //
+  // The long walkthroughs are gone from this screen. Each method gets one line
+  // in the database (`hint_*`, migration 048) answering whatever the account
+  // number does not already say; these are the strings around it.
+  "co.method_no_account": {
+    en: "This method isn't ready yet — pick another one.",
+    tn: "الطريقة هاذي مازالت ما تحضّرتش — اختار وحدة أخرى.",
+  },
+  "co.suggest_cta": { en: "My method isn't here", tn: "الطريقة متاعي ماهيش موجودة" },
+  "co.suggest_title": { en: "How do you want to pay?", tn: "كيفاش تحب تخلّص؟" },
+  "co.suggest_ph": { en: "e.g. Poste, e-Dinar, cash", tn: "مثال: البريد، e-Dinar، كاش" },
+  "co.suggest_send": { en: "Send", tn: "ابعث" },
+  "co.suggest_note": {
+    en: "We'll message you on WhatsApp to sort it out.",
+    tn: "باش نراسلوك على واتساب باش نرتّبوها.",
+  },
+  "co.suggest_sent": {
+    en: "Got it — we'll be in touch shortly.",
+    tn: "وصلتنا — باش نتصلو بيك قريب.",
+  },
+
+  // ---- the app preview on checkout ----
+  //
+  // With the paywall in front of everything, a stranger reaches the price
+  // having seen no product at all. This is the product, played back on the
+  // checkout screen itself: real screens, sample numbers, and a lock on the
+  // moment where the plan would become theirs.
+  //
+  // The sample data is labelled as sample data. A preview that pretends to be
+  // the customer's own plan is a lie they discover ten seconds after paying.
+  "tour.title": { en: "Look inside first", tn: "شوف التطبيق من الداخل" },
+  "tour.sub": {
+    en: "Tap around — this is the app, with someone else's numbers in it.",
+    tn: "دوّر فيه كيما تحب — هذا هو التطبيق، بأرقام متاع شخص آخر.",
+  },
+  "tour.sample": { en: "Sample", tn: "نموذج" },
+  "tour.skip": { en: "Skip to the plans", tn: "تخطّى للعروض" },
+  "tour.open": { en: "Open the preview", tn: "حلّ المعاينة" },
+
+  // Today
+  "tour.t_greeting": { en: "Today", tn: "اليوم" },
+  "tour.t_name": { en: "Yassine", tn: "ياسين" },
+  "tour.t_streak": { en: "5 day streak", tn: "5 أيام متتالية" },
+  "tour.t_week": { en: "Week: 2/3", tn: "الجمعة: 2/3" },
+  "tour.t_workout": { en: "Today's session", tn: "حصة اليوم" },
+  "tour.t_day": { en: "Push A", tn: "دفع A" },
+  "tour.t_meta": { en: "6 exercises · about 45 min", tn: "6 تمارين · حوالي 45 دقيقة" },
+  "tour.t_start": { en: "Start the session", tn: "ابدا الحصة" },
+  "tour.t_checkin": { en: "Morning check-in", tn: "تسجيل الصباح" },
+  "tour.t_weight": { en: "Weight", tn: "الوزن" },
+  "tour.t_on_track": { en: "On track", tn: "ماشي مليح" },
+  "tour.t_progress": { en: "Weight, 8 weeks", tn: "الوزن، 8 جماعي" },
+
+  // Program
+  "tour.p_title": { en: "Your program", tn: "البرنامج متاعك" },
+  "tour.p_meta": { en: "3 days a week · built from your answers", tn: "3 أيام في الجمعة · مبني على إجاباتك" },
+  "tour.p_day1": { en: "Push A", tn: "دفع A" },
+  "tour.p_day2": { en: "Pull B", tn: "سحب B" },
+  "tour.p_day3": { en: "Legs", tn: "الساقين" },
+  "tour.p_ex1": { en: "Barbell Bench Press", tn: "ضغط بار للصدر" },
+  "tour.p_ex2": { en: "Incline Dumbbell Press", tn: "ضغط دمبل مائل" },
+  "tour.p_ex3": { en: "Lateral Raise", tn: "رفع جانبي" },
+  "tour.p_ex4": { en: "Triceps Pushdown", tn: "دفع الترايسبس" },
+  "tour.p_ex5": { en: "Cable Crossover", tn: "تقاطع الكابل" },
+  "tour.p_rest": { en: "90 s rest", tn: "90 ثانية راحة" },
+  "tour.p_swap": { en: "Swap an exercise", tn: "بدّل تمرين" },
+
+  // Nutrition
+  "tour.f_title": { en: "Your meals", tn: "الماكلة متاعك" },
+  "tour.f_left": { en: "left today", tn: "باقي اليوم" },
+  "tour.f_b": { en: "Breakfast", tn: "فطور الصباح" },
+  "tour.f_b_items": { en: "Eggs, bread, olive oil", tn: "عظم، خبز، زيت زيتون" },
+  "tour.f_l": { en: "Lunch", tn: "الغدا" },
+  "tour.f_l_items": { en: "Chicken, rice, salad", tn: "دجاج، رز، سلاطة" },
+  "tour.f_d": { en: "Dinner", tn: "العشا" },
+  "tour.f_d_items": { en: "Tuna, couscous, vegetables", tn: "تن، كسكسي، خضرة" },
+  "tour.f_s": { en: "Snack", tn: "سناك" },
+  "tour.f_s_items": { en: "Yoghurt, almonds", tn: "ياغورت، لوز" },
+  "tour.f_swap": { en: "Swap this meal", tn: "بدّل هذي الوجبة" },
+
+  // AI camera
+  "tour.ai_title": { en: "Point it at your plate", tn: "صوّر الصحن متاعك" },
+  "tour.ai_sub": { en: "Premium", tn: "بريميوم" },
+  "tour.ai_i1": { en: "Grilled chicken · 180 g", tn: "دجاج مشوي · 180 غ" },
+  "tour.ai_i2": { en: "White rice · 150 g", tn: "رز أبيض · 150 غ" },
+  "tour.ai_i3": { en: "Olive oil · 10 g", tn: "زيت زيتون · 10 غ" },
+  "tour.ai_shoot": { en: "Take a photo", tn: "صوّر" },
+
+  // Q&A
+  "tour.qa_title": { en: "Answers", tn: "الأسئلة" },
+  "tour.qa_q1": {
+    en: "Should I train if I'm still sore?",
+    tn: "نتمرّن وأنا مازلت موجوع؟",
+  },
+  "tour.qa_a1": {
+    en: "Mild soreness is fine — train. Sharp pain in a joint is not; move that muscle later in the week.",
+    tn: "وجيعة خفيفة عادي — تمرّن. أما وجيعة حادة في مفصل لا؛ أجّل ذاك العضل لآخر الجمعة.",
+  },
+  "tour.qa_q2": {
+    en: "Do I have to eat exactly what the plan says?",
+    tn: "لازم ناكل بالضبط اللي في البرنامج؟",
+  },
+  "tour.qa_a2": {
+    en: "No. Hit your protein and stay near the calories — swap anything else for what you actually have at home.",
+    tn: "لا. كمّل البروتين وابقى قريب من السعرات — بدّل أي حاجة أخرى باللي عندك في الدار.",
+  },
+  "tour.qa_q3": {
+    en: "How fast should I be losing weight?",
+    tn: "قداش لازم ننقص بالسرعة؟",
+  },
+  "tour.qa_a3": {
+    en: "About 0.5–1% of your bodyweight a week. Faster than that and you start giving back muscle.",
+    tn: "تقريباً 0.5 حتى 1% من وزنك في الجمعة. أسرع من هكّا تبدا تخسر عضل.",
+  },
+  "tour.qa_ask": { en: "Ask the coach", tn: "اسأل المدرب" },
+
+  // Inside the session
+  "tour.back": { en: "Back", tn: "لور" },
+  "tour.s_kg": { en: "kg", tn: "كغ" },
+  "tour.s_reps": { en: "reps", tn: "تكرار" },
+  "tour.s_done": { en: "sets done", tn: "مجموعة تعملت" },
+  "tour.s_volume": { en: "Volume", tn: "الحجم" },
+  "tour.s_rest": { en: "Rest 90 s", tn: "راحة 90 ثانية" },
+  "tour.s_finish": { en: "Finish the session", tn: "كمّل الحصة" },
+  "tour.s_tap": { en: "Tap a set to log it", tn: "اضغط على مجموعة باش تسجّلها" },
+
+  // Inside the diary
+  "tour.f_eaten": { en: "eaten", tn: "تاكلو" },
+  "tour.f_target": { en: "target", tn: "الهدف" },
+  "tour.f_add": { en: "Add food", tn: "زيد ماكلة" },
+  "tour.f_log": { en: "Log it", tn: "سجّلها" },
+  "tour.f_logged": { en: "Logged", tn: "تسجّلت" },
+  "tour.f_pick": { en: "Choose a food", tn: "اختار ماكلة" },
+  "tour.fd_1": { en: "Eggs · 2", tn: "عظم · 2" },
+  "tour.fd_2": { en: "Bread · 80 g", tn: "خبز · 80 غ" },
+  "tour.fd_3": { en: "Tuna · 100 g", tn: "تن · 100 غ" },
+  "tour.fd_4": { en: "Chicken · 150 g", tn: "دجاج · 150 غ" },
+  "tour.fd_5": { en: "Rice · 150 g", tn: "رز · 150 غ" },
+  "tour.fd_6": { en: "Yoghurt · 1", tn: "ياغورت · 1" },
+  "tour.fd_7": { en: "Almonds · 30 g", tn: "لوز · 30 غ" },
+  "tour.fd_8": { en: "Dates · 3", tn: "تمر · 3" },
+
+  // The camera
+  "tour.ai_scan": { en: "Reading the plate…", tn: "قاعد يقرا الصحن…" },
+  "tour.ai_add": { en: "Add to my diary", tn: "زيدها للدفتر" },
+  "tour.ai_retake": { en: "Take another", tn: "صوّر وحدة أخرى" },
+
+  // The wall
+  "tour.lock_save_title": { en: "This is the part that saves", tn: "هذا هو الجزء اللي يسجّل" },
+  "tour.lock_save_body": {
+    en: "You just logged a session and a day of food. With an account it stays — the charts move, the coach adapts next week's plan, and none of it is typed twice.",
+    tn: "توّا سجّلت حصة ونهار ماكلة. بحساب، الكل يتسجّل — الرسوم تتحرّك، والمدرب يبدّل برنامج الجمعة الجاية، وما تعاودش تكتب شيء.",
+  },
+  "tour.lock_title": { en: "This part becomes yours", tn: "هذا الجزء يولّي متاعك" },
+  "tour.lock_body": {
+    en: "Everything here fills with your own numbers — your split, your macros, your meals — built from eight questions. Pick a plan and we open it today.",
+    tn: "الكل هوني يتعمّر بالأرقام متاعك — التقسيم، الماكرو، الوجبات — مبنيين على 8 أسئلة. اختار عرض ونحلّولك اليوم.",
+  },
+  "tour.lock_cta": { en: "Pick your plan", tn: "اختار العرض" },
+  "tour.lock_back": { en: "Keep looking", tn: "كمّل تفرّج" },
   "co.review_title": { en: "We're checking your payment", tn: "قاعدين نشوفو في الخلاص متاعك" },
   "co.review_body": {
     en: "Usually within a few hours. We'll message you the moment your account opens.",
@@ -240,7 +434,20 @@ const STRINGS = {
 
   // ---- admin: payment proof ----
   "admin.proof": { en: "Receipt", tn: "الوصل" },
+  "admin.hint_en": { en: "One line, shown at checkout (EN)", tn: "سطر واحد، يظهر في الخلاص (EN)" },
+  "admin.hint_ar": { en: "One line, shown at checkout (AR)", tn: "سطر واحد، يظهر في الخلاص (AR)" },
+  "admin.logo_url": {
+    en: "Logo URL — blank draws a monogram tile",
+    tn: "رابط اللوقو — كان فارغ يتعمل مربّع بالحروف",
+  },
   "admin.proof_none": { en: "No receipt uploaded", tn: "ما فماش وصل" },
+  // How long this person has been waiting. The queue is newest-first, which is
+  // right for confirming payments and wrong for noticing who has been left —
+  // the one customer who has waited two days sits at the bottom. The badge
+  // carries that to the top of each row instead of reordering the list.
+  "admin.waiting_h": { en: "waiting {n}h", tn: "مستنّي {n} ساعة" },
+  "admin.waiting_d": { en: "waiting {n}d", tn: "مستنّي {n} يوم" },
+  "admin.waiting_new": { en: "just now", tn: "توّا" },
   "admin.proof_note": { en: "Customer note", tn: "ملاحظة الحريف" },
   "admin.proof_open": { en: "Open full size", tn: "افتح بالحجم الكامل" },
 
@@ -431,6 +638,35 @@ const STRINGS = {
   "login.failed": {
     en: "Sign-in failed. Please try again.",
     tn: "الدخول فشل. عاود جرّب.",
+  },
+  // What a failed sign-in or sign-up actually says. The auth server's own
+  // messages are English whatever the user is reading, and some of them are
+  // not sentences at all (a JSON parse error, when something between us and
+  // Supabase returns a page instead of an answer). `actions/auth.ts` maps
+  // every failure onto one of these codes.
+  "login.err_bad_credentials": {
+    en: "Wrong email or password.",
+    tn: "الإيميل ولا كلمة السر ماهمش صحاح.",
+  },
+  "login.err_email_taken": {
+    en: "That email already has an account — sign in instead.",
+    tn: "الإيميل هذا عندو حساب من قبل — أدخل بيه.",
+  },
+  "login.err_weak_password": {
+    en: "Pick a longer password — at least 6 characters.",
+    tn: "أعمل كلمة سر أطول — 6 حروف على الأقل.",
+  },
+  "login.err_email_unconfirmed": {
+    en: "Confirm your email first — check your inbox.",
+    tn: "أكّد إيميلك الأول — شوف صندوق الوارد.",
+  },
+  "login.err_rate_limited": {
+    en: "Too many attempts. Wait a minute and try again.",
+    tn: "برشا محاولات. استنّى دقيقة وعاود.",
+  },
+  "login.err_unavailable": {
+    en: "We couldn't reach the server. Check your connection and try again.",
+    tn: "ما نجّمناش نوصلو للسيرفر. شوف الكونيكسيون وعاود جرّب.",
   },
   "login.check_inbox": {
     en: "Check your inbox to confirm your email, then sign in.",

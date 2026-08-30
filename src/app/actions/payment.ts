@@ -21,6 +21,12 @@ const ALLOWED_PROOF_TYPES = ["image/jpeg", "image/png", "image/webp", "image/hei
 /** Ceiling on one payment conversation. See `sendPaymentMessage`. */
 const MAX_THREAD_MESSAGES = 50;
 
+/** Ceiling on payment threads per account. See `suggestPaymentMethod`. */
+const MAX_PAYMENT_TICKETS = 3;
+
+/** Marks a suggestion in the support queue so an admin can see what it is. */
+const SUGGESTION_PREFIX = "[payment method]";
+
 /** Extension written into the storage path, chosen by us from the MIME type. */
 const EXTENSION_FOR_TYPE: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -88,7 +94,22 @@ export async function startPaymentRequest(
     .maybeSingle();
 
   if (existing) {
-    const { error } = await supabase
+    // Written with the service-role client, and this is not an oversight.
+    //
+    // `payment_requests` has RLS policies for INSERT and SELECT and none for
+    // UPDATE, so this statement through the user's own session matched zero
+    // rows — and PostgREST reports a zero-row UPDATE as success, not as an
+    // error. The whole re-selection path therefore returned `ok` while quietly
+    // keeping the plan the customer first chose: pick 1 month, back out, pick
+    // 6 months, tap "I've transferred" — and the admin queue still says one
+    // month at one month's price. Somebody pays for six and is granted one.
+    //
+    // The fix is not an RLS UPDATE policy. That would let a caller PATCH their
+    // own row over PostgREST and set `amount_tnd` to 1 and `plan_months` to 12,
+    // which is the tampering the server-side price lookup above exists to
+    // prevent. So the write bypasses RLS, and stays scoped to a row this user
+    // owns and has not had resolved yet.
+    const { data: updated, error } = await createAdminClient()
       .from("payment_requests")
       .update({
         method_key: methodKey,
@@ -96,8 +117,17 @@ export async function startPaymentRequest(
         plan_tier: plan.tier,
         plan_months: plan.months,
       })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("user_id", user.id)
+      .eq("status", "pending")
+      .select("id")
+      .maybeSingle();
     if (error) return fail(error.message);
+    // Nothing matched: the request was confirmed or rejected between the read
+    // above and this write. Falling through to the insert would be wrong (an
+    // activated account does not need a second request), and reporting success
+    // would repeat the bug this replaced.
+    if (!updated) return fail("That payment request is no longer open.");
     revalidatePath("/checkout");
     return ok({ requestId: existing.id });
   }
@@ -423,4 +453,78 @@ export async function isAccountActive(): Promise<boolean> {
   // payment_status active?" check here would let this screen wave somebody
   // through that the gate then turns straight back around.
   return isSubscriptionActive(data);
+}
+
+/**
+ * "The method I use isn't on the list."
+ *
+ * The picker offers four ways to pay in a country where people use a dozen,
+ * and somebody who cannot find theirs has exactly one move available to them:
+ * close the page. This is the cheapest alternative to that — they name what
+ * they use, an admin's phone rings, and somebody answers.
+ *
+ * Filed as an ordinary support ticket in the `payment` category rather than
+ * into a table of its own. It lands in the queue an admin already works, it is
+ * already a thread the customer can be replied to in, and a second inbox
+ * nobody has been told to check is worse than no inbox at all.
+ *
+ * Not behind the paywall, for the same reason `sendPaymentMessage` is not:
+ * everybody who can reach this is by definition trying to give us money.
+ */
+export async function suggestPaymentMethod(body: string): Promise<ActionResult> {
+  const user = await getCurrentUser();
+  if (!user) return fail("Not signed in.");
+
+  const text = body.trim().slice(0, 200);
+  if (!text) return fail("Tell us which method you use.");
+
+  const supabase = await createClient();
+
+  // One suggestion per person is a suggestion; twenty is a way to make an
+  // admin's phone unusable. Counting open payment tickets is enough of a
+  // ceiling — a customer with three of these already has our attention.
+  const { count } = await supabase
+    .from("support_tickets")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("category", "payment");
+  if ((count ?? 0) >= MAX_PAYMENT_TICKETS) {
+    return fail("You've already sent us this — we'll be in touch.");
+  }
+
+  const now = new Date().toISOString();
+  const { data: ticket, error } = await supabase
+    .from("support_tickets")
+    .insert({
+      user_id: user.id,
+      category: "payment",
+      status: "open",
+      last_message_at: now,
+      // Nothing to catch up on yet — the unread dot belongs to our reply.
+      user_seen_at: now,
+    })
+    .select("id")
+    .single();
+  if (error || !ticket) return fail(error?.message ?? "Could not send that.");
+
+  const { error: messageError } = await supabase
+    .from("support_messages")
+    .insert({ ticket_id: ticket.id, sender: "user", body: `${SUGGESTION_PREFIX} ${text}` });
+  if (messageError) {
+    // Written with the service-role client: there is no DELETE policy on
+    // support_tickets, so through the session this matched nothing and left
+    // the empty ticket it was meant to clean up.
+    await createAdminClient().from("support_tickets").delete().eq("id", ticket.id);
+    return fail(messageError.message);
+  }
+
+  const admin = createAdminClient();
+  await notifyTelegram({
+    kind: "method_suggestion",
+    ...(await notifyContext(admin, user.id)),
+    method: text,
+  });
+
+  revalidatePath("/admin");
+  return ok(undefined);
 }

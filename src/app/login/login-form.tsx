@@ -18,14 +18,39 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Locale, t } from "@/lib/i18n";
+import { type Locale, t, type StringKey } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
 import { REVERSE_TRIAL } from "@/lib/access";
 
 type Mode = "signin" | "signup";
 
-export function LoginForm({ locale }: { locale: Locale }) {
+/**
+ * The codes `actions/auth.ts` returns, in the reader's own language.
+ *
+ * The form used to print whatever came back from the auth server. That is
+ * English in an Arabic UI at best, and at worst a JavaScript parse error shown
+ * to somebody halfway through creating an account. Anything not in this map
+ * falls back to the generic line rather than being displayed raw.
+ */
+const AUTH_ERRORS: Record<string, StringKey> = {
+  auth_bad_credentials: "login.err_bad_credentials",
+  auth_email_taken: "login.err_email_taken",
+  auth_weak_password: "login.err_weak_password",
+  auth_email_unconfirmed: "login.err_email_unconfirmed",
+  auth_rate_limited: "login.err_rate_limited",
+  auth_unavailable: "login.err_unavailable",
+  invalid_phone: "phone.invalid",
+};
+
+export function LoginForm({
+  locale,
+  plan,
+}: {
+  locale: Locale;
+  /** The plan they picked before being sent here, if they came from checkout. */
+  plan?: { tier: string; months: number; price_tnd: number } | null;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   // Narrowed to a same-origin path: `?next=` is attacker-controlled, and
@@ -53,6 +78,12 @@ export function LoginForm({ locale }: { locale: Locale }) {
   const [showAdminChoice, setShowAdminChoice] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  /** A code from the auth actions, localised; anything else, the generic line. */
+  function authMessage(code: string): string {
+    const key = AUTH_ERRORS[code];
+    return key ? t(locale, key) : t(locale, "login.failed");
+  }
+
   function goTo(path: string) {
     startTransition(() => {
       router.push(path);
@@ -69,7 +100,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
       if (mode === "signin") {
         const res = await signInWithPassword(email, password);
         if (!res.ok) {
-          setError(res.error);
+          setError(authMessage(res.error));
           return;
         }
         // Admins pick a destination; regular users go straight in.
@@ -86,11 +117,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
         }
         const res = await signUpWithPassword(email, password, fullName, phone);
         if (!res.ok) {
-          setError(
-            res.error === "invalid_phone"
-              ? t(locale, "phone.invalid")
-              : res.error,
-          );
+          setError(authMessage(res.error));
           return;
         }
         // Signed up and signed in, which is the configured behaviour: straight
@@ -103,10 +130,17 @@ export function LoginForm({ locale }: { locale: Locale }) {
         // anyway — so this is the same destination minus a redirect the user
         // watches happen. The point is that the first screen after signing up
         // is the one that explains what the plans are and what it costs, in the
-        // three steps it takes, rather than a flash of somewhere they cannot
+        // two steps it takes, rather than a flash of somewhere they cannot
         // stay. With the trial back on, `next` is a real destination again.
+        //
+        // The exception is a `next` that is already a checkout URL: that is
+        // somebody who walked the preview, chose a plan and was sent here to
+        // make an account, and it carries the plan they chose. Dropping it for
+        // a bare /checkout would land them back on the grid having apparently
+        // forgotten the decision they just made.
         if (res.data.signedIn) {
-          router.push(REVERSE_TRIAL ? next : "/checkout");
+          const backToCheckout = next.startsWith("/checkout");
+          router.push(REVERSE_TRIAL || backToCheckout ? next : "/checkout");
           router.refresh();
           return;
         }
@@ -121,7 +155,7 @@ export function LoginForm({ locale }: { locale: Locale }) {
     startTransition(async () => {
       const res = await signInWithGoogle();
       if (!res.ok) {
-        setError(res.error);
+        setError(authMessage(res.error));
         return;
       }
       window.location.href = res.data;
@@ -171,6 +205,27 @@ export function LoginForm({ locale }: { locale: Locale }) {
       </div>
 
       <Card className="w-full max-w-sm">
+        {/* The purchase, restated above the form, so this reads as the next
+            step in something they already decided rather than a gate. */}
+        {plan && mode === "signup" && (
+          <div className="flex items-center justify-between gap-3 border-b border-hairline px-6 py-4">
+            <span className="flex flex-col">
+              <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
+              <span className="font-bold text-ink">
+                {plan.tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")}
+                {" · "}
+                {plan.months === 1
+                  ? t(locale, "plans.month_1")
+                  : plan.months === 3
+                    ? t(locale, "plans.months_3")
+                    : t(locale, "plans.months_6")}
+              </span>
+            </span>
+            <span className="text-lg font-extrabold tabular-nums text-ink">
+              <bdi dir="ltr">{Math.round(plan.price_tnd * 10) / 10} DT</bdi>
+            </span>
+          </div>
+        )}
         <CardHeader>
           <CardTitle>
             {mode === "signin"

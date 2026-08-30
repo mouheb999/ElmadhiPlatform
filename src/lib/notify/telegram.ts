@@ -42,6 +42,37 @@ type TelegramEvent =
       name: string | null;
       email: string | null;
       body: string;
+    }
+  | {
+      /**
+       * Somebody could not find their payment method in the list.
+       *
+       * Worth a ping rather than a row in a table: it is a person standing at
+       * the till holding money we currently have no way to take, and the
+       * window in which answering them still converts is short.
+       */
+      kind: "method_suggestion";
+      name: string | null;
+      email: string | null;
+      phone: string | null;
+      method: string;
+    }
+  | {
+      /**
+       * A support report opened from /support.
+       *
+       * Here for the same reason the payment pings are: the queue is only as
+       * fast as the person reading it, and this is the channel a customer who
+       * has paid and is still locked out actually reaches for. Until now those
+       * landed in a table nobody was told about, while every other event on the
+       * same screen rang a phone.
+       */
+      kind: "support_ticket";
+      name: string | null;
+      email: string | null;
+      phone: string | null;
+      category: string;
+      body: string;
     };
 
 /** Recipients. One id, or a comma-separated list so several people get pinged. */
@@ -104,6 +135,28 @@ function render(event: TelegramEvent): string {
         ...who(event.name, event.email),
         "",
         clip(event.body, 500),
+      ].join("\n");
+
+    case "method_suggestion":
+      return [
+        "🧭 Payment method we don't offer",
+        "",
+        ...who(event.name, event.email, event.phone),
+        "",
+        `💳 ${clip(event.method, 120)}`,
+        "",
+        "👉 Reply on their payment thread in the admin panel.",
+      ].join("\n");
+
+    case "support_ticket":
+      return [
+        `🆘 New support report — ${clip(event.category, 30)}`,
+        "",
+        ...who(event.name, event.email, event.phone),
+        "",
+        clip(event.body, 500),
+        "",
+        "👉 Answer it in the admin panel.",
       ].join("\n");
   }
 }

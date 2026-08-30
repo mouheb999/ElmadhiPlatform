@@ -26,6 +26,10 @@ RETURNS TABLE (
   answer_short_ar TEXT
 )
 LANGUAGE sql
+-- Pinned for the same reason migration 047 pins every other function's: a
+-- fixed path with no exceptions is a rule you can check, and "this one is
+-- SECURITY INVOKER so it doesn't matter" is a reason you have to re-derive.
+SET search_path = public, pg_temp
 AS $$
   SELECT c.id, c.question_en, c.question_ar, c.answer_short, c.answer_short_ar
   FROM qa_cards c

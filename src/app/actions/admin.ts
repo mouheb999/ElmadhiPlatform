@@ -60,6 +60,11 @@ export type MethodInput = {
   account_value: string | null;
   instructions_en: string | null;
   instructions_ar: string | null;
+  /** The one line the checkout screen actually shows. Migration 048. */
+  hint_en: string | null;
+  hint_ar: string | null;
+  /** Brand logo; empty falls back to a monogram tile. Migration 048. */
+  logo_url: string | null;
 };
 
 export async function updatePaymentMethod(
@@ -81,6 +86,9 @@ export async function updatePaymentMethod(
       account_value: input.account_value,
       instructions_en: input.instructions_en,
       instructions_ar: input.instructions_ar,
+      hint_en: input.hint_en,
+      hint_ar: input.hint_ar,
+      logo_url: input.logo_url,
       updated_at: new Date().toISOString(),
     })
     .eq("id", input.id);
@@ -190,27 +198,73 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
   if (reqError) return fail(reqError.message);
   if (!req) return fail("Request not found.");
 
-  const { error: updateReqError } = await admin
+  // Claim the request, and only if nobody has confirmed it already.
+  //
+  // Activation is not idempotent: `nextExpiry` *extends* a term that has not
+  // run out, so running this twice on one payment grants two. Nothing stopped
+  // that — a double-tap on Confirm, two admins working the same queue, or a
+  // retry after a slow response would each hand out a second term for one
+  // transfer. The status flip is now the lock: whoever moves the row from
+  // pending wins, everyone else falls out here before touching the profile.
+  //
+  // `neq` rather than `eq('pending')` so a request turned down by mistake can
+  // still be put through; only an already-confirmed one is refused.
+  const { data: claimed, error: updateReqError } = await admin
     .from("payment_requests")
     .update({
       status: "confirmed",
       resolved_at: new Date().toISOString(),
       resolved_by: adminUserId,
     })
-    .eq("id", requestId);
+    .eq("id", requestId)
+    .neq("status", "confirmed")
+    .select("id")
+    .maybeSingle();
   if (updateReqError) return fail(updateReqError.message);
+  if (!claimed) return fail("This payment was already confirmed.");
+
+  // The term is taken from a plan we sell, not from the request row.
+  //
+  // `startPaymentRequest` reads price, tier and duration server-side precisely
+  // so a client cannot choose them — but a request row is an ordinary insert
+  // that RLS allows the browser to make directly over PostgREST (the bypass
+  // migration 045 is about). Nothing stopped somebody POSTing
+  // `{plan_tier: 'premium', plan_months: 24}` with a plausible amount beside
+  // it; this function then granted exactly what the row asked for. So the
+  // (tier, months) pair has to name a plan that actually exists and is on
+  // sale, and the duration is read back off that plan.
+  //
+  // Not the price: prices legitimately change, and an older request at an
+  // older price is a normal thing to confirm.
+  const tier = req.plan_tier === "standard" ? "standard" : "premium";
+  const { data: plan } = await admin
+    .from("subscription_plans")
+    .select("months")
+    .eq("tier", tier)
+    .eq("months", req.plan_months ?? 1)
+    .eq("is_enabled", true)
+    .maybeSingle();
+  if (!plan) {
+    // Put the request back the way it was, rather than leaving it marked
+    // confirmed with nothing granted. Its own previous status, not "pending":
+    // only one pending request per user exists at a time (migration 041's
+    // unique index), so forcing one back could collide with a newer attempt.
+    await admin
+      .from("payment_requests")
+      .update({ status: req.status, resolved_at: null, resolved_by: null })
+      .eq("id", requestId);
+    return fail("This request doesn't match any plan on sale — check it before confirming.");
+  }
 
   // Subscription math: a renewal extends the current expiry, a lapsed or
-  // first-time subscription starts from now. Legacy requests without a plan
-  // default to 1 month of premium.
+  // first-time subscription starts from now.
   const { data: profile } = await admin
     .from("profiles")
     .select("plan_expires_at")
     .eq("id", req.user_id)
     .maybeSingle();
 
-  const months = req.plan_months ?? 1;
-  const tier = req.plan_tier === "standard" ? "standard" : "premium";
+  const months = plan.months;
   const now = new Date();
   const newExpiry = nextExpiry(profile?.plan_expires_at, months, now);
 
@@ -274,9 +328,15 @@ export async function rejectRequest(requestId: string): Promise<ActionResult> {
       resolved_by: adminUserId,
     })
     .eq("id", requestId)
+    // A confirmed payment is not turned down from here. Marking it rejected
+    // would leave the record contradicting the account — still active, and the
+    // paperwork saying it was refused. Reversing a confirmed payment is what
+    // "End subscription" on /admin/subscriptions is for.
+    .neq("status", "confirmed")
     .select("user_id")
     .maybeSingle();
   if (error) return fail(error.message);
+  if (!rejected) return fail("This payment was already confirmed — end the subscription instead.");
 
   // Hand the account back to checkout.
   //

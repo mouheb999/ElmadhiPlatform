@@ -11,11 +11,13 @@ import {
   sendPaymentMessage,
   startPaymentRequest,
 } from "@/app/actions/payment";
+import { AppPreview } from "@/components/checkout/app-preview";
+import { PaymentMethods } from "@/components/checkout/payment-methods";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { type Locale, dir, pick, t, type StringKey } from "@/lib/i18n";
+import { type Locale, dir, t, type StringKey } from "@/lib/i18n";
 import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
 import type { Database } from "@/types/db";
 
@@ -76,11 +78,17 @@ export type PaymentThread = {
 
 type Props = {
   locale: Locale;
+  /** False for a visitor who has not made an account yet. */
+  signedIn: boolean;
+  /** A plan chosen before signing up, carried back through `?plan=`. */
+  initialPlanId: string | null;
   email: string;
   paymentStatus: string;
   planExpiresAt: string | null;
   isRenewal: boolean;
   hasProof: boolean;
+  /** There is an open request: they have said they transferred the money. */
+  hasOpenRequest: boolean;
   /** Their last attempt was turned down, and they have not started another. */
   wasRejected: boolean;
   /** The conversation attached to the open request, once a receipt exists. */
@@ -106,10 +114,13 @@ type Props = {
  */
 export function CheckoutClient({
   locale,
+  signedIn,
+  initialPlanId,
   paymentStatus,
   planExpiresAt,
   isRenewal,
   hasProof,
+  hasOpenRequest,
   wasRejected,
   thread,
   from,
@@ -120,20 +131,78 @@ export function CheckoutClient({
   const router = useRouter();
   const direction = dir(locale);
 
-  const [step, setStep] = useState(1);
-  const [tier, setTier] = useState<Tier>("premium");
+  /**
+   * What they were looking at before the form.
+   *
+   * Somebody who picked Premium / 6 months, made an account and came back to
+   * Premium / 3 months would reasonably conclude the page had changed its mind
+   * about what they were buying. `?plan=` carries the choice through signup;
+   * the defaults below are for everyone else. Resolved against the real plans,
+   * so a stale or mistyped id falls back rather than pretending.
+   */
+  const chosen = initialPlanId ? plans.find((p) => p.id === initialPlanId) : undefined;
+  const [tier, setTier] = useState<Tier>(
+    chosen?.tier === "standard" ? "standard" : "premium",
+  );
   // Psychological default: the middle option, not the cheapest.
-  const [months, setMonths] = useState<number>(3);
+  const [months, setMonths] = useState<number>(chosen?.months ?? 3);
+
+  /**
+   * Where a returning customer picks up. Two ways to open on step 2:
+   *
+   * An **open request with no receipt** — an order saved and nothing proving
+   * it, which is the state every open request in production is in. Starting
+   * them at step 1 put them back on the plan grid with nothing saying what was
+   * outstanding.
+   *
+   * A **signed-in visitor carrying a resolved `?plan=`** — somebody who chose
+   * a plan, was sent to make an account, and has just come back. They already
+   * made this decision; showing them the grid again and asking them to press
+   * Continue a second time is asking them to make it twice.
+   *
+   * "← Back" is one tap from the plans either way, for anyone who wants to
+   * change their mind.
+   */
+  const [step, setStep] = useState(
+    (hasOpenRequest && !hasProof) || (signedIn && !!chosen) ? 2 : 1,
+  );
   const [methodKey, setMethodKey] = useState<string | null>(methods[0]?.key ?? null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
+  const plansRef = useRef<HTMLDivElement>(null);
 
-  const offerLabel = pick(locale, settings?.offer_label_en, settings?.offer_label_ar);
+  /** The only way out of the preview's wall, and its skip link. */
+  function scrollToPlans() {
+    plansRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /**
+   * Step 1 → step 2, with the account collected in between if there isn't one.
+   *
+   * This is where the account is asked for: after the preview, after the
+   * plans, at the point the visitor has decided what they want and not one
+   * screen earlier. The chosen plan rides along in `?plan=` so signing up does
+   * not quietly reset the choice they just made, and `next` brings them back
+   * here rather than to a dashboard they cannot reach yet.
+   */
+  function continueWithPlan() {
+    if (!selectedPlan) return;
+    if (signedIn) {
+      setStep(2);
+      return;
+    }
+    const plan = encodeURIComponent(selectedPlan.id);
+    const next = encodeURIComponent(`/checkout?plan=${plan}`);
+    // `plan` twice on purpose: once for the sign-up screen, which shows what
+    // they are buying above the form, and once inside `next`, which is where
+    // they land afterwards.
+    router.push(`/login?mode=signup&plan=${plan}&next=${next}`);
+  }
+
   const whatsappNumber = (settings?.whatsapp_number ?? "").replace(/[^\d]/g, "");
 
   const tierPlans = useMemo(
@@ -146,6 +215,16 @@ export function CheckoutClient({
     () => methods.find((m) => m.key === methodKey) ?? null,
     [methods, methodKey],
   );
+
+  /**
+   * Is anybody actually being waited on?
+   *
+   * `payment_status` is 'pending' from the moment a request row exists. Anyone
+   * else on this screen is reading prices, and the poll below was running for
+   * them too: a Server Function POST every six seconds, per visitor, asking a
+   * question whose answer cannot change until they have done something.
+   */
+  const awaitingReview = paymentStatus === "pending";
 
   /**
    * Wait for the admin, without making the customer reload.
@@ -162,7 +241,7 @@ export function CheckoutClient({
    * moment that most needs to be right.
    */
   useEffect(() => {
-    if (paymentStatus === "active") return;
+    if (paymentStatus === "active" || !awaitingReview) return;
 
     let stopped = false;
     async function check() {
@@ -180,16 +259,20 @@ export function CheckoutClient({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", check);
     };
-  }, [paymentStatus, router]);
+  }, [paymentStatus, awaitingReview, router]);
 
   const activeMonths = selectedPlan?.months ?? months;
-  const premiumUpgradePerMonth = useMemo(() => {
+  // Plain arithmetic over six rows; the compiler memoizes it. The hand-written
+  // useMemo that used to be here could no longer be preserved once the plan
+  // preselection landed above, and a `useMemo` the compiler bails out of makes
+  // the whole component opt out of optimisation.
+  const premiumUpgradePerMonth = ((): number | null => {
     const std = plans.find((p) => p.tier === "standard" && p.months === activeMonths);
     const prem = plans.find((p) => p.tier === "premium" && p.months === activeMonths);
     if (!std || !prem) return null;
     const delta = (prem.price_tnd - std.price_tnd) / activeMonths;
     return delta > 0 ? delta : null;
-  }, [plans, activeMonths]);
+  })();
 
   function savingsPct(plan: Plan): number | null {
     if (!monthlyBase || plan.months === 1) return null;
@@ -212,15 +295,6 @@ export function CheckoutClient({
     return value === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard");
   }
 
-  async function copy(value: string, key: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1500);
-    } catch {
-      /* clipboard not available */
-    }
-  }
 
   function pickFile(next: File | null) {
     setError(null);
@@ -243,11 +317,55 @@ export function CheckoutClient({
   }
 
   /**
-   * Logs the request before the receipt exists. Somebody who transfers the
-   * money and then closes the app still shows up in the admin queue, which is
-   * the case the old flow lost entirely.
+   * The whole commit, in one tap: log the request, attach the receipt.
+   *
+   * These were two screens and two decisions. The first was free — "I've sent
+   * it" created a request, flipped the account to pending and pinged an admin,
+   * before any money was evidenced — and it sat exactly where a Next button
+   * sits. The second asked for the hard part, a screenshot from the bank app,
+   * at the moment of least motivation: the customer had already done the thing
+   * they think of as paying. 102 people tapped the first; 5 finished the
+   * second.
+   *
+   * Now the receipt is attached on the same screen as the account number, and
+   * this button needs it. The request is still logged first, so the lead
+   * survives an upload that fails — the admin queue gets somebody to chase
+   * rather than nothing at all.
    */
-  function confirmTransfer() {
+  function payAndSend() {
+    if (!activeMethod || !selectedPlan || !file) return;
+    setError(null);
+    startTransition(async () => {
+      const started = await startPaymentRequest(activeMethod.key, selectedPlan.id);
+      if (!started.ok) {
+        setError(started.error);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("file", file);
+      if (note.trim()) formData.set("note", note.trim());
+      const attached = await attachPaymentProof(formData);
+      if (!attached.ok) {
+        // The request exists; only the upload failed. Refresh so the screen
+        // comes back in the "order saved, receipt still needed" state rather
+        // than looking like nothing happened.
+        setError(attached.error);
+        router.refresh();
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  /**
+   * For the customer who has not made the transfer yet and is going to open
+   * their bank app. Logs the request so they are reachable, and comes back to
+   * this same screen saying what is still outstanding — the honest version of
+   * the review screen that used to claim we were checking a payment nobody had
+   * evidence of.
+   */
+  function saveForLater() {
     if (!activeMethod || !selectedPlan) return;
     setError(null);
     startTransition(async () => {
@@ -256,10 +374,11 @@ export function CheckoutClient({
         setError(res.error);
         return;
       }
-      setStep(3);
+      router.refresh();
     });
   }
 
+  /** Attaching a receipt to an order that was saved earlier. */
   function sendProof() {
     if (!file) return;
     setError(null);
@@ -353,54 +472,44 @@ export function CheckoutClient({
               <h1 className="text-xl font-extrabold">{t(locale, "co.review_title")}</h1>
               <p className="text-sm text-muted">{t(locale, "co.review_body")}</p>
 
-              {hasProof ? (
-                <>
-                  <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-accent">
-                    <Check className="h-4 w-4" />
-                    {t(locale, "co.review_have_proof")}
-                  </p>
-                  <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
-                </>
-              ) : (
-                <div className="flex flex-col gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
-                  <p className="text-sm font-semibold">{t(locale, "co.review_no_proof")}</p>
-                  <ProofPicker
-                    locale={locale}
-                    file={file}
-                    previewUrl={previewUrl}
-                    note={note}
-                    setNote={setNote}
-                    onPick={pickFile}
-                    inputRef={fileInput}
-                  />
-                  {error && (
-                    <p className="text-sm text-red-500" role="alert">
-                      {error}
-                    </p>
-                  )}
-                  <Button onClick={sendProof} disabled={isPending || !file} className="w-full">
-                    {isPending ? t(locale, "co.sending") : t(locale, "co.submit")}
-                  </Button>
-                </div>
-              )}
+              {/* This screen is only reached with a receipt on file — the
+                  no-receipt branch that used to live here was unreachable, and
+                  a customer in that state now opens on step 3 instead, which
+                  is the screen that actually asks for the thing. */}
+              <p className="flex items-center justify-center gap-1.5 text-sm font-bold text-accent">
+                <Check className="h-4 w-4" />
+                {t(locale, "co.review_have_proof")}
+              </p>
+              <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
             </CardContent>
           </Card>
 
           {thread && <PaymentThreadPanel locale={locale} thread={thread} />}
 
-          {/* The point of the whole rebuild: waiting on review is not being
-              locked out. The plan they just built is still readable. */}
-          <p className="text-center text-xs text-muted">{t(locale, "co.meanwhile")}</p>
-          <Button asChild variant="secondary" className="w-full">
-            <Link href="/dashboard">{t(locale, "checkout.go_dashboard")}</Link>
-          </Button>
+          {/* The point of the trial: waiting on review is not being locked
+              out, and the plan they just built is still readable.
+
+              Hidden while REVERSE_TRIAL is off, for the same reason "stay on
+              the free plan" is hidden at step 1: /dashboard is paywalled in
+              that mode, so this button bounced the customer straight back to
+              this screen. Offering someone who has just paid a way out of the
+              waiting room that returns them to the waiting room reads as the
+              app being broken at the worst possible moment. */}
+          {REVERSE_TRIAL && (
+            <>
+              <p className="text-center text-xs text-muted">{t(locale, "co.meanwhile")}</p>
+              <Button asChild variant="secondary" className="w-full">
+                <Link href="/dashboard">{t(locale, "checkout.go_dashboard")}</Link>
+              </Button>
+            </>
+          )}
           {helpLink}
         </div>
       </Shell>
     );
   }
 
-  // ---- The three steps ----
+  // ---- The two steps ----
   const fromFeature =
     from && from in FROM_REASON ? (from as LockedFeature) : null;
 
@@ -446,13 +555,19 @@ export function CheckoutClient({
               </p>
             )}
 
+            {/* The product, before the price. With the trial off this is the
+                only thing on the page that can answer "what am I buying?" —
+                the tier bullets describe features to somebody who already
+                knows what the app is, and a stranger here does not. */}
+            <AppPreview locale={locale} onPickPlan={scrollToPlans} />
+
             {plans.length === 0 ? (
               <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-center text-sm text-muted">
                 {t(locale, "checkout.no_plans")}
               </p>
             ) : (
               <>
-                <div className="grid grid-cols-2 gap-3">
+                <div ref={plansRef} className="grid grid-cols-2 gap-3">
                   {(["standard", "premium"] as Tier[]).map((value) => {
                     const selected = tier === value;
                     return (
@@ -555,25 +670,37 @@ export function CheckoutClient({
                   })}
                 </div>
 
-                {offerLabel && (
-                  <div className="inline-flex w-fit items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-bold text-accent">
-                    <span className="relative flex h-2 w-2">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
-                    </span>
-                    {offerLabel}
-                  </div>
-                )}
+                {/* The pulsing "Limited-time offer" pill used to sit here. It
+                    was permanent, had no deadline, and was attached to no
+                    discount — the real savings (12% at three months, 25% at
+                    six) are already on the rows above and are true. A standing
+                    urgency badge beside honest numbers costs credibility with
+                    exactly the sceptical buyer this page has to convince.
+
+                    `payment_settings.offer_label_*` still exists and is still
+                    editable in /admin; nothing renders it until it means
+                    something, and a real offer needs a deadline rather than a
+                    label. */}
 
                 <Button
-                  onClick={() => setStep(2)}
+                  onClick={continueWithPlan}
                   disabled={!selectedPlan}
                   size="lg"
                   className="w-full"
                 >
-                  {t(locale, "co.next")}
+                  {signedIn ? t(locale, "co.next") : t(locale, "co.next_signup")}
                   {selectedPlan && ` · ${dt(selectedPlan.price_tnd)} DT`}
                 </Button>
+
+                {/* Names the form before it arrives. Somebody who taps a button
+                    that says "continue" and gets an account form instead reads
+                    that as a bait; the button says what happens, and this says
+                    why it is needed at all. */}
+                {!signedIn && (
+                  <p className="-mt-1 text-center text-xs leading-relaxed text-muted">
+                    {t(locale, "co.next_signup_why")}
+                  </p>
+                )}
 
                 {/* With the trial off this is a trapdoor: /dashboard is gated,
                     so "keep using the free plan" would bounce straight back
@@ -597,6 +724,16 @@ export function CheckoutClient({
               <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "co.s2")}</h1>
             </div>
 
+            {/* Coming back to an order that was saved and never proved. Says
+                what is outstanding, rather than the old review screen's claim
+                that a payment nobody had evidence of was being checked. */}
+            {hasOpenRequest && !hasProof && (
+              <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+                <p className="text-sm font-bold">{t(locale, "co.saved_title")}</p>
+                <p className="text-xs leading-relaxed text-muted">{t(locale, "co.saved_body")}</p>
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-3">
               <span className="flex flex-col">
                 <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
@@ -613,86 +750,72 @@ export function CheckoutClient({
             </div>
 
             <Card>
-              <CardContent className="flex flex-col gap-3 p-4">
-                <p className="text-sm font-bold text-ink">{t(locale, "checkout.choose_method")}</p>
-                {methods.map((m) => {
-                  const label = pick(locale, m.label_en, m.label_ar);
-                  const instructions = pick(locale, m.instructions_en, m.instructions_ar);
-                  const isOpen = methodKey === m.key;
-                  return (
-                    <div
-                      key={m.id}
-                      className={cn(
-                        "overflow-hidden rounded-2xl border transition-colors",
-                        isOpen ? "border-accent/50 bg-white/5" : "border-hairline",
-                      )}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setMethodKey(m.key)}
-                        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-start"
-                      >
-                        <span className="font-bold text-ink">{label}</span>
-                        <span
-                          className={cn(
-                            "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
-                            isOpen ? "border-accent bg-accent text-bg" : "border-hairline",
-                          )}
-                          aria-hidden
-                        >
-                          {isOpen && <Check className="h-3 w-3" />}
-                        </span>
-                      </button>
-
-                      {isOpen && (
-                        <div className="flex flex-col gap-3 border-t border-hairline px-4 py-3">
-                          {instructions && (
-                            <p className="whitespace-pre-line text-sm text-muted">{instructions}</p>
-                          )}
-                          {m.account_value && (
-                            <>
-                              <p className="text-xs font-bold uppercase tracking-wide text-muted">
-                                {t(locale, "co.send_to")}
-                              </p>
-                              <div className="flex items-center justify-between gap-2 rounded-xl border border-hairline bg-surface px-3 py-2">
-                                <code className="truncate text-sm text-ink" dir="ltr">
-                                  {m.account_value}
-                                </code>
-                                <Button
-                                  type="button"
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => copy(m.account_value!, m.key)}
-                                >
-                                  {copiedKey === m.key
-                                    ? t(locale, "checkout.copied")
-                                    : t(locale, "checkout.copy")}
-                                </Button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {error && (
-                  <p className="text-sm text-red-500" role="alert">
-                    {error}
-                  </p>
-                )}
+              <CardContent className="p-4">
+                <PaymentMethods
+                  locale={locale}
+                  methods={methods}
+                  selectedKey={methodKey}
+                  onSelect={setMethodKey}
+                />
               </CardContent>
             </Card>
 
+            {/* The receipt, on the same screen as the account number it is a
+                receipt for. This is the whole point of the merge: the customer
+                is looking at the transfer details while they attach proof of
+                the transfer, instead of being sent to a second screen after
+                the only part they think of as paying is already done. */}
+            <Card>
+              <CardContent className="flex flex-col gap-4 p-4">
+                <p className="text-sm font-bold text-ink">{t(locale, "co.attach_receipt")}</p>
+                <ProofPicker
+                  locale={locale}
+                  file={file}
+                  previewUrl={previewUrl}
+                  note={note}
+                  setNote={setNote}
+                  onPick={pickFile}
+                  inputRef={fileInput}
+                />
+              </CardContent>
+            </Card>
+
+            {error && (
+              <p className="text-sm text-red-500" role="alert">
+                {error}
+              </p>
+            )}
+
             <Button
-              onClick={confirmTransfer}
-              disabled={isPending || !activeMethod}
+              onClick={hasOpenRequest ? sendProof : payAndSend}
+              disabled={isPending || !activeMethod || !file}
               size="lg"
               className="w-full"
             >
-              {isPending ? "…" : t(locale, "co.transfer_done")}
+              {isPending ? t(locale, "co.sending") : t(locale, "co.pay_and_send")}
             </Button>
+
+            {/* Said here, where the decision is, instead of on the screen
+                after it — which is where the only mention of timing used to
+                live, i.e. after the customer had already committed. */}
+            <p className="text-center text-xs leading-relaxed text-muted">
+              {t(locale, "co.promise")}
+            </p>
+
+            {/* For somebody who has not opened their bank app yet. It logs the
+                request so they are reachable and comes back here, rather than
+                leaving them no option but to abandon the screen entirely. */}
+            {!hasOpenRequest && (
+              <button
+                type="button"
+                onClick={saveForLater}
+                disabled={isPending || !activeMethod}
+                className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink disabled:opacity-50"
+              >
+                {t(locale, "co.later")}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() => setStep(1)}
@@ -704,37 +827,6 @@ export function CheckoutClient({
           </>
         )}
 
-        {step === 3 && (
-          <>
-            <div className="text-center">
-              <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "co.upload_title")}</h1>
-              <p className="mt-1 text-sm text-muted">{t(locale, "co.upload_body")}</p>
-            </div>
-
-            <Card>
-              <CardContent className="flex flex-col gap-4 p-4">
-                <ProofPicker
-                  locale={locale}
-                  file={file}
-                  previewUrl={previewUrl}
-                  note={note}
-                  setNote={setNote}
-                  onPick={pickFile}
-                  inputRef={fileInput}
-                />
-                {error && (
-                  <p className="text-sm text-red-500" role="alert">
-                    {error}
-                  </p>
-                )}
-                <Button onClick={sendProof} disabled={isPending || !file} size="lg" className="w-full">
-                  {isPending ? t(locale, "co.sending") : t(locale, "co.submit")}
-                </Button>
-              </CardContent>
-            </Card>
-            {helpLink}
-          </>
-        )}
       </div>
     </Shell>
   );
@@ -846,16 +938,16 @@ function PaymentThreadPanel({
   );
 }
 
-/** Three dots and a label — enough to say "this ends", which one screen never did. */
+/** Two dots and a label — enough to say "this ends", which one screen never did. */
 function StepBar({ locale, step }: { locale: Locale; step: number }) {
-  const labels: StringKey[] = ["co.s1", "co.s2", "co.s3"];
+  const labels: StringKey[] = ["co.s1", "co.s2"];
   return (
     <div className="flex flex-col gap-2">
       <p className="text-center text-xs font-bold uppercase tracking-wide text-muted">
-        {t(locale, "co.step")} {step} {t(locale, "co.of")} 3 · {t(locale, labels[step - 1])}
+        {t(locale, "co.step")} {step} {t(locale, "co.of")} 2 · {t(locale, labels[step - 1])}
       </p>
       <div className="flex gap-1.5">
-        {[1, 2, 3].map((n) => (
+        {[1, 2].map((n) => (
           <span
             key={n}
             className={cn(

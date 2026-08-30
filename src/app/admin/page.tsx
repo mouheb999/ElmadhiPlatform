@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { hoursSince } from "@/lib/dates";
 import { getAdminUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n-server";
@@ -112,6 +113,11 @@ export default async function AdminPage() {
       contactedAt: person?.contacted_at ?? null,
       proofUrl: r.proof_path ? (proofUrlByPath.get(r.proof_path) ?? null) : null,
       isNew: !r.admin_seen_at,
+      // Computed here rather than in the client component: reading the clock
+      // during a client render is impure and would hydrate to a different
+      // number than the server sent. The page is force-dynamic, so this is a
+      // fresh snapshot on every load, which is all the badge needs.
+      waitingHours: hoursSince(r.created_at),
       thread: threadByRequest.get(r.id) ?? null,
     };
   });

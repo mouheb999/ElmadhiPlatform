@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bell, LifeBuoy } from "lucide-react";
+import { LifeBuoy } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { createClient } from "@/lib/supabase/server";
@@ -79,13 +79,10 @@ export default async function AppLayout({
               <SupportUnreadDot userId={user.id} />
             </Suspense>
           </Link>
-          <button
-            type="button"
-            aria-label="Notifications"
-            className="relative grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
+          {/* A notifications bell used to sit here. It was wired to nothing —
+              it took a tap and did nothing, on every screen in the product.
+              Removed rather than stubbed: a control that visibly does nothing
+              teaches people that controls here might not work. */}
         </div>
       </header>
 
