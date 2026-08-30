@@ -319,6 +319,26 @@ describe("fillTemplate", () => {
     expect(t.kcal).toBeLessThan(target.calories * 1.12);
   });
 
+  // The "424 g of apple" report: fruit shares the carb pool with rice, and the
+  // solver scales a pool uniformly, so a big carb target asked the low-density
+  // food for an absurd portion.
+  it("caps fruit at two typical servings and lets the starch carry the rest", () => {
+    const bigCarbs = { calories: 3200, proteinG: 170, carbsG: 450, fatG: 80 };
+    const meals = fillTemplate(SLOTS, bigCarbs, byId, bySlot, baseConstraints);
+    const banana = meals
+      .flatMap((m) => m.items)
+      .filter((i) => i.ingredientId === "banana");
+    for (const item of banana) {
+      // typicalServingG is 150 in the test fixture -> ceiling 300.
+      expect(item.quantityG).toBeLessThanOrEqual(300);
+    }
+    // The carb target is still met — the starch took the slack.
+    const totalCarbs = meals
+      .flatMap((m) => m.items)
+      .reduce((sum, i) => sum + (byId.get(i.ingredientId)!.carbsPer100g * i.quantityG) / 100, 0);
+    expect(totalCarbs).toBeGreaterThan(bigCarbs.carbsG * 0.85);
+  });
+
   it("keeps every portion within sane bounds", () => {
     const meals = fillTemplate(SLOTS, target, byId, bySlot, baseConstraints);
     for (const meal of meals) {

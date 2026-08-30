@@ -1382,7 +1382,6 @@ const STRINGS = {
     en: "Estimated from our food database (AI is not configured yet) — double-check the numbers.",
     tn: "تقدير من قاعدة بيانات الماكلة (الذكاء مازال موش مفعّل) — عاود ثبّت في الأرقام.",
   },
-  "ai.confidence": { en: "confidence", tn: "ثقة" },
   "ai.grams": { en: "g", tn: "غ" },
   "ai.quantity": { en: "Quantity", tn: "الكمية" },
   "ai.qty_sync_hint": {
@@ -1406,6 +1405,28 @@ const STRINGS = {
     tn: "كاميرا السعرات بالذكاء من عرض بريميوم. طوّر اشتراكك باش تصوّر ماكلتك وتسجلها في ثواني.",
   },
   "ai.premium_cta": { en: "Upgrade to Premium", tn: "طوّر لبريميوم" },
+
+  // ---- full-screen camera + analysis ----
+  "ai.frame_hint": {
+    en: "Fill the frame with the plate. Only what you see here is sent.",
+    tn: "خلّي الصحن يعمّر الإطار. كان اللي تشوفو هوني يتبعث.",
+  },
+  "ai.gallery": { en: "Gallery", tn: "الصور" },
+  "ai.close_camera": { en: "Close camera", tn: "سكّر الكاميرا" },
+  "ai.analyzing_title": { en: "Reading your plate", tn: "قاعد يقرا الصحن متاعك" },
+  "ai.analyzing_1": { en: "Looking at the photo", tn: "يشوف في التصويرة" },
+  "ai.analyzing_2": { en: "Identifying the food", tn: "يعرف الماكلة" },
+  "ai.analyzing_3": { en: "Estimating portions", tn: "يقدّر الكميات" },
+  "ai.analyzing_4": { en: "Adding up the macros", tn: "يجمع الماكروز" },
+  "ai.analyzing_note": {
+    en: "This takes a few seconds. Keep the app open.",
+    tn: "ياخو شوية ثواني. خلّي التطبيق محلول.",
+  },
+  "ai.items_found": { en: "{n} foods found", tn: "{n} ماكلات تلقاو" },
+  "ai.one_item_found": { en: "1 food found", tn: "ماكلة وحدة تلقات" },
+  "ai.conf_high": { en: "Confident", tn: "متأكد" },
+  "ai.conf_medium": { en: "Fairly sure", tn: "شبه متأكد" },
+  "ai.conf_low": { en: "Rough guess — check it", tn: "تقدير تقريبي — شوفو" },
 
   // ---- admin: Q&A triage ----
   "admin.nav_qa": { en: "Q&A", tn: "الأسئلة" },

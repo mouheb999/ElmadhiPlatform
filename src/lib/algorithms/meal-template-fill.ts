@@ -247,7 +247,33 @@ const KCAL_PER_G_PROTEIN = 4;
 const KCAL_PER_G_CARBS = 4;
 const KCAL_PER_G_FAT = 9;
 
-const clampG = (g: number) => Math.round(Math.max(15, Math.min(500, g)));
+const MIN_ITEM_G = 15;
+const MAX_ITEM_G = 500;
+
+const clampG = (g: number, maxG: number = MAX_ITEM_G) =>
+  Math.round(Math.max(MIN_ITEM_G, Math.min(maxG, g)));
+
+/**
+ * The ceiling on ONE item's portion.
+ *
+ * Fruit is in the carb pool, and the solver scales every member of a pool by
+ * the same factor. An apple carries 14 g of carbs per 100 g where rice carries
+ * 28, so hitting a big carb target with both in the pool asks the apple for
+ * twice the grams of the rice — and the plans came out saying "424 g apple",
+ * which is three apples in a snack and reads as a bug even though the macros
+ * are right.
+ *
+ * Rice, oats and potatoes genuinely are portioned by weight, so they can take
+ * whatever the target needs. Fruit is eaten in units, so it gets a ceiling of
+ * two typical servings and the starches absorb the remainder. The solver
+ * iterates 24 times against `fromOthers`, so a pinned fruit simply becomes part
+ * of what the rest has to make up.
+ */
+function maxGramsFor(ing: Ingredient, role: SlotRole): number {
+  if (role !== "fruit") return MAX_ITEM_G;
+  const typical = ing.typicalServingG ?? 150;
+  return Math.min(MAX_ITEM_G, Math.max(60, Math.round(typical * 2)));
+}
 
 /**
  * Scale each ingredient's grams so the day's totals land on target. Items are
@@ -266,7 +292,7 @@ export function fillTemplate(
   const dayPlan = mealPlanForDay(c.mealsPerDay, c.trainingDays);
   const trains = c.trainingDays !== "0";
 
-  type Resolved = { mealKey: MealKey; orderIndex: number; ing: Ingredient; role: SlotRole; isOptional: boolean; grams: number; fixed: boolean };
+  type Resolved = { mealKey: MealKey; orderIndex: number; ing: Ingredient; role: SlotRole; isOptional: boolean; grams: number; maxG: number; fixed: boolean };
   const resolved: Resolved[] = [];
 
   for (const s of slots) {
@@ -284,6 +310,7 @@ export function fillTemplate(
       role: s.role,
       isOptional: s.isOptional,
       grams: 0,
+      maxG: maxGramsFor(ing, s.role),
       fixed: false,
     });
   }
@@ -321,6 +348,7 @@ export function fillTemplate(
     if (r.role !== "protein" || r.mealKey === "meal_1" || pickList.length === 0) continue;
     if (fatRatio(r.ing) > fatPerProtein * 1.2) {
       r.ing = pickList[leanCursor % pickList.length];
+      r.maxG = maxGramsFor(r.ing, r.role);
       leanCursor++;
     }
   }
@@ -330,10 +358,10 @@ export function fillTemplate(
   // scaled — otherwise the solver dumps the whole day's protein (and its fat)
   // into breakfast eggs. The leaner lunch/dinner proteins carry the rest.
   for (const r of resolved) {
-    if (r.role === "vegetable") r.grams = clampG(r.ing.typicalServingG ?? 150);
+    if (r.role === "vegetable") r.grams = clampG(r.ing.typicalServingG ?? 150, r.maxG);
     if (r.role === "caffeine") r.grams = r.ing.typicalServingG ?? 200;
     if (r.role === "protein" && r.mealKey === "meal_1") {
-      r.grams = clampG(r.ing.typicalServingG ?? 120);
+      r.grams = clampG(r.ing.typicalServingG ?? 120, r.maxG);
       r.fixed = true;
     }
   }
@@ -394,7 +422,7 @@ export function fillTemplate(
   return dayPlan.map((mk) => meals.get(mk)!).filter((m) => m.items.length > 0);
 }
 
-type Scalable = { ing: Ingredient; grams: number };
+type Scalable = { ing: Ingredient; grams: number; maxG: number };
 
 /** Rough starting grams: split the macro target equally across the pool. */
 function seedPool<T extends Scalable>(pool: T[], targetG: number, per100: (r: T) => number): void {
@@ -402,7 +430,7 @@ function seedPool<T extends Scalable>(pool: T[], targetG: number, per100: (r: T)
   const share = targetG / pool.length;
   for (const r of pool) {
     const density = per100(r);
-    r.grams = density > 0 ? clampG((share / density) * 100) : clampG(r.ing.typicalServingG ?? 100);
+    r.grams = density > 0 ? clampG((share / density) * 100, r.maxG) : clampG(r.ing.typicalServingG ?? 100, r.maxG);
   }
 }
 
@@ -432,9 +460,9 @@ function solvePool<T extends Scalable>(
   // Others already cover the target → shrink the pool. When canDrop, let it
   // fall below the normal floor toward zero so the item can be removed.
   if (needed <= 0) {
-    for (const r of pool) r.grams = canDrop ? Math.round(r.grams * 0.4) : clampG(r.grams * 0.5);
+    for (const r of pool) r.grams = canDrop ? Math.round(r.grams * 0.4) : clampG(r.grams * 0.5, r.maxG);
     return;
   }
   const factor = Math.max(0.25, Math.min(4, needed / poolNow));
-  for (const r of pool) r.grams = clampG(r.grams * factor);
+  for (const r of pool) r.grams = clampG(r.grams * factor, r.maxG);
 }

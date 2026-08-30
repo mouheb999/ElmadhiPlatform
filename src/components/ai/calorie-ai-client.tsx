@@ -57,6 +57,44 @@ function canvasToPhoto(canvas: HTMLCanvasElement, source: Photo["source"]): Phot
   return { base64: dataUrl.split(",")[1], mediaType: "image/jpeg", previewUrl: dataUrl, source };
 }
 
+/**
+ * Snapshot ONLY the part of the stream the user can actually see.
+ *
+ * The viewfinder renders the video with `object-cover`, which centre-crops it
+ * to the shape of its box. The old capture drew the whole frame —
+ * `drawImage(video, 0, 0, w, h)` — so everything the crop had hidden was still
+ * sent to the model. That is not a cosmetic mismatch: users reported the
+ * estimate listing food that was on the table but not in the picture, because
+ * from the model's point of view it WAS in the picture.
+ *
+ * So the source rectangle is recomputed here with the same maths the browser
+ * used to paint it: cover scales by the larger of the two ratios, and centres
+ * whatever overflows. What you framed is what gets analysed.
+ */
+function captureVisibleRegion(video: HTMLVideoElement): Photo {
+  const vw = video.videoWidth;
+  const vh = video.videoHeight;
+  // Fall back to the full frame if the element has not been laid out — better
+  // a wider photo than no photo.
+  const cw = video.clientWidth || vw;
+  const ch = video.clientHeight || vh;
+
+  const coverScale = Math.max(cw / vw, ch / vh);
+  const sWidth = Math.min(vw, cw / coverScale);
+  const sHeight = Math.min(vh, ch / coverScale);
+  const sx = (vw - sWidth) / 2;
+  const sy = (vh - sHeight) / 2;
+
+  const outScale = Math.min(1, MAX_EDGE / Math.max(sWidth, sHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(sWidth * outScale));
+  canvas.height = Math.max(1, Math.round(sHeight * outScale));
+  canvas
+    .getContext("2d")!
+    .drawImage(video, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+  return canvasToPhoto(canvas, "camera");
+}
+
 /** Downscale a picked file to ≤1024px JPEG (camera-permission fallback path). */
 async function fileToPhoto(file: File): Promise<Photo> {
   const bitmap = await createImageBitmap(file);
@@ -175,12 +213,7 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   function capture() {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return;
-    const scale = Math.min(1, MAX_EDGE / Math.max(video.videoWidth, video.videoHeight));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(video.videoWidth * scale);
-    canvas.height = Math.round(video.videoHeight * scale);
-    canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
-    setPhoto(canvasToPhoto(canvas, "camera"));
+    setPhoto(captureVisibleRegion(video));
     stopCamera();
   }
 
@@ -348,72 +381,6 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
               {t(locale, "ai.retake")}
             </button>
           </div>
-        ) : camera !== "idle" ? (
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-hairline bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              onLoadedMetadata={() => setVideoReady(true)}
-              className={cn(
-                "h-full w-full object-cover transition-opacity duration-300",
-                videoReady ? "opacity-100" : "opacity-0",
-              )}
-            />
-
-            {/* Framing guides — help the user fill the frame, which is the
-                single biggest lever on portion-estimate accuracy. */}
-            {videoReady && (
-              <div aria-hidden className="pointer-events-none absolute inset-6">
-                {[
-                  "left-0 top-0 border-l-2 border-t-2 rounded-tl-lg",
-                  "right-0 top-0 border-r-2 border-t-2 rounded-tr-lg",
-                  "left-0 bottom-0 border-l-2 border-b-2 rounded-bl-lg",
-                  "right-0 bottom-0 border-r-2 border-b-2 rounded-br-lg",
-                ].map((corner) => (
-                  <span key={corner} className={cn("absolute h-7 w-7 border-white/70", corner)} />
-                ))}
-              </div>
-            )}
-
-            {!videoReady && (
-              <div className="absolute inset-0 grid place-items-center gap-2 text-white/80">
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="text-xs font-bold">{t(locale, "ai.camera_starting")}</span>
-                </div>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={stopCamera}
-              aria-label={t(locale, "media.close")}
-              className="absolute end-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-black/60 text-white backdrop-blur transition-colors hover:bg-black/80"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            {/* Shutter. Disabled until the stream reports dimensions, so a tap
-                can never silently no-op on a not-yet-ready video. */}
-            <div className="absolute inset-x-0 bottom-4 grid place-items-center">
-              <button
-                type="button"
-                onClick={capture}
-                disabled={!videoReady}
-                aria-label={t(locale, "ai.capture")}
-                className={cn(
-                  "grid h-16 w-16 place-items-center rounded-full ring-4 ring-white/90 transition-transform",
-                  videoReady
-                    ? "bg-white/25 backdrop-blur active:scale-90"
-                    : "cursor-not-allowed bg-white/10 opacity-50",
-                )}
-              >
-                <span className="h-11 w-11 rounded-full bg-white/95" />
-              </button>
-            </div>
-          </div>
         ) : (
           <button
             type="button"
@@ -482,6 +449,54 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
       {/* ---- Results ---- */}
       {items && (
         <div className="flex flex-col gap-3">
+          {/* The answer, before the working. The total used to sit under the
+              item list, so the one number the user opened the camera for was
+              the last thing they reached. */}
+          <div className="flex flex-col gap-4 rounded-3xl border border-accent/25 bg-gradient-to-b from-accent/[0.10] to-accent/[0.02] p-5">
+            <div className="flex items-center gap-4">
+              {photo && (
+                // eslint-disable-next-line @next/next/no-img-element -- in-memory data URL
+                <img
+                  src={photo.previewUrl}
+                  alt=""
+                  className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 object-cover"
+                />
+              )}
+              <div className="flex min-w-0 flex-col">
+                <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                  {t(locale, "ai.total")}
+                </span>
+                <span className="flex items-baseline gap-1.5 tabular-nums">
+                  <span className="font-display text-4xl font-extrabold leading-none text-accent">
+                    {Math.round(totals.calories)}
+                  </span>
+                  <span className="text-sm font-bold text-muted">kcal</span>
+                </span>
+                <span className="mt-1 text-xs text-muted">
+                  {items.length === 1
+                    ? t(locale, "ai.one_item_found")
+                    : t(locale, "ai.items_found").replace("{n}", String(items.length))}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {macroFields.map((macro) => (
+                <div
+                  key={macro.key}
+                  className="flex flex-col items-center gap-0.5 rounded-2xl bg-black/25 px-2 py-2.5"
+                >
+                  <span className="text-center text-[10px] font-bold uppercase tracking-wide text-muted">
+                    {macro.label}
+                  </span>
+                  <span className="text-sm font-extrabold tabular-nums">
+                    {Math.round(totals[macro.key])} {t(locale, "ai.grams")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div>
             <h2 className="font-bold">{t(locale, "ai.results_title")}</h2>
             {/* Says out loud what the portion field now does, so nobody edits
@@ -569,6 +584,9 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
                 </div>
               </div>
 
+              {/* A bare "62% confidence" tells nobody what to do about it.
+                  The word says whether to trust the number or check it; the
+                  bar keeps the detail for anyone who wants it. */}
               <div className="flex items-center gap-2">
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/5">
                   <div
@@ -579,37 +597,28 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
                     style={{ width: `${Math.round(item.confidence * 100)}%` }}
                   />
                 </div>
-                <span className="text-[11px] tabular-nums text-muted">
-                  {Math.round(item.confidence * 100)}% {t(locale, "ai.confidence")}
+                <span
+                  className={cn(
+                    "text-[11px] font-bold",
+                    item.confidence >= 0.7
+                      ? "text-muted"
+                      : item.confidence >= 0.4
+                        ? "text-amber-300"
+                        : "text-red-300",
+                  )}
+                >
+                  {t(
+                    locale,
+                    item.confidence >= 0.7
+                      ? "ai.conf_high"
+                      : item.confidence >= 0.4
+                        ? "ai.conf_medium"
+                        : "ai.conf_low",
+                  )}
                 </span>
               </div>
             </div>
           ))}
-
-          <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface px-4 py-3">
-            <div className="flex items-baseline justify-between">
-              <span className="text-sm font-bold">{t(locale, "ai.total")}</span>
-              <span className="flex items-baseline gap-1 tabular-nums">
-                <span className="text-2xl font-extrabold text-accent">
-                  {Math.round(totals.calories)}
-                </span>
-                <span className="text-xs font-bold text-muted">kcal</span>
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {macroFields.map((macro) => (
-                <div
-                  key={macro.key}
-                  className="flex flex-col items-center gap-0.5 rounded-xl bg-white/5 px-2 py-2"
-                >
-                  <span className="text-center text-[11px] font-bold text-muted">{macro.label}</span>
-                  <span className="text-sm font-bold tabular-nums">
-                    {Math.round(totals[macro.key])} {t(locale, "ai.grams")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
 
           <div className="flex flex-col gap-1">
             <span className="text-xs font-bold text-muted">{t(locale, "ai.slot_label")}</span>
@@ -635,6 +644,227 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
           </Button>
         </div>
       )}
+
+      {/* The viewfinder is full-screen and lives outside the page flow. A
+          camera inside a 4:3 card showed a slice of the sensor while the
+          capture sent all of it; now the frame the user composes IS the
+          frame, and it fills the phone the way a camera should. */}
+      {camera !== "idle" && (
+        <CameraOverlay
+          locale={locale}
+          videoRef={videoRef}
+          videoReady={videoReady}
+          onReady={() => setVideoReady(true)}
+          onCapture={capture}
+          onClose={stopCamera}
+          onPickFile={() => fileRef.current?.click()}
+        />
+      )}
+
+      {isPending && !items && photo && (
+        <AnalysisOverlay locale={locale} previewUrl={photo.previewUrl} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * The camera, full-bleed.
+ *
+ * `object-cover` still crops — a phone viewport is never exactly the sensor's
+ * aspect ratio — which is precisely why `captureVisibleRegion` exists. Going
+ * full-screen just makes that crop small and the framing honest, instead of
+ * hiding most of the sensor behind a postcard.
+ */
+function CameraOverlay({
+  locale,
+  videoRef,
+  videoReady,
+  onReady,
+  onCapture,
+  onClose,
+  onPickFile,
+}: {
+  locale: Locale;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  videoReady: boolean;
+  onReady: () => void;
+  onCapture: () => void;
+  onClose: () => void;
+  onPickFile: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[60] bg-black">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        onLoadedMetadata={onReady}
+        className={cn(
+          "absolute inset-0 h-full w-full object-cover transition-opacity duration-500",
+          videoReady ? "opacity-100" : "opacity-0",
+        )}
+      />
+
+      {/* Vignette — keeps the white controls legible over a bright plate. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]"
+      />
+
+      {!videoReady && (
+        <div className="absolute inset-0 grid place-items-center">
+          <div className="flex flex-col items-center gap-3 text-white/80">
+            <Loader2 className="h-7 w-7 animate-spin" />
+            <span className="text-sm font-bold">{t(locale, "ai.camera_starting")}</span>
+          </div>
+        </div>
+      )}
+
+      {videoReady && (
+        <>
+          {/* Framing brackets, sized off the short edge so they stay square. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[76vw] max-w-[420px] -translate-x-1/2 -translate-y-1/2"
+          >
+            {[
+              "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-2xl",
+              "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-2xl",
+              "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-2xl",
+              "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-2xl",
+            ].map((corner) => (
+              <span key={corner} className={cn("absolute h-10 w-10 border-white/85", corner)} />
+            ))}
+          </div>
+
+          <p className="pointer-events-none absolute inset-x-0 top-[calc(4.5rem+env(safe-area-inset-top))] mx-auto max-w-[17rem] text-center text-xs font-semibold leading-relaxed text-white/85 drop-shadow">
+            {t(locale, "ai.frame_hint")}
+          </p>
+        </>
+      )}
+
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label={t(locale, "ai.close_camera")}
+        className="absolute end-4 top-[calc(1rem+env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+      >
+        <X className="h-5 w-5" />
+      </button>
+
+      {/* Gallery on one side, shutter centred, an empty cell on the other so
+          the shutter sits on the true centre line rather than near it. */}
+      <div className="absolute inset-x-0 bottom-[calc(2rem+env(safe-area-inset-bottom))] grid grid-cols-3 items-center px-8">
+        <button
+          type="button"
+          onClick={onPickFile}
+          aria-label={t(locale, "ai.gallery")}
+          className="grid h-12 w-12 place-items-center justify-self-start rounded-2xl bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25"
+        >
+          <ImageIcon className="h-5 w-5" />
+        </button>
+
+        <button
+          type="button"
+          onClick={onCapture}
+          disabled={!videoReady}
+          aria-label={t(locale, "ai.capture")}
+          className={cn(
+            "grid h-20 w-20 place-items-center justify-self-center rounded-full ring-4 ring-white/90 transition-transform",
+            videoReady ? "active:scale-90" : "cursor-not-allowed opacity-40",
+          )}
+        >
+          <span className="h-[3.75rem] w-[3.75rem] rounded-full bg-white shadow-[0_0_28px_rgba(255,255,255,0.45)]" />
+        </button>
+
+        <span aria-hidden />
+      </div>
+    </div>
+  );
+}
+
+/** The four phases the progress bar narrates while the model is thinking. */
+const ANALYSIS_STAGES: StringKey[] = [
+  "ai.analyzing_1",
+  "ai.analyzing_2",
+  "ai.analyzing_3",
+  "ai.analyzing_4",
+];
+
+/**
+ * The waiting screen.
+ *
+ * The estimate takes 5–33 seconds and the server reports nothing while it
+ * runs, so there is no true percentage to show. A bare spinner for half a
+ * minute reads as a hang, though, so this does what it honestly can: a bar
+ * that eases toward 92 % and stops there, with stage labels naming what is
+ * actually happening, in order. It only completes when the answer does — it
+ * never claims to be finished ahead of the work.
+ */
+function AnalysisOverlay({ locale, previewUrl }: { locale: Locale; previewUrl: string }) {
+  const [progress, setProgress] = useState(6);
+
+  useEffect(() => {
+    // Ease out: big early steps, ever-smaller ones near the ceiling, so it
+    // keeps moving without ever pretending to be done.
+    const id = setInterval(() => {
+      setProgress((current) =>
+        current >= 92 ? current : current + Math.max(0.4, (92 - current) * 0.045),
+      );
+    }, 220);
+    return () => clearInterval(id);
+  }, []);
+
+  const stage = ANALYSIS_STAGES[Math.min(ANALYSIS_STAGES.length - 1, Math.floor(progress / 24))];
+
+  return (
+    <div className="fixed inset-0 z-[60] overflow-hidden bg-bg">
+      {/* eslint-disable-next-line @next/next/no-img-element -- in-memory data URL */}
+      <img
+        src={previewUrl}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 h-full w-full scale-110 object-cover opacity-25 blur-2xl"
+      />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-bg/70 via-bg/85 to-bg" />
+
+      <div className="relative flex h-full flex-col items-center justify-center gap-7 px-8">
+        <div className="relative">
+          <span aria-hidden className="absolute inset-0 animate-ping rounded-3xl bg-accent/20" />
+          {/* eslint-disable-next-line @next/next/no-img-element -- in-memory data URL */}
+          <img
+            src={previewUrl}
+            alt=""
+            className="relative h-28 w-28 rounded-3xl border border-white/10 object-cover shadow-2xl"
+          />
+        </div>
+
+        <div className="flex flex-col items-center gap-1.5 text-center">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold">
+            <Sparkles className="h-5 w-5 text-accent" />
+            {t(locale, "ai.analyzing_title")}
+          </h2>
+          <p className="text-sm text-muted">{t(locale, stage)}</p>
+        </div>
+
+        <div className="flex w-full max-w-xs flex-col gap-2">
+          <div className="h-2 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-accent shadow-[0_0_16px_rgba(192,218,27,0.5)] transition-[width] duration-200 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <span className="text-center text-[11px] font-bold tabular-nums text-muted">
+            {Math.round(progress)}%
+          </span>
+        </div>
+
+        <p className="max-w-[15rem] text-center text-[11px] leading-relaxed text-muted">
+          {t(locale, "ai.analyzing_note")}
+        </p>
+      </div>
     </div>
   );
 }
