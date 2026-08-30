@@ -7,6 +7,7 @@ import {
   Check,
   Cloud,
   CloudOff,
+  Footprints,
   RefreshCw,
   Timer,
   TrendingDown,
@@ -21,6 +22,11 @@ import { illustrationFor } from "@/lib/exercise-illustrations";
 import { cn, parseDecimal } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { finishSession } from "@/app/actions/sessions";
+import {
+  MAX_CARDIO_MINUTES,
+  MIN_CARDIO_MINUTES,
+  caloriesBurned as estimateBurn,
+} from "@/lib/algorithms/cardio";
 import { SESSION_ERR } from "@/lib/session-codes";
 import {
   useSessionOutbox,
@@ -76,7 +82,17 @@ export type InitialSession = {
   skippedExerciseIds: string[];
   sets: ServerSet[];
   lastSetAt: string | null;
+  /** Cardio already recorded against this open session, if any. */
+  cardioMinutes: number | null;
 };
+
+/**
+ * Speed walking's MET, mirrored from `exercises.met_value`. Used ONLY to show
+ * the user a live estimate while they pick a duration — the number that gets
+ * stored is computed server-side in `logCardio`, from the catalog, exactly the
+ * way logged food macros are.
+ */
+const CARDIO_MET = 4.8;
 
 type SetEntry = {
   weight: string;
@@ -106,6 +122,8 @@ type Summary = {
   volumeKg: number;
   minutes: number;
   prNames: string[];
+  /** Null when no cardio was done. Shown, never fed back into the meal plan. */
+  cardio: { minutes: number; caloriesBurned: number } | null;
 };
 
 function emptyEntries(exercises: SessionExercise[]): Record<string, SetEntry[]> {
@@ -145,12 +163,18 @@ export function SessionClient({
   dayName,
   exercises,
   initialSession,
+  plannedCardioMinutes,
+  weightKg,
 }: {
   locale: Locale;
   dayId: string;
   dayName: string;
   exercises: SessionExercise[];
   initialSession: InitialSession | null;
+  /** The cardio block attached to this day, if the user added one. */
+  plannedCardioMinutes: number | null;
+  /** Bodyweight for the burn estimate — the same figure the server uses. */
+  weightKg: number;
 }) {
   const router = useRouter();
   const rowIds = useMemo(() => new Set(exercises.map((ex) => ex.rowId)), [exercises]);
@@ -216,6 +240,12 @@ export function SessionClient({
   );
   const [armedSkip, setArmedSkip] = useState<string | null>(null);
   const armedSkipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cardio done, in minutes. Seeded from the plan and from anything already
+  // queued/stored for this session, so a reload mid-workout keeps it.
+  const [cardioMinutes, setCardioMinutes] = useState<number | null>(
+    initialSession?.cardioMinutes ?? null,
+  );
 
   const [notes, setNotes] = useState("");
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
@@ -481,7 +511,17 @@ export function SessionClient({
     }
 
     clearSessionStorage(dayId);
-    setSummary({ ...result.data, prNames });
+    setSummary({
+      ...result.data,
+      prNames,
+      cardio:
+        cardioMinutes !== null
+          ? {
+              minutes: cardioMinutes,
+              caloriesBurned: estimateBurn({ metValue: CARDIO_MET, weightKg, minutes: cardioMinutes }),
+            }
+          : null,
+    });
     setPhase("done");
   }
 
@@ -501,6 +541,23 @@ export function SessionClient({
           <StatTile label={t(locale, "session.stat_volume")} value={String(summary.volumeKg)} />
           <StatTile label={t(locale, "session.stat_minutes")} value={String(summary.minutes)} />
         </div>
+        {summary.cardio && (
+          <div className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-4 text-start">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-sm font-bold">
+                <Footprints className="h-4 w-4 text-accent" />
+                {t(locale, "cardio.speed_walking")}
+              </span>
+              <span className="text-sm font-extrabold tabular-nums">
+                {summary.cardio.minutes} {t(locale, "cardio.min")} ·{" "}
+                {summary.cardio.caloriesBurned} {t(locale, "cardio.burned")}
+              </span>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted">
+              {t(locale, "cardio.burned_note")}
+            </p>
+          </div>
+        )}
         {summary.prNames.length > 0 && (
           <div className="w-full max-w-sm rounded-2xl border border-accent/40 bg-accent/10 p-4 text-start">
             <div className="flex items-center gap-2 font-bold text-accent">
@@ -733,6 +790,19 @@ export function SessionClient({
         );
       })}
 
+      {plannedCardioMinutes !== null && (
+        <CardioLogBlock
+          locale={locale}
+          plannedMinutes={plannedCardioMinutes}
+          minutes={cardioMinutes}
+          weightKg={weightKg}
+          onLog={(next) => {
+            setCardioMinutes(next);
+            enqueue({ kind: "cardio", minutes: next });
+          }}
+        />
+      )}
+
       <div className="flex flex-col gap-2">
         <label className="text-sm font-bold text-muted" htmlFor="session-notes">
           {t(locale, "session.notes_label")}
@@ -847,6 +917,85 @@ function StatTile({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-hairline bg-surface p-4">
       <div className="text-2xl font-extrabold tabular-nums">{value}</div>
       <div className="text-xs text-muted">{label}</div>
+    </div>
+  );
+}
+
+/**
+ * The cardio block at the foot of a session.
+ *
+ * Logged through the outbox like a set, so it survives a dead signal in a park.
+ * The burn shown here is a client-side preview; `logCardio` recomputes it on the
+ * server and that is the number stored. And it is a number to LOOK at: the
+ * cardio sheet is explicit that burned calories are not added back to the meal
+ * plan, so the note says so where the user will actually read it.
+ */
+function CardioLogBlock({
+  locale,
+  plannedMinutes,
+  minutes,
+  weightKg,
+  onLog,
+}: {
+  locale: Locale;
+  plannedMinutes: number;
+  minutes: number | null;
+  weightKg: number;
+  onLog: (minutes: number) => void;
+}) {
+  const [draft, setDraft] = useState(minutes ?? plannedMinutes);
+  const logged = minutes !== null;
+  const burn = estimateBurn({ metValue: CARDIO_MET, weightKg, minutes: logged ? minutes : draft });
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+      <div className="flex items-center gap-2">
+        <Footprints className="h-4 w-4 text-accent" />
+        <span className="font-bold">{t(locale, "cardio.log_title")}</span>
+      </div>
+      <p className="text-xs text-muted">{t(locale, "cardio.intensity")}</p>
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label={t(locale, "cardio.less")}
+            disabled={logged || draft <= MIN_CARDIO_MINUTES}
+            onClick={() => setDraft((d) => Math.max(MIN_CARDIO_MINUTES, d - 5))}
+            className="grid h-9 w-9 place-items-center rounded-full border border-hairline font-bold disabled:opacity-40"
+          >
+            −
+          </button>
+          <span className="w-20 text-center font-extrabold tabular-nums">
+            {logged ? minutes : draft} {t(locale, "cardio.min")}
+          </span>
+          <button
+            type="button"
+            aria-label={t(locale, "cardio.more")}
+            disabled={logged || draft >= MAX_CARDIO_MINUTES}
+            onClick={() => setDraft((d) => Math.min(MAX_CARDIO_MINUTES, d + 5))}
+            className="grid h-9 w-9 place-items-center rounded-full border border-hairline font-bold disabled:opacity-40"
+          >
+            +
+          </button>
+        </div>
+        <span className="text-sm font-bold text-accent tabular-nums">
+          ≈ {burn} {t(locale, "cardio.burned")}
+        </span>
+      </div>
+
+      {logged ? (
+        <p className="flex items-center gap-1.5 text-sm font-bold text-accent">
+          <Check className="h-4 w-4" />
+          {t(locale, "cardio.logged")}
+        </p>
+      ) : (
+        <Button variant="secondary" onClick={() => onLog(draft)}>
+          {t(locale, "cardio.log_cta")}
+        </Button>
+      )}
+
+      <p className="text-[11px] leading-relaxed text-muted">{t(locale, "cardio.burned_note")}</p>
     </div>
   );
 }

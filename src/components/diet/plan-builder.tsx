@@ -45,22 +45,6 @@ const GOAL_OPTIONS: { value: DietEssentials["goal"]; label: StringKey }[] = [
   { value: "maintain", label: "ce.goal_maintain" },
 ];
 
-const BODY_FAT_OPTIONS: { value: DietEssentials["bodyFatLevel"]; label: StringKey }[] = [
-  { value: "very_lean", label: "ce.bf_very_lean" },
-  { value: "normal", label: "ce.bf_normal" },
-  { value: "a_little_fat", label: "ce.bf_a_little_fat" },
-  { value: "high", label: "ce.bf_high" },
-  { value: "unknown", label: "ce.bf_unknown" },
-];
-
-const STEPS_OPTIONS: { value: DietEssentials["dailySteps"]; label: StringKey }[] = [
-  { value: "under_4k", label: "ce.steps_under_4k" },
-  { value: "4k_7k", label: "ce.steps_4k_7k" },
-  { value: "7k_10k", label: "ce.steps_7k_10k" },
-  { value: "over_10k", label: "ce.steps_over_10k" },
-  { value: "unknown", label: "ce.steps_unknown" },
-];
-
 const ACTIVITY_OPTIONS: { value: DietEssentials["activityLevel"]; label: StringKey }[] = [
   { value: "sedentary", label: "ce.act_sedentary" },
   { value: "light", label: "ce.act_light" },
@@ -100,8 +84,9 @@ export function PlanBuilder({
   const [weightKg, setWeightKg] = useState("75");
   const [targetWeightKg, setTargetWeightKg] = useState("72");
   const [goal, setGoal] = useState<DietEssentials["goal"]>("lose_fat");
-  const [bodyFatLevel, setBodyFatLevel] = useState<DietEssentials["bodyFatLevel"]>("normal");
-  const [dailySteps, setDailySteps] = useState<DietEssentials["dailySteps"]>("4k_7k");
+  // Left empty on purpose: most people do not know it, and an invented default
+  // would silently swap the whole resting-energy formula for a guess.
+  const [bodyFatPercent, setBodyFatPercent] = useState("");
   const [activityLevel, setActivityLevel] = useState<DietEssentials["activityLevel"]>("light");
 
   const [foods, setFoods] = useState(initialFoods);
@@ -121,9 +106,8 @@ export function PlanBuilder({
     weightKg: Number(weightKg),
     targetWeightKg: Number(targetWeightKg),
     goal,
-    bodyFatLevel,
-    dailySteps,
     activityLevel,
+    bodyFatPercent: bodyFatPercent.trim() === "" ? null : Number(bodyFatPercent),
   };
 
   const numbersValid =
@@ -149,8 +133,7 @@ export function PlanBuilder({
       weightKg: essentials.weightKg,
       activityLevel: essentials.activityLevel,
       goal: essentials.goal,
-      bodyFatLevel: essentials.bodyFatLevel,
-      dailySteps: essentials.dailySteps,
+      bodyFatPercent: essentials.bodyFatPercent,
     });
     // Recomputed from the flat values so a changed field is reflected without
     // rebuilding the object identity check by hand.
@@ -162,9 +145,8 @@ export function PlanBuilder({
     heightCm,
     weightKg,
     goal,
-    bodyFatLevel,
-    dailySteps,
     activityLevel,
+    bodyFatPercent,
   ]);
 
   const totals = useMemo(() => {
@@ -295,7 +277,7 @@ export function PlanBuilder({
     <div dir={direction} className="flex flex-col gap-5">
       <StepBar locale={locale} step={step} labels={["cd.step_numbers", "cd.step_meals"]} />
 
-      {/* ---- 1. the nine answers the formula reads ---- */}
+      {/* ---- 1. the answers the formula reads ---- */}
       {step === 1 && (
         <div className="flex flex-col gap-5">
           <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "cd.title")}</h1>
@@ -329,23 +311,22 @@ export function PlanBuilder({
             onChange={(v) => setGoal(v as DietEssentials["goal"])}
           />
           <ChoiceGroup
-            label={t(locale, "ce.body_fat")}
-            options={BODY_FAT_OPTIONS.map((o) => ({ value: o.value, label: t(locale, o.label) }))}
-            value={bodyFatLevel}
-            onChange={(v) => setBodyFatLevel(v as DietEssentials["bodyFatLevel"])}
-          />
-          <ChoiceGroup
-            label={t(locale, "ce.steps")}
-            options={STEPS_OPTIONS.map((o) => ({ value: o.value, label: t(locale, o.label) }))}
-            value={dailySteps}
-            onChange={(v) => setDailySteps(v as DietEssentials["dailySteps"])}
-          />
-          <ChoiceGroup
             label={t(locale, "ce.activity")}
             options={ACTIVITY_OPTIONS.map((o) => ({ value: o.value, label: t(locale, o.label) }))}
             value={activityLevel}
             onChange={(v) => setActivityLevel(v as DietEssentials["activityLevel"])}
           />
+
+          <div className="flex flex-col gap-1">
+            <NumberField
+              label={t(locale, "ce.body_fat_pct")}
+              value={bodyFatPercent}
+              onChange={setBodyFatPercent}
+            />
+            <p className="text-[11px] leading-relaxed text-muted">
+              {t(locale, "ce.body_fat_pct_hint")}
+            </p>
+          </div>
 
           {targets && (
             <div className="flex flex-col gap-1 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-3">

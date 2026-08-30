@@ -2,10 +2,12 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, CheckCircle2, Lock, Play, Plus, Trophy } from "lucide-react";
+import { Check, CheckCircle2, Footprints, Lock, Play, Plus, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { ExerciseCard, type EditorExercise, type ExerciseCandidate } from "@/components/workout/exercise-card";
+import { CardioCard, type DayCardio } from "@/components/workout/cardio-card";
+import { cardioSchedule, defaultCardioMinutes } from "@/lib/algorithms/cardio";
 import { ExercisePicker, type PickableExercise } from "@/components/workout/exercise-picker";
 import { Button } from "@/components/ui/button";
 import { WarningBanner } from "@/components/shared/warning-banner";
@@ -25,6 +27,8 @@ export type EditorDay = {
   dayNumber: number;
   dayName: string;
   exercises: (EditorExercise & { primaryMuscle: string })[];
+  /** Migration 049. Kept beside the exercises, never inside them. */
+  cardio: DayCardio;
 };
 
 /** Weekly-gate state of a program day (server-computed, Tunis week). */
@@ -34,6 +38,8 @@ export type DayStatus =
   | {
       state: "completed";
       stats: { volumeKg: number; setCount: number; minutes: number; prCount: number };
+      /** What the walk was worth. Shown; never fed back into the meal plan. */
+      cardio: { minutes: number; caloriesBurned: number } | null;
     };
 
 export function ProgramEditor({
@@ -42,6 +48,7 @@ export function ProgramEditor({
   initialDays,
   dayStatus,
   catalog,
+  experience,
   locked = false,
 }: {
   locale: Locale;
@@ -50,6 +57,8 @@ export function ProgramEditor({
   dayStatus: Record<string, DayStatus>;
   /** The whole exercise catalog, backing the "add an exercise" picker. */
   catalog: PickableExercise[];
+  /** `training_profiles.experience` — sets how much cardio we recommend. */
+  experience: string | null;
   /** Free account: the program is readable, but training against it is not. */
   locked?: boolean;
 }) {
@@ -60,7 +69,10 @@ export function ProgramEditor({
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
+  // Strength exercises only. Cardio carries no primary muscle and must never
+  // reach the coverage validator — a walk is not back volume.
   const warnings = validateProgram(days.flatMap((d) => d.exercises.map((e) => e.primaryMuscle)));
+  const schedule = cardioSchedule(experience);
   const catalogById = useMemo(() => new Map(catalog.map((e) => [e.id, e])), [catalog]);
 
   function handleSetsChange(dayIndex: number, rowId: string, sets: number) {
@@ -276,6 +288,24 @@ export function ProgramEditor({
               {t(locale, "cw.add_exercise")}
             </Button>
           ))}
+
+        {currentDay && (
+          <CardioCard
+            key={currentDay.id}
+            locale={locale}
+            dayId={currentDay.id}
+            dayName={currentDay.dayName}
+            cardio={currentDay.cardio}
+            schedule={schedule}
+            defaultMinutes={defaultCardioMinutes(experience)}
+            editable={!dayIsDone}
+            onChange={(next) =>
+              setDays((prev) =>
+                prev.map((d) => (d.id === currentDay.id ? { ...d, cardio: next } : d)),
+              )
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -312,6 +342,13 @@ function DayAction({
             icon={status.stats.prCount > 0 ? <Trophy className="h-3 w-3 text-accent" /> : undefined}
           />
         </div>
+        {status.cardio && (
+          <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-muted">
+            <Footprints className="h-3.5 w-3.5 text-accent" />
+            {t(locale, "cardio.speed_walking")} · {status.cardio.minutes} {t(locale, "cardio.min")} ·{" "}
+            {status.cardio.caloriesBurned} {t(locale, "cardio.burned")}
+          </p>
+        )}
         <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-muted">
           <Lock className="h-3.5 w-3.5" />
           {t(locale, "workout.locked_until_monday")}

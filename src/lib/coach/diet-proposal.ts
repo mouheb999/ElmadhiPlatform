@@ -58,12 +58,32 @@ export async function computeDietProposal(
   const today = new Date().toISOString().slice(0, 10);
   const windowStart = new Date();
   windowStart.setDate(windowStart.getDate() - 13);
-  const { data: checkins } = await supabase
-    .from("daily_checkins")
-    .select("checkin_date, weight_kg")
-    .eq("user_id", userId)
-    .gte("checkin_date", windowStart.toISOString().slice(0, 10))
-    .not("weight_kg", "is", null);
+  const windowStartKey = windowStart.toISOString().slice(0, 10);
+
+  // Weigh-ins AND intake: the calibration path needs both, since observed
+  // maintenance is what was eaten minus what the scale did about it. The
+  // meal-log rows come back per entry and are summed per day below — a day the
+  // user did not log is simply absent, which is what the ≥8-logged-days gate
+  // in proposeDietAdaptation is counting.
+  const [{ data: checkins }, { data: logs }] = await Promise.all([
+    supabase
+      .from("daily_checkins")
+      .select("checkin_date, weight_kg")
+      .eq("user_id", userId)
+      .gte("checkin_date", windowStartKey)
+      .not("weight_kg", "is", null),
+    supabase
+      .from("meal_logs")
+      .select("log_date, calories")
+      .eq("user_id", userId)
+      .gte("log_date", windowStartKey),
+  ]);
+
+  const caloriesByDay = new Map<string, number>();
+  for (const row of logs ?? []) {
+    caloriesByDay.set(row.log_date, (caloriesByDay.get(row.log_date) ?? 0) + row.calories);
+  }
+  const intake = [...caloriesByDay].map(([date, calories]) => ({ date, calories }));
 
   const targets: CurrentTargets = {
     calories: macros.calories,
@@ -80,6 +100,7 @@ export async function computeDietProposal(
     targets,
     (checkins ?? []).map((c) => ({ date: c.checkin_date, weightKg: c.weight_kg! })),
     today,
+    intake,
   );
   if (!proposal) return null;
 

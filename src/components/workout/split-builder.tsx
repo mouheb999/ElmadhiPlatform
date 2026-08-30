@@ -216,7 +216,7 @@ export function SplitBuilder({
         setError(res.error);
         return;
       }
-      router.push("/workout/program");
+      router.push("/workout");
       router.refresh();
     });
   }

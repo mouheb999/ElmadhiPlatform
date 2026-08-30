@@ -87,24 +87,3 @@ export function UpgradeSummary({ locale }: { locale: Locale }) {
     </div>
   );
 }
-
-/**
- * The free-account note on the plan screens — the counterpart to `Locked`. It
- * runs where nothing is blocked, to say so: somebody who just generated a
- * program should understand that reading it costs nothing before they ever meet
- * a locked control.
- */
-export function FreePlanNote({ locale }: { locale: Locale }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-3xl border border-accent/25 bg-accent/[0.06] p-5">
-      <p className="text-sm font-bold">{t(locale, "free.title")}</p>
-      <p className="text-xs leading-relaxed text-muted">{t(locale, "free.body")}</p>
-      <Link
-        href="/checkout"
-        className="mt-1 text-sm font-bold text-accent hover:underline"
-      >
-        {t(locale, "lock.cta")} →
-      </Link>
-    </div>
-  );
-}

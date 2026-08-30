@@ -25,7 +25,11 @@ export async function applyDietAdaptation(): Promise<ActionResult> {
   const { error: targetsError } = await supabase.from("macro_targets").insert({
     diet_profile_id: dietProfileId,
     bmr: targets.bmr,
-    tdee: targets.tdee,
+    // The calibrated maintenance estimate, not the one the quiz produced. This
+    // is the whole point of the calibration path: next week's proposal reads
+    // this row back as `previous_TDEE` and blends against it, so the estimate
+    // converges on the user's real number instead of orbiting the quiz's.
+    tdee: proposal.newTdee,
     calories: proposal.newCalories,
     protein_g: proposal.newProteinG,
     carbs_g: proposal.newCarbsG,
@@ -37,6 +41,11 @@ export async function applyDietAdaptation(): Promise<ActionResult> {
       trend_kg: proposal.trendKg,
       old_calories: proposal.oldCalories,
       delta_kcal: proposal.deltaKcal,
+      old_tdee: targets.tdee,
+      new_tdee: proposal.newTdee,
+      // Null on the nudge path, where there was not enough logged intake to
+      // solve for maintenance.
+      observed_tdee: proposal.observedTdee,
     },
   });
   if (targetsError) return fail(targetsError.message);
@@ -50,6 +59,9 @@ export async function applyDietAdaptation(): Promise<ActionResult> {
       new_calories: proposal.newCalories,
       delta_kcal: proposal.deltaKcal,
       trend_kg: proposal.trendKg,
+      old_tdee: targets.tdee,
+      new_tdee: proposal.newTdee,
+      observed_tdee: proposal.observedTdee,
       new_protein_g: proposal.newProteinG,
       new_carbs_g: proposal.newCarbsG,
       new_fat_g: proposal.newFatG,

@@ -11,7 +11,6 @@
  */
 export type Locale = "en" | "tn";
 
-export const LOCALES: Locale[] = ["en", "tn"];
 export const DEFAULT_LOCALE: Locale = "tn";
 export const LOCALE_COOKIE = "elmadhi_locale";
 
@@ -177,13 +176,6 @@ const STRINGS = {
   "up.i2": { en: "Food diary against your macros", tn: "دفتر ماكلة على حساب الماكرو متاعك" },
   "up.i3": { en: "Progress charts and the weekly review", tn: "رسومات التقدّم ومراجعة الجمعة" },
   "up.i4": { en: "Ask the coach your own questions", tn: "اسأل المدرّب أسئلتك إنت" },
-
-  // ---- free-account banner ----
-  "free.title": { en: "Your plan is ready", tn: "البرنامج متاعك جاهز" },
-  "free.body": {
-    en: "Building it and reading it is free. Subscribe when you want to start logging your training and meals against it.",
-    tn: "تعملو وتقراه فابور. اشترك كي تحب تبدا تسجّل التمرين والماكلة متاعك.",
-  },
 
   // ---- checkout, step by step ----
   "co.step": { en: "Step", tn: "خطوة" },
@@ -544,12 +536,15 @@ const STRINGS = {
   "diet.goal_maintain": { en: "Stay the same, get healthier", tn: "نبقى في وزني ونتحسّن في صحتي" },
   "diet.goal_build_muscle": { en: "Build muscle", tn: "نبني عضل" },
   "diet.goal_recomp": { en: "Lose fat and build muscle together", tn: "ننشّف ونبني عضل في نفس الوقت" },
+  // Occupational activity only. Training used to be folded in here and into a
+  // separate step bonus; the simplified calculator leaves both out and lets the
+  // weekly calibration find the real number instead.
   "diet.q_activity": { en: "How does your day usually look?", tn: "كيفاش تكون نهاريتك عادة؟" },
-  "diet.activity_sedentary": { en: "I sit most of the day", tn: "نقعد أغلب النهار" },
-  "diet.activity_light": { en: "I move a little", tn: "نتحرّك شويّة" },
-  "diet.activity_moderate": { en: "I'm on my feet often", tn: "نكون واقف برشة" },
-  "diet.activity_active": { en: "Physical job or training daily", tn: "خدمة جسدية ولا نتمرّن كل يوم" },
-  "diet.activity_very_active": { en: "Very physical job and training", tn: "خدمة جسدية قوية ونتمرّن" },
+  "diet.activity_sedentary": { en: "Sitting almost all day", tn: "نقعد أغلب النهار" },
+  "diet.activity_light": { en: "A mix of sitting and standing", tn: "مرة نقعد ومرة نوقف" },
+  "diet.activity_moderate": { en: "On my feet, walking a lot", tn: "نوقف ونمشي برشة" },
+  "diet.activity_active": { en: "Physical job", tn: "خدمة فيها جهد" },
+  "diet.activity_very_active": { en: "Very physical job", tn: "خدمة فيها جهد كبير" },
   "diet.q_meals": { en: "How many times a day do you eat?", tn: "قداش مرة تاكل في النهار؟" },
   "diet.q_budget": { en: "What's your food budget like?", tn: "كيفاش ميزانية الماكلة متاعك؟" },
   "diet.budget_low": { en: "Tight, I need cheap options", tn: "ضيّقة، لازمني حاجات رخيصة" },
@@ -566,18 +561,11 @@ const STRINGS = {
 
   // ---- professional questionnaire (20 Q) ----
   "diet.q_target_weight": { en: "What weight are you aiming for?", tn: "شنوة الوزن اللي تحب توصلو؟" },
-  "diet.q_bodyfat": { en: "How would you describe your body fat?", tn: "كيفاش تشوف نسبة الدهون متاعك؟" },
-  "diet.bodyfat_very_lean": { en: "Very lean", tn: "ضعيف برشة" },
-  "diet.bodyfat_normal": { en: "Normal", tn: "عادي" },
-  "diet.bodyfat_a_little_fat": { en: "A little fat", tn: "شويّة دهون" },
-  "diet.bodyfat_high": { en: "High body fat", tn: "دهون عالية" },
-  "diet.bodyfat_unknown": { en: "I don't know", tn: "ما نعرفش" },
-  "diet.q_steps": { en: "How many steps do you walk a day?", tn: "قداش تمشي خطوة في النهار؟" },
-  "diet.steps_under_4k": { en: "Under 4,000", tn: "أقل من 4000" },
-  "diet.steps_4k_7k": { en: "4,000–7,000", tn: "من 4000 لـ 7000" },
-  "diet.steps_7k_10k": { en: "7,000–10,000", tn: "من 7000 لـ 10000" },
-  "diet.steps_over_10k": { en: "More than 10,000", tn: "أكثر من 10000" },
-  "diet.steps_unknown": { en: "I don't know", tn: "ما نعرفش" },
+  "diet.q_bodyfat_pct": { en: "Do you know your body fat %?", tn: "تعرف نسبة الدهون متاعك %؟" },
+  "diet.q_bodyfat_pct_hint": {
+    en: "Only if you've actually measured it — a caliper, a scan or a smart scale. Skip this if you don't know: we'll work it out from your height, weight and age instead.",
+    tn: "كان قستها بصح برك — بالكاليبر ولا سكانير ولا ميزان ذكي. كان ما تعرفهاش تجاوز: نحسبوها من الطول والوزن والعمر.",
+  },
   "diet.q_training_days": { en: "How many days do you train a week?", tn: "قداش نهار تتمرّن في الجمعة؟" },
   "diet.td_0": { en: "0 days", tn: "0 نهار" },
   "diet.td_1_2": { en: "1–2 days", tn: "1–2 نهار" },
@@ -773,6 +761,42 @@ const STRINGS = {
     tn: "ما تنجمش تكمّل بلا أنترنات — السيتات محفوظة، عاود كي ترجع الشبكة.",
   },
   "session.stat_prs": { en: "PRs", tn: "أرقام قياسية" },
+
+  // ---- cardio (the default module: speed walking) ----
+  "cardio.title": { en: "Cardio", tn: "كارديو" },
+  "cardio.speed_walking": { en: "Speed Walking", tn: "مشي سريع" },
+  "cardio.add": { en: "Add cardio to this day", tn: "زيد كارديو للنهار هذا" },
+  "cardio.remove": { en: "Remove cardio", tn: "نحّي الكارديو" },
+  "cardio.min": { en: "min", tn: "دقيقة" },
+  "cardio.less": { en: "Five minutes less", tn: "خمس دقايق أقل" },
+  "cardio.more": { en: "Five minutes more", tn: "خمس دقايق أكثر" },
+  "cardio.intensity": {
+    en: "Moderate pace — you should feel the effort but still be able to talk. On a treadmill: 5.5–6.5 km/h, 0–6% incline.",
+    tn: "نسق متوسط — تحس بالجهد أما تنجم تحكي. على السير: 5.5–6.5 كم/س، ميلان 0–6%.",
+  },
+  // The sheet's user message. Both halves matter: people assume cardio either
+  // buys them food or replaces a session, and it does neither.
+  "cardio.why": {
+    en: "Speed Walking is added to improve your heart health, metabolism, recovery and conditioning. It does not change your food calories and it does not replace your workout.",
+    tn: "المشي السريع تزاد باش يحسّن صحة القلب، الأيض، الاستشفاء واللياقة متاعك. ما يبدّلش السعرات متاع الماكلة ومايعوّضش التمرين متاعك.",
+  },
+  "cardio.schedule": {
+    en: "For your level: {times}× a week, {minutes} minutes.",
+    tn: "حسب المستوى متاعك: {times} مرات في الجمعة، {minutes} دقيقة.",
+  },
+  "cardio.avoid_legs": {
+    en: "This is a lower-body day — cardio sits better after a push, pull or upper day, or on a rest day.",
+    tn: "هذا نهار الرجلين — الكارديو أحسن بعد نهار دفع ولا سحب ولا علوي، ولا في نهار راحة.",
+  },
+  "cardio.log_title": { en: "Finish with your walk", tn: "كمّل بالمشي متاعك" },
+  "cardio.log_cta": { en: "Log cardio", tn: "سجّل الكارديو" },
+  "cardio.logged": { en: "Cardio logged", tn: "الكارديو تسجّل" },
+  "cardio.burned": { en: "kcal burned", tn: "سعرة محروقة" },
+  "cardio.burned_note": {
+    en: "Burned calories are an estimate. They are not added back to your food targets.",
+    tn: "السعرات المحروقة تقدير. ما تتزادش على الأهداف متاع الماكلة متاعك.",
+  },
+  "session.stat_cardio": { en: "Cardio min", tn: "دقايق كارديو" },
   "session.need_reps": { en: "Enter reps first", tn: "دخّل العدّات قبل" },
   "session.already_logged": {
     en: "Already logged this session",
@@ -1029,6 +1053,16 @@ const STRINGS = {
 
   // ---- adaptive coaching: diet adjustments (V2) ----
   "adapt.card_title": { en: "Coach proposal", tn: "اقتراح المدرب" },
+  // Calibration: we could solve for the user's real maintenance from what they
+  // logged and what the scale did, so we say that rather than "eat less".
+  "adapt.calibrated_up": {
+    en: "Two weeks of your real food and your real weight say you burn more than we first estimated — your targets go up.",
+    tn: "جمعتين من الماكلة الحقيقية والوزن الحقيقي متاعك يقولو إنك تحرق أكثر مما قدّرنا — الأهداف متاعك تطلع.",
+  },
+  "adapt.calibrated_down": {
+    en: "Two weeks of your real food and your real weight say you burn less than we first estimated — your targets come down.",
+    tn: "جمعتين من الماكلة الحقيقية والوزن الحقيقي متاعك يقولو إنك تحرق أقل مما قدّرنا — الأهداف متاعك تنقص.",
+  },
   "adapt.cut_stall": {
     en: "Your weight hasn't moved in two weeks on a cut — time to lower calories a notch.",
     tn: "وزنك ما تحركش جمعتين وانت في تنشيف — وقت نطيحو السعرات شوية.",
@@ -1444,24 +1478,19 @@ const STRINGS = {
   "ce.goal_build_muscle": { en: "Build muscle", tn: "تضخيم" },
   "ce.goal_recomp": { en: "Both at once", tn: "الزوز في نفس الوقت" },
   "ce.goal_maintain": { en: "Stay where I am", tn: "نبقى كيما أنا" },
-  "ce.body_fat": { en: "Roughly how lean are you?", tn: "تقريبا قداش إنت منشّف؟" },
-  "ce.bf_very_lean": { en: "Very lean — abs show", tn: "منشّف برشة — الأبس باينة" },
-  "ce.bf_normal": { en: "Normal", tn: "عادي" },
-  "ce.bf_a_little_fat": { en: "Carrying a little", tn: "فما شوية دهون" },
-  "ce.bf_high": { en: "Carrying a lot", tn: "فما برشة دهون" },
-  "ce.bf_unknown": { en: "No idea", tn: "ما نعرفش" },
-  "ce.steps": { en: "Steps on a normal day", tn: "الخطوات في نهار عادي" },
-  "ce.steps_under_4k": { en: "Under 4,000", tn: "أقل من 4,000" },
-  "ce.steps_4k_7k": { en: "4,000 – 7,000", tn: "4,000 – 7,000" },
-  "ce.steps_7k_10k": { en: "7,000 – 10,000", tn: "7,000 – 10,000" },
-  "ce.steps_over_10k": { en: "Over 10,000", tn: "أكثر من 10,000" },
-  "ce.steps_unknown": { en: "I don't count them", tn: "ما نحسبهمش" },
-  "ce.activity": { en: "How active are you overall?", tn: "قداش إنت نشيط بصفة عامة؟" },
-  "ce.act_sedentary": { en: "Desk job, little movement", tn: "خدمة قاعدة، حركة قليلة" },
-  "ce.act_light": { en: "Light — train 1–3x a week", tn: "خفيف — نتمرّن 1–3 مرات في الجمعة" },
-  "ce.act_moderate": { en: "Moderate — train 3–5x a week", tn: "متوسط — نتمرّن 3–5 مرات في الجمعة" },
-  "ce.act_active": { en: "Active — train 6–7x a week", tn: "نشيط — نتمرّن 6–7 مرات في الجمعة" },
-  "ce.act_very_active": { en: "Very active — physical job too", tn: "نشيط برشة — وخدمة فيها جهد" },
+  "ce.body_fat_pct": { en: "Body fat % (optional)", tn: "نسبة الدهون % (اختياري)" },
+  "ce.body_fat_pct_hint": {
+    en: "Only if you've actually measured it. Leave it empty otherwise — a guess makes the number worse, not better.",
+    tn: "كان قستها بصح برك. كان لا خليها فارغة — التخمين ينقص من دقة الرقم ما يزيدش فيها.",
+  },
+  // The activity question is about the DAY, not the training. Training is not
+  // part of the estimate at all any more (see macros.ts).
+  "ce.activity": { en: "How does your day usually go?", tn: "كيفاش تمشي نهاريتك عادة؟" },
+  "ce.act_sedentary": { en: "Sitting almost all day", tn: "قاعد أغلب النهار" },
+  "ce.act_light": { en: "A mix of sitting and standing", tn: "مرة قاعد ومرة واقف" },
+  "ce.act_moderate": { en: "On my feet, walking a lot", tn: "واقف ونمشي برشة" },
+  "ce.act_active": { en: "Physical job", tn: "خدمة فيها جهد" },
+  "ce.act_very_active": { en: "Very physical job", tn: "خدمة فيها جهد كبير" },
 
   // ---- "my food isn't in the list" ----
   "uf.missing_cta": { en: "Can't find it? Add your own", tn: "ما لقيتهاش؟ زيدها إنت" },

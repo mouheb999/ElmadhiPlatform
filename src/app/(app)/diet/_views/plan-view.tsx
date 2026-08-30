@@ -51,6 +51,10 @@ export async function PlanView({
         .select(
           "id, name_en, name_ar, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url, unit_en, unit_en_plural, unit_ar, unit_ar_plural, unit_grams, breakfast_ok",
         )
+        // Retired foods (migration 049: parsley, semolina) stay in the table so
+        // the plans and logs that point at them still resolve, but they are
+        // never offered again.
+        .eq("in_catalog", true)
         .order("slot", { ascending: true }),
       // The user's own foods sit in the same picker as the catalog, so the swap
       // and add lists offer everything they can actually eat rather than

@@ -56,6 +56,9 @@ export default async function WorkoutBuildPage({
     supabase
       .from("exercises")
       .select("id, name_en, name_ar, primary_muscle, equipment, thumbnail_url")
+      // Strength only — same reason as the program editor's picker: cardio has
+      // its own block and a stretch is not a programmed lift.
+      .eq("exercise_type", "strength")
       .order("primary_muscle", { ascending: true }),
     // Only the day *names* of the pre-built splits. Offered as a starting shape
     // ("Push / Pull / Legs") so somebody who knows the structure they want but

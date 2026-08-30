@@ -131,6 +131,9 @@ export async function TodayView({
       .select(
         "id, name_en, name_ar, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url, unit_en, unit_en_plural, unit_ar, unit_ar_plural, unit_grams",
       )
+      // Search offers the live catalog only. A retired food already in this
+      // user's history still reaches them through recents and favourites.
+      .eq("in_catalog", true)
       .order("slot", { ascending: true }),
     supabase
       .from("meal_logs")

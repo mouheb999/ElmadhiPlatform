@@ -1,7 +1,8 @@
 import { differenceInYears } from "date-fns";
 import {
   resolveGoalStrategy,
-  type BodyFatLevel,
+  FAT_PER_KG,
+  FAT_PER_KG_FLOOR,
   type Bilingual,
   type Goal,
 } from "./diet-strategy";
@@ -11,26 +12,46 @@ export const KCAL_PER_G_PROTEIN = 4;
 export const KCAL_PER_G_CARBS = 4;
 export const KCAL_PER_G_FAT = 9;
 
+/**
+ * Q6 — how the user's DAY looks, not how they train.
+ *
+ * These used to be the textbook Harris-Benedict exercise multipliers
+ * (1.2 / 1.375 / 1.55 / 1.725 / 1.9), which fold training frequency into the
+ * activity factor and then get a separate step bonus on top. The simplified
+ * calculator narrows them to occupational activity alone — 1.20 to 1.60 — and
+ * deliberately leaves training, cardio and step count OUT of the estimate.
+ *
+ * That is not an oversight in the sheet; it is the point. "Sans nombre de pas,
+ * fréquence exacte d'entraînement et cardio, ce TDEE est volontairement une
+ * estimation simple." A narrower, honest starting range calibrates faster than
+ * a wide one built out of three guesses stacked on each other.
+ *
+ * The five keys are unchanged so every stored `diet_profiles.activity_level`
+ * still reads back; only what they mean and what they are worth changed.
+ */
 export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
 
 const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
-  sedentary: 1.2,
-  light: 1.375,
-  moderate: 1.55,
-  active: 1.725,
-  very_active: 1.9,
+  sedentary: 1.2, // sits almost all day
+  light: 1.3, // mix of sitting and standing
+  moderate: 1.4, // on their feet, walks a lot
+  active: 1.5, // physical job
+  very_active: 1.6, // very physical job
 };
 
-/** Q8 daily-steps band → small additive kcal on top of the activity factor. */
-export type DailySteps = "under_4k" | "4k_7k" | "7k_10k" | "over_10k" | "unknown";
+/**
+ * The lowest daily total we will ever prescribe. The sheet has no floor — it
+ * assumes an adult of ordinary size — but ×0.85 of a small, sedentary person's
+ * TDEE lands under 1200 kcal, which is not a plan, it is a problem.
+ */
+export const CALORIE_FLOOR = 1200;
 
-const STEP_BONUS_KCAL: Record<DailySteps, number> = {
-  under_4k: 0,
-  "4k_7k": 100,
-  "7k_10k": 200,
-  over_10k: 350,
-  unknown: 0,
-};
+/**
+ * The least carbohydrate a training plan should be built on. Reached only in
+ * the corner where a heavy, short, older person on a cut has their whole
+ * calorie budget consumed by protein and fat; see `solveFatAndCarbs`.
+ */
+const MIN_CARBS_G = 50;
 
 export type MacroProfileInput = {
   gender: "male" | "female";
@@ -39,11 +60,17 @@ export type MacroProfileInput = {
   weightKg: number;
   activityLevel: ActivityLevel;
   goal: Goal;
-  bodyFatLevel: BodyFatLevel;
-  dailySteps: DailySteps;
+  /**
+   * Q9, optional. A MEASURED percentage (caliper, scan, scale) — not the
+   * self-reported body-type category, which no longer feeds any number. When
+   * present, resting metabolism is computed from lean mass instead of from
+   * height and age, which is the more accurate of the two.
+   */
+  bodyFatPercent?: number | null;
 };
 
 export type MacroTargets = {
+  /** Resting energy: Mifflin-St Jeor, or the lean-mass RMR when body fat is known. */
   bmr: number;
   tdee: number;
   calories: number;
@@ -51,6 +78,8 @@ export type MacroTargets = {
   carbsG: number;
   fatG: number;
   fiberG: number;
+  /** True when `bmr` above came from lean mass rather than Mifflin-St Jeor. */
+  usedLeanMass: boolean;
   goalLabel: Bilingual;
   rationale: {
     bmr: Bilingual;
@@ -62,60 +91,125 @@ export type MacroTargets = {
   };
 };
 
+/** A body-fat percentage we will actually believe. Anything else is ignored. */
+export function isUsableBodyFatPercent(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 3 && value <= 60;
+}
+
+/**
+ * Resting energy expenditure.
+ *
+ * Mifflin-St Jeor uses height and age as stand-ins for how much lean tissue a
+ * person is carrying. When the actual body-fat percentage is known those
+ * stand-ins are not needed: lean mass is the thing that burns, so
+ * `500 + 22 × LBM` reads it directly. Two people of the same height, age and
+ * weight get the same Mifflin number and can have very different requirements;
+ * this is the input that tells them apart.
+ */
+export function restingEnergy(input: {
+  gender: "male" | "female";
+  age: number;
+  heightCm: number;
+  weightKg: number;
+  bodyFatPercent?: number | null;
+}): { value: number; usedLeanMass: boolean } {
+  if (isUsableBodyFatPercent(input.bodyFatPercent)) {
+    const leanMassKg = input.weightKg * (1 - input.bodyFatPercent / 100);
+    return { value: 500 + 22 * leanMassKg, usedLeanMass: true };
+  }
+  const base = 10 * input.weightKg + 6.25 * input.heightCm - 5 * input.age;
+  return { value: input.gender === "male" ? base + 5 : base - 161, usedLeanMass: false };
+}
+
+/**
+ * Fat and carbs, given the calorie budget protein has already been taken out of.
+ *
+ * Fat is prescribed as an absolute 0.9 g/kg rather than as a share of calories.
+ * On a deep cut for a heavy person that can leave almost nothing for carbs:
+ * 200 g protein and 90 g fat is 1610 kcal of a 1620 kcal budget. This is what
+ * the sheet's `fat >= poids × 0.7` minimum is for — fat has 0.2 g/kg of give in
+ * it, and we spend that give here before letting carbs fall to nothing.
+ */
+function solveFatAndCarbs(
+  calories: number,
+  proteinG: number,
+  weightKg: number,
+): { fatG: number; carbsG: number } {
+  const afterProtein = calories - proteinG * KCAL_PER_G_PROTEIN;
+
+  let fatG = FAT_PER_KG * weightKg;
+  let carbsKcal = afterProtein - fatG * KCAL_PER_G_FAT;
+
+  if (carbsKcal < MIN_CARBS_G * KCAL_PER_G_CARBS) {
+    const wanted = (afterProtein - MIN_CARBS_G * KCAL_PER_G_CARBS) / KCAL_PER_G_FAT;
+    fatG = Math.max(FAT_PER_KG_FLOOR * weightKg, wanted);
+    carbsKcal = afterProtein - fatG * KCAL_PER_G_FAT;
+  }
+
+  return {
+    fatG: Math.round(fatG),
+    // Rounded from the same fat figure the caller is shown, so the three macros
+    // the user reads back add up to the calories they are given.
+    carbsG: Math.max(0, Math.round((afterProtein - Math.round(fatG) * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS)),
+  };
+}
+
 export function calculateMacros(input: MacroProfileInput): MacroTargets {
   const age = differenceInYears(new Date(), input.birthDate);
   const w = input.weightKg;
-  const h = input.heightCm;
 
-  // Mifflin-St Jeor.
-  const bmr =
-    input.gender === "male"
-      ? 10 * w + 6.25 * h - 5 * age + 5
-      : 10 * w + 6.25 * h - 5 * age - 161;
+  // 1-3. Resting energy — from lean mass when body fat is known, else Mifflin.
+  const { value: bmr, usedLeanMass } = restingEnergy({
+    gender: input.gender,
+    age,
+    heightCm: input.heightCm,
+    weightKg: w,
+    bodyFatPercent: input.bodyFatPercent,
+  });
 
-  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[input.activityLevel] + STEP_BONUS_KCAL[input.dailySteps]);
+  // 4-5. Daily activity → TDEE.
+  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[input.activityLevel]);
 
-  const strategy = resolveGoalStrategy(input.goal, input.bodyFatLevel);
+  const strategy = resolveGoalStrategy(input.goal);
 
-  // 1. Calories.
-  const calories = Math.max(1200, Math.round(tdee * (1 + strategy.calorieFactor)));
+  // 6. Calories for the goal, rounded to the nearest ten as the sheet asks.
+  const calories = Math.max(CALORIE_FLOOR, Math.round((tdee * strategy.calorieFactor) / 10) * 10);
 
-  // 2. Protein (g/kg bodyweight).
+  // 7. Protein.
   const proteinG = Math.round(w * strategy.proteinPerKg);
 
-  // 3. Fat (% of calories, floor 0.5 g/kg).
-  const fatFromPct = (calories * strategy.fatCaloriePct) / KCAL_PER_G_FAT;
-  const fatFloor = 0.5 * w;
-  const fatG = Math.round(Math.max(fatFromPct, fatFloor));
+  // 8-9. Fat, then carbs from what is left.
+  const { fatG, carbsG } = solveFatAndCarbs(calories, proteinG, w);
 
-  // 4. Carbs = remainder.
-  const carbsG = Math.max(
-    0,
-    Math.round((calories - proteinG * KCAL_PER_G_PROTEIN - fatG * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS),
-  );
-
-  // 5. Fiber from final calories.
+  // Fiber from final calories.
   const fiberG = Math.round((calories / 1000) * 14);
 
   const delta = calories - tdee;
+  const roundedBmr = Math.round(bmr);
 
   return {
-    bmr: Math.round(bmr),
+    bmr: roundedBmr,
     tdee,
     calories,
     proteinG,
     carbsG,
     fatG,
     fiberG,
+    usedLeanMass,
     goalLabel: strategy.label,
     rationale: {
-      bmr: {
-        en: `Your body burns about ${Math.round(bmr)} kcal a day just to exist — breathing, organs, brain.`,
-        ar: `جسمك يحرق حوالي ${Math.round(bmr)} سعرة في اليوم غير باش يعيش — التنفس، الأعضاء، الدماغ.`,
-      },
+      bmr: usedLeanMass
+        ? {
+            en: `From your body fat, you carry about ${Math.round(w * (1 - (input.bodyFatPercent as number) / 100))} kg of lean mass — that burns around ${roundedBmr} kcal a day at rest.`,
+            ar: `من نسبة الدهون متاعك، عندك حوالي ${Math.round(w * (1 - (input.bodyFatPercent as number) / 100))} كيلو كتلة صافية — تحرق حوالي ${roundedBmr} سعرة في اليوم وأنت مرتاح.`,
+          }
+        : {
+            en: `Your body burns about ${roundedBmr} kcal a day just to exist — breathing, organs, brain.`,
+            ar: `جسمك يحرق حوالي ${roundedBmr} سعرة في اليوم غير باش يعيش — التنفس، الأعضاء، الدماغ.`,
+          },
       tdee: {
-        en: `Add your daily activity and you burn around ${tdee} kcal per day — that's your maintenance number.`,
-        ar: `زيد عليها نشاطك اليومي وتحرق حوالي ${tdee} سعرة في اليوم — هذا رقم الثبات متاعك.`,
+        en: `Add how your day actually goes and you burn around ${tdee} kcal — that's your starting maintenance number. We correct it from your real weight and intake.`,
+        ar: `زيد كيفاش تمشي نهاريتك وتحرق حوالي ${tdee} سعرة — هذا رقم الثبات متاعك في البداية. نصححوه من وزنك ومن الماكلة الحقيقية متاعك.`,
       },
       target: {
         en:

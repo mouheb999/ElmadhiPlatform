@@ -7,8 +7,8 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
-import { calculateMacros, type ActivityLevel, type DailySteps } from "@/lib/algorithms/macros";
-import type { Goal, BodyFatLevel } from "@/lib/algorithms/diet-strategy";
+import { calculateMacros, isUsableBodyFatPercent, type ActivityLevel } from "@/lib/algorithms/macros";
+import type { Goal } from "@/lib/algorithms/diet-strategy";
 import {
   fillTemplate,
   type DietConstraints,
@@ -30,8 +30,13 @@ export type DietAnswers = {
   heightCm: number;
   weightKg: number;
   targetWeightKg: number;
-  bodyFatLevel: BodyFatLevel;
-  dailySteps: DailySteps;
+  /**
+   * Optional (Q9). A MEASURED percentage; left null when the user does not
+   * know it, in which case resting energy falls back to Mifflin-St Jeor. The
+   * old self-reported body-fat category and daily-step band were dropped with
+   * the simplified calculator — neither is an input to any number now.
+   */
+  bodyFatPercent: number | null;
   activityLevel: ActivityLevel;
   trainingDays: string; // "0" | "1_2" | "3_4" | "5_6" | "7"
   mealsPerDay: number; // 3 | 4 | 5
@@ -57,8 +62,11 @@ async function loadCatalog(supabase: Supa) {
     supabase
       .from("nutrition_ingredients")
       .select(
-        "id, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, typical_serving_g, budget_tier, tags, is_slot_default, breakfast_ok",
-      ),
+        "id, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, typical_serving_g, budget_tier, tags, is_slot_default, breakfast_ok, main_meal_ok",
+      )
+      // The generator only ever builds from live foods. Retired ones
+      // (migration 049) stay readable for the plans that already contain them.
+      .eq("in_catalog", true),
     supabase.from("meal_templates").select("id, cooking_tier, budget_tier"),
     supabase
       .from("meal_template_slots")
@@ -78,6 +86,7 @@ async function loadCatalog(supabase: Supa) {
     tags: i.tags ?? [],
     isSlotDefault: i.is_slot_default,
     breakfastOk: i.breakfast_ok ?? true,
+    mainMealOk: i.main_meal_ok ?? true,
   }));
 
   const byId = new Map<string, Ingredient>(ingList.map((i) => [i.id, i]));
@@ -223,8 +232,9 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
       weight_kg: answers.weightKg,
       target_weight_kg: answers.targetWeightKg,
       goal: answers.goal,
-      body_fat_level: answers.bodyFatLevel,
-      daily_steps: answers.dailySteps,
+      body_fat_percent: isUsableBodyFatPercent(answers.bodyFatPercent)
+        ? answers.bodyFatPercent
+        : null,
       activity_level: answers.activityLevel,
       training_days: answers.trainingDays,
       training_time: answers.trainingTime,
@@ -258,8 +268,7 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
     weightKg: answers.weightKg,
     activityLevel: answers.activityLevel,
     goal: answers.goal,
-    bodyFatLevel: answers.bodyFatLevel,
-    dailySteps: answers.dailySteps,
+    bodyFatPercent: answers.bodyFatPercent,
   });
 
   await supabase.from("macro_targets").insert({

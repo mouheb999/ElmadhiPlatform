@@ -44,6 +44,8 @@ export default async function WorkoutSessionPage({
   type DayRow = {
     id: string;
     day_name: string;
+    /** Zero or one row — `user_program_day_id` is UNIQUE (migration 051). */
+    user_program_cardio: { minutes: number }[] | { minutes: number } | null;
     user_program_exercises: {
       id: string;
       exercise_id: string;
@@ -70,7 +72,7 @@ export default async function WorkoutSessionPage({
     supabase
       .from("user_program_days")
       .select(
-        "id, day_name, user_programs!inner(user_id), user_program_exercises(id, exercise_id, sets, rep_range, rest_seconds, order_index, notes, notes_ar, exercises(id, name_en, name_ar, equipment, thumbnail_url, video_url))",
+        "id, day_name, user_programs!inner(user_id), user_program_cardio(minutes), user_program_exercises(id, exercise_id, sets, rep_range, rest_seconds, order_index, notes, notes_ar, exercises(id, name_en, name_ar, equipment, thumbnail_url, video_url))",
       )
       .eq("id", dayId)
       .eq("user_programs.user_id", user.id)
@@ -171,6 +173,31 @@ export default async function WorkoutSessionPage({
     .filter((r) => r.exercises)
     .sort((a, b) => a.order_index - b.order_index);
 
+  // Bodyweight for the client's live burn PREVIEW only. The number that gets
+  // stored is recomputed server-side in `logCardio` from the same sources, so
+  // a client that lies about it changes nothing that is written down.
+  const cardioRaw = day.user_program_cardio;
+  const cardioRow = Array.isArray(cardioRaw) ? cardioRaw[0] : cardioRaw;
+  const plannedCardioMinutes = cardioRow?.minutes ?? null;
+
+  const [{ data: latestWeight }, { data: dietWeight }] = await Promise.all([
+    supabase
+      .from("daily_checkins")
+      .select("weight_kg")
+      .eq("user_id", user.id)
+      .not("weight_kg", "is", null)
+      .order("checkin_date", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("diet_profiles")
+      .select("weight_kg")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle(),
+  ]);
+  const weightKg = latestWeight?.weight_kg ?? dietWeight?.weight_kg ?? 75;
+
   const exerciseIds = [...new Set(rows.map((r) => r.exercise_id))];
 
   // ---- Resume payload: sets already stored for this day's open session ----
@@ -186,6 +213,11 @@ export default async function WorkoutSessionPage({
       created_at: string;
       exercises: { name_en: string; name_ar: string | null } | null;
     };
+    const { data: openCardio } = await supabase
+      .from("workout_cardio_logs")
+      .select("minutes")
+      .eq("session_id", openSession.id)
+      .maybeSingle();
     const { data: openSetsRaw } = await supabase
       .from("workout_sets")
       .select(
@@ -210,6 +242,7 @@ export default async function WorkoutSessionPage({
       skippedExerciseIds: openSession.skipped_exercise_ids ?? [],
       sets,
       lastSetAt: openSets.length > 0 ? openSets[openSets.length - 1].created_at : null,
+      cardioMinutes: openCardio?.minutes ?? null,
     };
   }
 
@@ -292,6 +325,8 @@ export default async function WorkoutSessionPage({
       dayName={day.day_name}
       exercises={exercises}
       initialSession={initialSession}
+      plannedCardioMinutes={plannedCardioMinutes}
+      weightKg={weightKg}
     />
   );
 }

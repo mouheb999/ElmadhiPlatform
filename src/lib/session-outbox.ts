@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { startSession, logSet, skipExercise } from "@/app/actions/sessions";
+import { logCardio } from "@/app/actions/cardio";
 import { SESSION_ERR, type SessionErrCode } from "@/lib/session-codes";
 
 export type OutboxItem =
@@ -24,7 +25,12 @@ export type OutboxItem =
       reps: number;
       rir: number | null;
     }
-  | { kind: "skip"; exerciseId: string };
+  | { kind: "skip"; exerciseId: string }
+  // Cardio (migration 051). It rides the same queue as sets and skips because
+  // it is the same sort of write: it happens once, at the end of a workout,
+  // often on a phone with no signal, and `logCardio` upserts on session_id so
+  // a retry updates the one row rather than stacking a second walk.
+  | { kind: "cardio"; minutes: number };
 
 type OutboxState = { v: 2; sessionId: string | null; items: OutboxItem[] };
 
@@ -161,18 +167,22 @@ export function useSessionOutbox(opts: {
         }
 
         const item = state.items[0];
-        const result =
-          item.kind === "set"
-            ? await logSet({
-                sessionId: state.sessionId,
-                exerciseId: item.exerciseId,
-                userProgramExerciseId: item.rowId,
-                setNumber: item.setNumber,
-                weightKg: item.weightKg,
-                reps: item.reps,
-                rir: item.rir,
-              })
-            : await skipExercise(state.sessionId, item.exerciseId);
+        let result;
+        if (item.kind === "set") {
+          result = await logSet({
+            sessionId: state.sessionId,
+            exerciseId: item.exerciseId,
+            userProgramExerciseId: item.rowId,
+            setNumber: item.setNumber,
+            weightKg: item.weightKg,
+            reps: item.reps,
+            rir: item.rir,
+          });
+        } else if (item.kind === "skip") {
+          result = await skipExercise(state.sessionId, item.exerciseId);
+        } else {
+          result = await logCardio(state.sessionId, item.minutes);
+        }
 
         if (!result.ok) {
           if (result.error === SESSION_ERR.notOpen) {

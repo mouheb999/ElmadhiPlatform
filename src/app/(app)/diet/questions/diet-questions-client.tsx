@@ -22,7 +22,7 @@ export function DietQuestionsClient({
   const tr = (k: StringKey) => t(locale, k);
 
   const numberStep = (
-    key: "age" | "heightCm" | "weightKg" | "targetWeightKg",
+    key: "age" | "heightCm" | "weightKg" | "targetWeightKg" | "bodyFatPercent",
     titleKey: StringKey,
     mode: "numeric" | "decimal" = "numeric",
   ): WizardStep<WizardAnswers> => ({
@@ -82,20 +82,27 @@ export function DietQuestionsClient({
     numberStep("heightCm", "diet.q_height"),
     numberStep("weightKg", "diet.q_weight", "decimal"),
     numberStep("targetWeightKg", "diet.q_target_weight", "decimal"),
-    choice("bodyFatLevel", "diet.q_bodyfat", opt([
-      ["very_lean", "diet.bodyfat_very_lean"],
-      ["normal", "diet.bodyfat_normal"],
-      ["a_little_fat", "diet.bodyfat_a_little_fat"],
-      ["high", "diet.bodyfat_high"],
-      ["unknown", "diet.bodyfat_unknown"],
-    ])),
-    choice("dailySteps", "diet.q_steps", opt([
-      ["under_4k", "diet.steps_under_4k"],
-      ["4k_7k", "diet.steps_4k_7k"],
-      ["7k_10k", "diet.steps_7k_10k"],
-      ["over_10k", "diet.steps_over_10k"],
-      ["unknown", "diet.steps_unknown"],
-    ])),
+    // Optional, and skippable: most people genuinely do not know their body
+    // fat, and a guess here would replace the whole resting-energy formula
+    // with a worse one. Given, it is the most accurate input on this page.
+    {
+      key: "bodyFatPercent",
+      title: tr("diet.q_bodyfat_pct"),
+      optional: true,
+      isValid: () => true,
+      render: ({ answers, setAnswer }) => (
+        <div className="flex flex-col gap-3">
+          <NumberField
+            decimal
+            value={answers.bodyFatPercent ?? undefined}
+            onValueChange={(v) => setAnswer("bodyFatPercent", (v ?? null) as never)}
+          />
+          <p className="text-center text-xs leading-relaxed text-muted">
+            {tr("diet.q_bodyfat_pct_hint")}
+          </p>
+        </div>
+      ),
+    },
     choice("activityLevel", "diet.q_activity", opt([
       ["sedentary", "diet.activity_sedentary"],
       ["light", "diet.activity_light"],
@@ -207,8 +214,7 @@ export function DietQuestionsClient({
         avoidFoods: [],
         digestion: [],
         supplements: [],
-        bodyFatLevel: "unknown",
-        dailySteps: "unknown",
+        bodyFatPercent: null,
         trainingDays: "3_4",
         trainingTime: "evening",
         cookingPref: "normal",

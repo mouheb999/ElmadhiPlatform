@@ -37,8 +37,3 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     email: typeof claims.email === "string" ? claims.email : null,
   };
 });
-
-/** The current user's id, or null. Convenience for the common case. */
-export async function getCurrentUserId(): Promise<string | null> {
-  return (await getCurrentUser())?.id ?? null;
-}

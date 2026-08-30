@@ -91,25 +91,6 @@ export const PAID_PREFIXES = [
   "/workout/session",
 ] as const;
 
-/**
- * Free surface worth naming explicitly, because it is the part that has to keep
- * working for an unpaid account or the whole idea collapses.
- */
-export const FREE_PREFIXES = [
-  "/dashboard",
-  "/workout",
-  "/workout/questions",
-  "/workout/program",
-  "/workout/rationale",
-  "/diet",
-  "/diet/questions",
-  "/diet/plan",
-  "/diet/rationale",
-  "/settings",
-  "/checkout",
-  "/support",
-] as const;
-
 function matches(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }

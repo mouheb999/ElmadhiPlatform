@@ -36,7 +36,7 @@ export function TodayWorkout({
   const startButton = (href: string, labelKey: "today.start_workout" | "today.continue_workout") =>
     locked ? (
       <Button asChild size="lg" className="mt-2 w-max">
-        <Link href="/workout/program">
+        <Link href="/workout">
           <Eye className="h-5 w-5" />
           {t(locale, "today.see_workout")}
         </Link>
@@ -86,7 +86,7 @@ export function TodayWorkout({
               <CheckCircle2 className="h-7 w-7 text-accent" />
               {t(locale, "today.workout_done")}
             </h1>
-            <Link href="/workout/program" className="text-sm font-bold text-accent hover:underline">
+            <Link href="/workout" className="text-sm font-bold text-accent hover:underline">
               {t(locale, "today.open_plan")} →
             </Link>
           </>
@@ -98,7 +98,7 @@ export function TodayWorkout({
               <Moon className="h-6 w-6 text-accent" />
               {t(locale, "today.rest_day")}
             </h1>
-            <Link href="/workout/program" className="text-sm font-bold text-accent hover:underline">
+            <Link href="/workout" className="text-sm font-bold text-accent hover:underline">
               {t(locale, "today.open_plan")} →
             </Link>
           </>

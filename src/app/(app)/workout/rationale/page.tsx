@@ -56,7 +56,7 @@ export default async function WorkoutRationalePage() {
           emphasis
         />
         <Button asChild size="lg" className="mt-2">
-          <Link href="/workout/program">{t(locale, "workout.see_program")}</Link>
+          <Link href="/workout">{t(locale, "workout.see_program")}</Link>
         </Button>
       </div>
     );
@@ -105,7 +105,7 @@ export default async function WorkoutRationalePage() {
       )}
 
       <Button asChild size="lg" className="mt-2">
-        <Link href="/workout/program">{t(locale, "workout.see_program")}</Link>
+        <Link href="/workout">{t(locale, "workout.see_program")}</Link>
       </Button>
     </div>
   );

@@ -31,6 +31,14 @@ export type Ingredient = {
    * database that predates migration 036.
    */
   breakfastOk?: boolean;
+  /**
+   * The mirror of `breakfastOk`, for Meal 2 / Meal 3 / the last meal. Greek
+   * yogurt is a perfectly good protein and a terrible dinner; without this the
+   * lean-protein guard below — which sorts the protein slot by fat-per-protein
+   * and takes the leanest — would put a yogurt pot next to the rice. Defaults
+   * to true for foods loaded from a database that predates migration 049.
+   */
+  mainMealOk?: boolean;
 };
 
 export type TemplateSlot = {
@@ -113,10 +121,21 @@ export function absorbingMealKey(
   return null;
 }
 
-/** Foods that may fill a given meal. Only Meal 1 is restricted. */
+/** The eating occasions that are a plate of food rather than a snack. */
+const MAIN_MEALS: readonly MealKey[] = ["meal_2", "meal_3", "last_meal"];
+
+/**
+ * Foods that may fill a given meal.
+ *
+ * Two gates, pulling in opposite directions: `breakfastOk` keeps grilled
+ * chicken out of Meal 1, `mainMealOk` keeps a yogurt pot out of dinner. Snacks
+ * and pre-workout are deliberately ungated — that is where honey, dates and a
+ * protein bar belong.
+ */
 export function isMealAppropriate(ing: Ingredient, mealKey: MealKey): boolean {
-  if (mealKey !== "meal_1") return true;
-  return ing.breakfastOk !== false;
+  if (mealKey === "meal_1") return ing.breakfastOk !== false;
+  if (MAIN_MEALS.includes(mealKey)) return ing.mainMealOk !== false;
+  return true;
 }
 
 /** True when an ingredient is allowed under the user's constraints. */
@@ -127,7 +146,9 @@ export function isIngredientAllowed(ing: Ingredient, c: DietConstraints): boolea
   if (c.restrictions.includes("no_dairy") && has("dairy")) return false;
   if (c.restrictions.includes("no_eggs") && has("egg")) return false;
   if (c.restrictions.includes("vegetarian") && !has("vegetarian")) return false;
-  // no_red_meat: no template ingredient is red meat, so nothing to filter.
+  // Migration 049 put beef, lamb, liver and merguez in the catalog, so this
+  // restriction finally has something to exclude. Before 049 it was a no-op.
+  if (c.restrictions.includes("no_red_meat") && has("red_meat")) return false;
 
   if (c.digestion.includes("lactose") && has("dairy")) return false;
 
@@ -149,12 +170,15 @@ function avoidMatches(token: string, ing: Ingredient): boolean {
       return ing.tags.includes("fish");
     case "dairy":
       return ing.tags.includes("dairy");
+    // These tokens name a food in the user's words, not a row id, so they must
+    // match every row that IS that food — migration 049 added a second rice and
+    // two more breads, and "no bread" that still serves baguette is a bug.
     case "rice":
-      return ing.id === "white_rice";
+      return ing.id === "white_rice" || ing.id === "brown_rice";
     case "pasta":
       return ing.id === "pasta";
     case "bread":
-      return ing.id === "whole_wheat_bread";
+      return ing.id === "whole_wheat_bread" || ing.id === "baguette" || ing.id === "tabouna_bread";
     case "oats":
       return ing.id === "oats";
     case "legumes":
@@ -278,6 +302,10 @@ export function fillTemplate(
         i.proteinPer100g > 0 &&
         !i.tags.includes("whey") &&
         i.id !== "protein_bar" &&
+        // Only ever swapped into a main meal below, so the pool is built from
+        // foods that can BE a main meal. Greek yogurt is the leanest protein in
+        // the catalog and would otherwise win this sort every time.
+        i.mainMealOk !== false &&
         isIngredientAllowed(i, c) &&
         budgetOk(i, c),
     )

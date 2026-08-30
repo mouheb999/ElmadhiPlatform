@@ -9,8 +9,8 @@ import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
 import { MAX_ITEMS_PER_MEAL, MAX_QUANTITY_G } from "@/lib/program-limits";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
-import { calculateMacros, type ActivityLevel, type DailySteps } from "@/lib/algorithms/macros";
-import type { Goal, BodyFatLevel } from "@/lib/algorithms/diet-strategy";
+import { calculateMacros, isUsableBodyFatPercent, type ActivityLevel } from "@/lib/algorithms/macros";
+import type { Goal } from "@/lib/algorithms/diet-strategy";
 
 /**
  * The other way to get a meal plan: choose the food yourself.
@@ -38,7 +38,7 @@ import type { Goal, BodyFatLevel } from "@/lib/algorithms/diet-strategy";
  * without knowing which route produced the rows.
  */
 
-/** The nine answers `calculateMacros` reads. Nothing else is asked. */
+/** The answers `calculateMacros` reads. Nothing else is asked. */
 export type DietEssentials = {
   gender: "male" | "female";
   age: number;
@@ -46,9 +46,15 @@ export type DietEssentials = {
   weightKg: number;
   targetWeightKg: number;
   goal: Goal;
-  bodyFatLevel: BodyFatLevel;
-  dailySteps: DailySteps;
   activityLevel: ActivityLevel;
+  /**
+   * Optional, and the only body-fat input that moves a number: a measured
+   * percentage swaps Mifflin-St Jeor for a lean-mass RMR. The old
+   * `bodyFatLevel` / `dailySteps` fields are gone — the simplified calculator
+   * uses neither, and asking for an answer nothing reads is worse than not
+   * asking.
+   */
+  bodyFatPercent: number | null;
 };
 
 export type CustomMealInput = {
@@ -83,8 +89,6 @@ const MIN_MEALS = 1;
 const MAX_MEALS = MEAL_KEYS.length;
 
 const GOALS: Goal[] = ["lose_fat", "maintain", "build_muscle", "recomp"];
-const BODY_FAT: BodyFatLevel[] = ["very_lean", "normal", "a_little_fat", "high", "unknown"];
-const STEPS: DailySteps[] = ["under_4k", "4k_7k", "7k_10k", "over_10k", "unknown"];
 const ACTIVITY: ActivityLevel[] = ["sedentary", "light", "moderate", "active", "very_active"];
 
 /**
@@ -101,9 +105,12 @@ function validEssentials(e: DietEssentials): string | null {
     return "Target weight looks off.";
   }
   if (!GOALS.includes(e.goal)) return "Pick a goal.";
-  if (!BODY_FAT.includes(e.bodyFatLevel)) return "Pick a body-fat estimate.";
-  if (!STEPS.includes(e.dailySteps)) return "Pick a daily step range.";
   if (!ACTIVITY.includes(e.activityLevel)) return "Pick an activity level.";
+  // Optional, but a number that IS given has to be a believable one — it is
+  // about to replace the whole resting-energy formula.
+  if (e.bodyFatPercent !== null && !isUsableBodyFatPercent(e.bodyFatPercent)) {
+    return "Body fat % looks off — leave it empty if you don't know it.";
+  }
   return null;
 }
 
@@ -169,7 +176,7 @@ export async function createCustomMealPlan(
 
   const [{ data: ingredients }, { data: userFoods }] = await Promise.all([
     ingredientIds.length
-      ? supabase.from("nutrition_ingredients").select("id").in("id", ingredientIds)
+      ? supabase.from("nutrition_ingredients").select("id").eq("in_catalog", true).in("id", ingredientIds)
       : Promise.resolve({ data: [] as { id: string }[] }),
     // Scoped to the caller explicitly as well as by RLS: this is the check that
     // stops somebody pasting another account's food id into their own plan and
@@ -222,8 +229,7 @@ export async function createCustomMealPlan(
       weight_kg: e.weightKg,
       target_weight_kg: e.targetWeightKg,
       goal: e.goal,
-      body_fat_level: e.bodyFatLevel,
-      daily_steps: e.dailySteps,
+      body_fat_percent: e.bodyFatPercent,
       activity_level: e.activityLevel,
       meals_per_day: meals.length,
       // The other sixteen answers only ever fed template selection and slot
@@ -248,8 +254,7 @@ export async function createCustomMealPlan(
     weightKg: e.weightKg,
     activityLevel: e.activityLevel,
     goal: e.goal,
-    bodyFatLevel: e.bodyFatLevel,
-    dailySteps: e.dailySteps,
+    bodyFatPercent: e.bodyFatPercent,
   });
 
   const { error: macroError } = await supabase.from("macro_targets").insert({

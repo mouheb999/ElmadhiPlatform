@@ -54,6 +54,7 @@ export default async function DietBuildPage({
         .select(
           "id, name_en, name_ar, slot, calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, image_url, unit_en, unit_en_plural, unit_ar, unit_ar_plural, unit_grams, breakfast_ok",
         )
+        .eq("in_catalog", true)
         .order("slot", { ascending: true }),
       supabase
         .from("user_foods")

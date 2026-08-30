@@ -25,33 +25,3 @@ export function Logo({ className }: { className?: string }) {
     />
   );
 }
-
-/**
- * Square tile variant, for slots that need a 1:1 mark. Drops the FITNESS subline —
- * it turns to mush much below 96px — and sits the HYPE mark on the dark tile + lime
- * glow that the generated app icons use.
- */
-export function LogoMark({ className }: { className?: string }) {
-  return (
-    <span
-      className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10",
-        "bg-gradient-to-br from-[#161616] to-[#070707] shadow-[0_10px_30px_rgba(0,0,0,0.55)]",
-        "h-12 w-12",
-        className,
-      )}
-      aria-hidden="true"
-    >
-      {/* ambient lime glow behind the mark */}
-      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(192,218,27,0.4),transparent_65%)]" />
-      <Image
-        src="/logo-mark.png"
-        alt=""
-        width={900}
-        height={278}
-        sizes="128px"
-        className="relative w-[86%] object-contain"
-      />
-    </span>
-  );
-}

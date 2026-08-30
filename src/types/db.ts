@@ -245,8 +245,15 @@ export type Database = {
           diet_intensity: string;
           // migration 028 — professional 20-question answers
           target_weight_kg: number | null;
+          /**
+           * Retired by migration 050. The simplified calculator uses neither a
+           * self-reported body-fat CATEGORY nor a step band; both are kept for
+           * the rows that already carry them and are never written anymore.
+           */
           body_fat_level: string | null;
           daily_steps: string | null;
+          /** migration 050 — measured %, the one body-fat input that is read. */
+          body_fat_percent: number | null;
           training_days: string | null;
           training_time: string | null;
           cooking_pref: string | null;
@@ -284,6 +291,7 @@ export type Database = {
           target_weight_kg?: number | null;
           body_fat_level?: string | null;
           daily_steps?: string | null;
+          body_fat_percent?: number | null;
           training_days?: string | null;
           training_time?: string | null;
           cooking_pref?: string | null;
@@ -413,6 +421,10 @@ export type Database = {
           unit_ar_plural: string | null;
           unit_grams: number | null;
           breakfast_ok: boolean;
+          // migration 049 — retired-but-referenced foods, and the mirror of
+          // breakfast_ok for Meal 2 / Meal 3 / the last meal.
+          in_catalog: boolean;
+          main_meal_ok: boolean;
         };
         Insert: {
           id: string;
@@ -436,6 +448,8 @@ export type Database = {
           unit_ar_plural?: string | null;
           unit_grams?: number | null;
           breakfast_ok?: boolean;
+          in_catalog?: boolean;
+          main_meal_ok?: boolean;
         };
         Update: Partial<Database["public"]["Tables"]["nutrition_ingredients"]["Insert"]>;
         Relationships: [];
@@ -665,6 +679,8 @@ export type Database = {
           sub_target: string | null;
           true_max_effort: boolean;
           needs_role_review: boolean;
+          /** migration 051 — MET, for the cardio burned-calorie estimate. */
+          met_value: number | null;
         };
         Insert: {
           id?: string;
@@ -692,13 +708,14 @@ export type Database = {
           sub_target?: string | null;
           true_max_effort?: boolean;
           needs_role_review?: boolean;
+          met_value?: number | null;
         };
         Update: Partial<Database["public"]["Tables"]["exercises"]["Insert"]>;
         Relationships: [];
       };
       // program_templates / template_days / template_exercises dropped in
-      // migration 023 — the template-copy engine was replaced by slot filling
-      // (split_definitions -> split_days -> split_day_slots).
+      // migration 023 — the template-copy engine was replaced by slot filling,
+      // which migration 027 then retired in turn (see below).
       user_programs: {
         Row: {
           id: string;
@@ -832,6 +849,48 @@ export type Database = {
           created_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["workout_sets"]["Insert"]>;
+        Relationships: [];
+      };
+      // migration 051 — cardio. Deliberately NOT user_program_exercises /
+      // workout_sets: cardio has no sets, no load and no progression, and must
+      // not appear in anything that reads those.
+      user_program_cardio: {
+        Row: {
+          id: string;
+          user_program_day_id: string;
+          exercise_id: string;
+          minutes: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_program_day_id: string;
+          exercise_id: string;
+          minutes: number;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_program_cardio"]["Insert"]>;
+        Relationships: [];
+      };
+      workout_cardio_logs: {
+        Row: {
+          id: string;
+          session_id: string;
+          exercise_id: string;
+          minutes: number;
+          /** Shown to the user. Never read by anything under diet/. */
+          calories_burned: number;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          exercise_id: string;
+          minutes: number;
+          calories_burned: number;
+          created_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["workout_cardio_logs"]["Insert"]>;
         Relationships: [];
       };
       daily_checkins: {
@@ -1225,84 +1284,11 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["questionnaire_rules"]["Insert"]>;
         Relationships: [];
       };
-      split_definitions: {
-        Row: {
-          id: string;
-          days_per_week: number;
-          label_en: string;
-          label_ar: string | null;
-          note_en: string | null;
-          note_ar: string | null;
-        };
-        Insert: {
-          id: string;
-          days_per_week: number;
-          label_en: string;
-          label_ar?: string | null;
-          note_en?: string | null;
-          note_ar?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["split_definitions"]["Insert"]>;
-        Relationships: [];
-      };
-      split_days: {
-        Row: {
-          id: string;
-          split_id: string;
-          day_number: number;
-          day_name_en: string;
-          day_name_ar: string | null;
-          note_en: string | null;
-          note_ar: string | null;
-        };
-        Insert: {
-          id?: string;
-          split_id: string;
-          day_number: number;
-          day_name_en: string;
-          day_name_ar?: string | null;
-          note_en?: string | null;
-          note_ar?: string | null;
-        };
-        Update: Partial<Database["public"]["Tables"]["split_days"]["Insert"]>;
-        Relationships: [
-          {
-            foreignKeyName: "split_days_split_id_fkey";
-            columns: ["split_id"];
-            isOneToOne: false;
-            referencedRelation: "split_definitions";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      split_day_slots: {
-        Row: {
-          id: string;
-          split_day_id: string;
-          order_index: number;
-          primary_muscle: string;
-          exercise_slots: number;
-          preferred_tiers: string[];
-        };
-        Insert: {
-          id?: string;
-          split_day_id: string;
-          order_index: number;
-          primary_muscle: string;
-          exercise_slots: number;
-          preferred_tiers: string[];
-        };
-        Update: Partial<Database["public"]["Tables"]["split_day_slots"]["Insert"]>;
-        Relationships: [
-          {
-            foreignKeyName: "split_day_slots_split_day_id_fkey";
-            columns: ["split_day_id"];
-            isOneToOne: false;
-            referencedRelation: "split_days";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
+      // split_definitions / split_days / split_day_slots were retired by
+      // migration 027: the slot-filling picker they described is gone and
+      // programs now copy a fixed_splits row verbatim. Their types are removed
+      // so nothing can start reading them again by accident; the tables are
+      // left in the database, holding the seed the old generator ran on.
       // Pre-built splits from the sheet (migration 027). One row per
       // (gender, days_per_week); replaces the split_definitions slot system.
       fixed_splits: {

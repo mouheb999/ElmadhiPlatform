@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { calculateMacros } from "./macros";
+import { calculateMacros, type MacroProfileInput } from "./macros";
 import { resolveGoalStrategy } from "./diet-strategy";
 import {
   fillTemplate,
   mealPlanForDay,
   isIngredientAllowed,
+  isMealAppropriate,
   type DietConstraints,
   type Ingredient,
   type Slot,
@@ -18,59 +19,112 @@ const maleProfile = {
   heightCm: 180,
   weightKg: 80,
   activityLevel: "moderate" as const,
-  dailySteps: "unknown" as const,
 };
 
+// Mifflin for this profile: 10*80 + 6.25*180 - 5*25 + 5 = 1805.
+// Activity "moderate" is 1.40 under the simplified calculator, so 1805 * 1.4
+// = 2527 kcal maintenance.
+const BMR = 1805;
+const TDEE = 2527;
+
 describe("calculateMacros", () => {
-  it("uses Mifflin BMR and the activity factor for TDEE", () => {
-    const m = calculateMacros({ ...maleProfile, goal: "maintain", bodyFatLevel: "normal" });
-    // 10*80 + 6.25*180 - 5*25 + 5 = 1805; * 1.55 = 2797.75
-    expect(m.bmr).toBe(1805);
-    expect(m.tdee).toBe(2798);
+  it("uses Mifflin BMR and the occupational activity factor for TDEE", () => {
+    const m = calculateMacros({ ...maleProfile, goal: "maintain" });
+    expect(m.bmr).toBe(BMR);
+    expect(m.tdee).toBe(TDEE);
+    expect(m.usedLeanMass).toBe(false);
   });
 
-  it("maintain sits at TDEE", () => {
-    const m = calculateMacros({ ...maleProfile, goal: "maintain", bodyFatLevel: "normal" });
-    expect(m.calories).toBe(m.tdee);
+  it("walks the five activity bands from 1.20 to 1.60", () => {
+    const at = (activityLevel: MacroProfileInput["activityLevel"]) =>
+      calculateMacros({ ...maleProfile, activityLevel, goal: "maintain" }).tdee;
+    expect(at("sedentary")).toBe(Math.round(BMR * 1.2));
+    expect(at("light")).toBe(Math.round(BMR * 1.3));
+    expect(at("moderate")).toBe(Math.round(BMR * 1.4));
+    expect(at("active")).toBe(Math.round(BMR * 1.5));
+    expect(at("very_active")).toBe(Math.round(BMR * 1.6));
   });
 
-  it("cut at normal body fat applies a ~20% deficit", () => {
-    const m = calculateMacros({ ...maleProfile, goal: "lose_fat", bodyFatLevel: "normal" });
-    expect(m.calories).toBe(Math.round(m.tdee * 0.8));
-    // protein 2.1 g/kg at mid body fat → 168 g for 80 kg
-    expect(m.proteinG).toBe(168);
+  it("applies the four flat goal multipliers, rounded to the nearest ten", () => {
+    const cal = (goal: MacroProfileInput["goal"]) => calculateMacros({ ...maleProfile, goal }).calories;
+    expect(cal("build_muscle")).toBe(Math.round((TDEE * 1.07) / 10) * 10);
+    expect(cal("lose_fat")).toBe(Math.round((TDEE * 0.85) / 10) * 10);
+    expect(cal("recomp")).toBe(Math.round(TDEE / 10) * 10);
+    expect(cal("maintain")).toBe(Math.round(TDEE / 10) * 10);
+  });
+
+  it("gives 2.0 g/kg of protein to every goal but plain maintenance, which gets 1.6", () => {
+    for (const goal of ["lose_fat", "build_muscle", "recomp"] as const) {
+      expect(calculateMacros({ ...maleProfile, goal }).proteinG).toBe(160);
+    }
+    expect(calculateMacros({ ...maleProfile, goal: "maintain" }).proteinG).toBe(128);
+  });
+
+  it("prescribes 0.9 g/kg of fat when the budget allows it", () => {
+    expect(calculateMacros({ ...maleProfile, goal: "maintain" }).fatG).toBe(72);
   });
 
   it("follows the formula order: carbs are the remainder, fiber from final calories", () => {
-    const m = calculateMacros({ ...maleProfile, goal: "recomp", bodyFatLevel: "normal" });
-    const remainder = Math.round((m.calories - m.proteinG * 4 - m.fatG * 9) / 4);
-    expect(m.carbsG).toBe(remainder);
+    const m = calculateMacros({ ...maleProfile, goal: "recomp" });
+    expect(m.carbsG).toBe(Math.round((m.calories - m.proteinG * 4 - m.fatG * 9) / 4));
     expect(m.fiberG).toBe(Math.round((m.calories / 1000) * 14));
   });
 
-  it("never lets fat fall below 0.5 g/kg", () => {
-    const m = calculateMacros({ ...maleProfile, goal: "lose_fat", bodyFatLevel: "high" });
-    expect(m.fatG).toBeGreaterThanOrEqual(Math.round(0.5 * maleProfile.weightKg));
+  it("never drops below the 1200 kcal floor", () => {
+    const tiny = calculateMacros({
+      gender: "female",
+      birthDate: new Date(new Date().getFullYear() - 60, 0, 1),
+      heightCm: 145,
+      weightKg: 42,
+      activityLevel: "sedentary",
+      goal: "lose_fat",
+    });
+    expect(tiny.calories).toBeGreaterThanOrEqual(1200);
   });
 
-  it("higher body fat deepens the cut", () => {
-    const lean = calculateMacros({ ...maleProfile, goal: "lose_fat", bodyFatLevel: "very_lean" });
-    const fat = calculateMacros({ ...maleProfile, goal: "lose_fat", bodyFatLevel: "high" });
-    expect(fat.calories).toBeLessThan(lean.calories);
+  // The sheet's `fat >= poids × 0.7` minimum exists for exactly this case:
+  // 200 g protein + 90 g fat is 1610 of a 1620 kcal budget, and carbs would be
+  // left with nothing. Fat has 0.2 g/kg of give and we spend it here.
+  it("spends fat down to its 0.7 g/kg floor rather than starving carbs", () => {
+    const heavyCut = calculateMacros({
+      gender: "female",
+      birthDate: new Date(new Date().getFullYear() - 50, 0, 1),
+      heightCm: 160,
+      weightKg: 100,
+      activityLevel: "sedentary",
+      goal: "lose_fat",
+    });
+    expect(heavyCut.fatG).toBeLessThan(Math.round(0.9 * 100));
+    expect(heavyCut.fatG).toBeGreaterThanOrEqual(Math.round(0.7 * 100));
+    expect(heavyCut.carbsG).toBeGreaterThan(0);
+  });
+
+  it("body fat is not an input to calories or macros — only to resting energy", () => {
+    const withPct = calculateMacros({ ...maleProfile, goal: "lose_fat", bodyFatPercent: 20 });
+    const without = calculateMacros({ ...maleProfile, goal: "lose_fat" });
+    // Protein and fat come off bodyweight, which did not change.
+    expect(withPct.proteinG).toBe(without.proteinG);
+    // 80 kg at 20 % = 64 kg lean -> 500 + 22*64 = 1908, above Mifflin's 1805.
+    expect(withPct.bmr).toBe(1908);
+    expect(withPct.usedLeanMass).toBe(true);
+    expect(withPct.calories).toBeGreaterThan(without.calories);
+  });
+
+  it("ignores a body-fat percentage that cannot be real", () => {
+    for (const bodyFatPercent of [0, 1, 75, 100, Number.NaN]) {
+      const m = calculateMacros({ ...maleProfile, goal: "maintain", bodyFatPercent });
+      expect(m.usedLeanMass).toBe(false);
+      expect(m.bmr).toBe(BMR);
+    }
   });
 });
 
 describe("resolveGoalStrategy", () => {
-  it("keeps every goal's numbers inside the sheet ranges", () => {
-    const cut = resolveGoalStrategy("lose_fat", "normal");
-    expect(cut.calorieFactor).toBeGreaterThanOrEqual(-0.25);
-    expect(cut.calorieFactor).toBeLessThanOrEqual(-0.15);
-    expect(cut.proteinPerKg).toBeGreaterThanOrEqual(1.8);
-    expect(cut.proteinPerKg).toBeLessThanOrEqual(2.4);
-
-    const bulk = resolveGoalStrategy("build_muscle", "normal");
-    expect(bulk.calorieFactor).toBeGreaterThanOrEqual(0.1);
-    expect(bulk.calorieFactor).toBeLessThanOrEqual(0.15);
+  it("matches the sheet's four multipliers exactly", () => {
+    expect(resolveGoalStrategy("build_muscle").calorieFactor).toBe(1.07);
+    expect(resolveGoalStrategy("lose_fat").calorieFactor).toBe(0.85);
+    expect(resolveGoalStrategy("recomp").calorieFactor).toBe(1);
+    expect(resolveGoalStrategy("maintain").calorieFactor).toBe(1);
   });
 });
 
@@ -98,6 +152,7 @@ function ing(
   tags: string[],
   isDefault: boolean,
   breakfastOk = true,
+  mainMealOk = true,
 ): Ingredient {
   return {
     id,
@@ -111,6 +166,7 @@ function ing(
     tags,
     isSlotDefault: isDefault,
     breakfastOk,
+    mainMealOk,
   };
 }
 
@@ -289,6 +345,80 @@ describe("isIngredientAllowed", () => {
   it("avoid tokens remove the named food", () => {
     const c = { ...baseConstraints, avoidFoods: ["rice"] };
     expect(isIngredientAllowed(byId.get("white_rice")!, c)).toBe(false);
+  });
+
+  // Migration 049. `no_red_meat` was a documented no-op until beef, lamb,
+  // liver and merguez entered the catalog.
+  it("no_red_meat drops red meat and leaves poultry alone", () => {
+    const c = { ...baseConstraints, restrictions: ["no_red_meat"] };
+    const beef = ing("beef_mince", "protein", { protein: 20, carbs: 0, fat: 10, cal: 176 }, ["red_meat"], false, false);
+    expect(isIngredientAllowed(beef, c)).toBe(false);
+    expect(isIngredientAllowed(byId.get("chicken_breast")!, c)).toBe(true);
+  });
+});
+
+// ---- migration 049: where a food is allowed to appear ----
+
+describe("isMealAppropriate", () => {
+  const yogurt = ing(
+    "greek_yogurt",
+    "protein",
+    { protein: 10, carbs: 3.6, fat: 0.4, cal: 59 },
+    ["dairy", "vegetarian"],
+    false,
+    true,  // breakfast: yes
+    false, // dinner: no
+  );
+
+  it("keeps a dinner protein out of breakfast", () => {
+    expect(isMealAppropriate(byId.get("chicken_breast")!, "meal_1")).toBe(false);
+    expect(isMealAppropriate(byId.get("chicken_breast")!, "meal_2")).toBe(true);
+  });
+
+  it("keeps a breakfast protein out of the main meals", () => {
+    expect(isMealAppropriate(yogurt, "meal_1")).toBe(true);
+    expect(isMealAppropriate(yogurt, "meal_2")).toBe(false);
+    expect(isMealAppropriate(yogurt, "meal_3")).toBe(false);
+    expect(isMealAppropriate(yogurt, "last_meal")).toBe(false);
+  });
+
+  it("leaves snacks and pre-workout open to both", () => {
+    expect(isMealAppropriate(yogurt, "snack")).toBe(true);
+    expect(isMealAppropriate(byId.get("chicken_breast")!, "snack")).toBe(true);
+  });
+});
+
+describe("the lean-protein guard respects main_meal_ok", () => {
+  // Greek yogurt is the leanest protein here by fat-per-gram-of-protein, so an
+  // aggressive cut would swap it into meal_2/meal_3 if the guard's pool were
+  // not filtered — "yogurt and rice for dinner".
+  const yogurt = ing(
+    "greek_yogurt",
+    "protein",
+    { protein: 10, carbs: 3.6, fat: 0.4, cal: 59 },
+    ["dairy", "vegetarian"],
+    false,
+    true,
+    false,
+  );
+  const byIdPlus = new Map(byId);
+  byIdPlus.set(yogurt.id, yogurt);
+  const bySlotPlus = new Map(bySlot);
+  bySlotPlus.set("protein", [...(bySlot.get("protein") ?? []), yogurt]);
+
+  it("never puts it in a main meal, however lean the target", () => {
+    const meals = fillTemplate(
+      SLOTS,
+      // Fat-tight, protein-heavy: exactly the target that trips the guard.
+      { calories: 1800, proteinG: 180, carbsG: 200, fatG: 40 },
+      byIdPlus,
+      bySlotPlus,
+      baseConstraints,
+    );
+    for (const meal of meals) {
+      if (meal.mealKey !== "meal_2" && meal.mealKey !== "meal_3" && meal.mealKey !== "last_meal") continue;
+      expect(meal.items.map((i) => i.ingredientId)).not.toContain("greek_yogurt");
+    }
   });
 });
 

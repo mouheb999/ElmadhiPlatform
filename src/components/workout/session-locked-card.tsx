@@ -45,7 +45,7 @@ export function SessionLockedCard({
         {t(locale, "session.week_locked")}
       </p>
       <Button asChild variant="secondary" className="w-full max-w-sm">
-        <Link href="/workout/program">{t(locale, "session.go_program")}</Link>
+        <Link href="/workout">{t(locale, "session.go_program")}</Link>
       </Button>
     </div>
   );
