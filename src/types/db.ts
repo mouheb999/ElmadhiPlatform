@@ -1387,6 +1387,261 @@ export type Database = {
           },
         ];
       };
+
+      // ---- migration 052: the care layer ----
+      clinical_profiles: {
+        Row: {
+          id: string;
+          user_id: string;
+          version: number;
+          is_active: boolean;
+          conditions: string[];
+          dialysis_days: number[];
+          dialysis_start_time: string | null;
+          dialysis_duration_minutes: number | null;
+          post_session_recovery_hours: number;
+          pre_session_buffer_hours: number;
+          vascular_access: string;
+          weight_bearing: string;
+          weight_bearing_source: string | null;
+          weight_bearing_dated_on: string | null;
+          bp_clearance: string;
+          bp_skip_above_systolic: number | null;
+          bp_skip_above_diastolic: number | null;
+          bp_cleared_by: string | null;
+          bp_cleared_on: string | null;
+          glucose_floor_mgdl: number | null;
+          glucose_ceiling_mgdl: number | null;
+          glucose_display_unit: string;
+          glucose_set_by: string | null;
+          glucose_set_on: string | null;
+          session_min_minutes: number;
+          session_max_minutes: number;
+          rest_seconds_min: number;
+          effort_ceiling: number;
+          seated_or_supported_only: boolean;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          version?: number;
+          is_active?: boolean;
+          conditions?: string[];
+          dialysis_days?: number[];
+          dialysis_start_time?: string | null;
+          dialysis_duration_minutes?: number | null;
+          post_session_recovery_hours?: number;
+          pre_session_buffer_hours?: number;
+          vascular_access?: string;
+          weight_bearing?: string;
+          weight_bearing_source?: string | null;
+          weight_bearing_dated_on?: string | null;
+          bp_clearance?: string;
+          bp_skip_above_systolic?: number | null;
+          bp_skip_above_diastolic?: number | null;
+          bp_cleared_by?: string | null;
+          bp_cleared_on?: string | null;
+          glucose_floor_mgdl?: number | null;
+          glucose_ceiling_mgdl?: number | null;
+          glucose_display_unit?: string;
+          glucose_set_by?: string | null;
+          glucose_set_on?: string | null;
+          session_min_minutes?: number;
+          session_max_minutes?: number;
+          rest_seconds_min?: number;
+          effort_ceiling?: number;
+          seated_or_supported_only?: boolean;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["clinical_profiles"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      clinical_readings: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string | null;
+          kind: string;
+          timing: string;
+          taken_at: string;
+          glucose_mgdl: number | null;
+          systolic: number | null;
+          diastolic: number | null;
+          pulse_bpm: number | null;
+          outcome: string;
+          action_taken: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_id?: string | null;
+          kind: string;
+          timing: string;
+          taken_at?: string;
+          glucose_mgdl?: number | null;
+          systolic?: number | null;
+          diastolic?: number | null;
+          pulse_bpm?: number | null;
+          outcome?: string;
+          action_taken?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["clinical_readings"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      renal_diet_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          is_active: boolean;
+          dietitian_name: string | null;
+          issued_on: string | null;
+          document_path: string | null;
+          calories: number | null;
+          protein_g: number | null;
+          sodium_mg: number | null;
+          potassium_mg: number | null;
+          phosphorus_mg: number | null;
+          fluid_ml_per_day: number | null;
+          meals: Json;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          is_active?: boolean;
+          dietitian_name?: string | null;
+          issued_on?: string | null;
+          document_path?: string | null;
+          calories?: number | null;
+          protein_g?: number | null;
+          sodium_mg?: number | null;
+          potassium_mg?: number | null;
+          phosphorus_mg?: number | null;
+          fluid_ml_per_day?: number | null;
+          meals?: Json;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["renal_diet_plans"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      fluid_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          log_date: string;
+          ml: number;
+          label: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          log_date: string;
+          ml: number;
+          label?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["fluid_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      renal_plan_adherence: {
+        Row: {
+          id: string;
+          user_id: string;
+          log_date: string;
+          adherence: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          log_date: string;
+          adherence: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["renal_plan_adherence"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      session_wellness: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string;
+          perceived_effort: number | null;
+          stopped_early: boolean;
+          stop_reason: string | null;
+          felt: string | null;
+          next_day_recovery: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          user_id: string;
+          perceived_effort?: number | null;
+          stopped_early?: boolean;
+          stop_reason?: string | null;
+          felt?: string | null;
+          next_day_recovery?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["session_wellness"]["Insert"]
+        >;
+        Relationships: [
+          {
+            foreignKeyName: "session_wellness_session_id_fkey";
+            columns: ["session_id"];
+            referencedRelation: "workout_sessions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      symptom_flags: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_id: string | null;
+          flagged_on: string;
+          symptom: string;
+          severity: string;
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_id?: string | null;
+          flagged_on: string;
+          symptom: string;
+          severity?: string;
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["symptom_flags"]["Insert"]
+        >;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

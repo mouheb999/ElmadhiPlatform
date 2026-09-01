@@ -4,7 +4,7 @@ import { ar } from "date-fns/locale";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
-import { tunisWeekStartUtc } from "@/lib/dates";
+import { tunisDateKey, tunisWeekStartUtc } from "@/lib/dates";
 import { suggestNextWeight, type HistorySet } from "@/lib/algorithms/progression";
 import {
   SessionClient,
@@ -14,6 +14,9 @@ import {
 } from "@/components/workout/session-client";
 import { SessionLockedCard } from "@/components/workout/session-locked-card";
 import { SessionElsewhereCard } from "@/components/workout/session-elsewhere-card";
+import { SessionGateCard } from "@/components/care/session-gate-card";
+import { loadCareState } from "@/lib/clinical/load";
+import { nextTrainingDay } from "@/lib/clinical/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -167,6 +170,30 @@ export default async function WorkoutSessionPage({
         }
       />
     );
+  }
+
+  // ---- The care gate ----
+  // Only in front of a session that has not started. Once an open session
+  // exists for this day the man is already training, and a wall that appears
+  // mid-workout — because a reading aged out or the clock crossed a window —
+  // would strand his logged sets behind it. Starting is gated; continuing is not.
+  if (!openSession) {
+    const care = await loadCareState(supabase, user.id);
+    if (care.profile && (!care.timing.allowed || !care.readiness.allowed)) {
+      return (
+        <SessionGateCard
+          locale={locale}
+          profile={care.profile}
+          readiness={care.readiness}
+          today={care.today}
+          timingBlocked={!care.timing.allowed}
+          timingReasonKey={care.timing.reasonKey}
+          nextTraining={nextTrainingDay(care.profile, tunisDateKey())}
+          glucoseMgdl={care.todayGlucoseMgdl}
+          bp={care.todayBp}
+        />
+      );
+    }
   }
 
   const rows = (day.user_program_exercises ?? [])

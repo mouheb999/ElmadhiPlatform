@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LifeBuoy } from "lucide-react";
+import { HeartPulse, LifeBuoy } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { createClient } from "@/lib/supabase/server";
 import { countUnreadSupportReplies } from "@/lib/support";
-import { t } from "@/lib/i18n";
+import { t, type Locale } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 import { AdminCopyBar } from "@/components/admin/copy-bar";
@@ -35,6 +35,40 @@ async function SupportUnreadDot({ userId }: { userId: string }) {
       aria-hidden
       className="absolute end-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-accent"
     />
+  );
+}
+
+/**
+ * The Care entry point in the header.
+ *
+ * Suspended for the same reason the support dot is: it is one query, and no
+ * screen in the app should wait on it to paint. It renders nothing at all for
+ * an account with no clinical profile, which is why the care layer costs the
+ * other 99% of users a single indexed lookup and no pixels.
+ *
+ * The header rather than the bottom nav: the nav is six tabs and the seventh
+ * would shrink all of them for a feature almost nobody has. This sits beside
+ * support, which is the other "something is wrong" affordance.
+ */
+async function CareLink({ userId, locale }: { userId: string; locale: Locale }) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("clinical_profiles")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (!data) return null;
+
+  return (
+    <Link
+      href="/care"
+      aria-label={t(locale, "care.title")}
+      title={t(locale, "care.title")}
+      className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
+    >
+      <HeartPulse className="h-5 w-5 text-accent" />
+    </Link>
   );
 }
 
@@ -68,6 +102,9 @@ export default async function AppLayout({
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-bg/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
         <Logo className="h-7" />
         <div className="flex items-center gap-1">
+          <Suspense fallback={null}>
+            <CareLink userId={user.id} locale={locale} />
+          </Suspense>
           <Link
             href="/support"
             aria-label={t(locale, "support.title")}

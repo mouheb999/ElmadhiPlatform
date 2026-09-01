@@ -1800,6 +1800,359 @@ const STRINGS = {
   "admin.pay_reply_ph": { en: "Reply to the customer…", tn: "جاوب الحريف…" },
   "admin.pay_send": { en: "Send", tn: "ابعث" },
   "admin.pay_no_thread": { en: "No messages yet.", tn: "مازال ما فماش رسائل." },
+
+  // ---- care layer (migration 052) ----
+  // Every line here is written to be readable by somebody who is tired. Short
+  // sentences, the reason before the rule, and never a number the app made up.
+  "care.title": { en: "Care", tn: "الرعاية" },
+  "nav.care": { en: "Care", tn: "الرعاية" },
+  "care.subtitle": {
+    en: "Your week, your checks, and what your doctors have told us.",
+    tn: "الجمعة متاعك، الفحوصات، وشنوة قالولنا الأطباء متاعك.",
+  },
+
+  // Day types.
+  "care.day_dialysis": { en: "Dialysis day", tn: "نهار الدياليز" },
+  "care.day_training": { en: "Training day", tn: "نهار تمرين" },
+  "care.day_recovery": { en: "Recovery day", tn: "نهار راحة" },
+  "care.day_unknown": { en: "Not set", tn: "مازال ما تحددش" },
+
+  // Why the day looks the way it does.
+  "care.reason_off_day": {
+    en: "An off-day. This is where your training sits.",
+    tn: "نهار بلا دياليز. هوني يتعمل التمرين متاعك.",
+  },
+  "care.reason_after_recovery": {
+    en: "Clear once you have recovered from your last session.",
+    tn: "يتفتح كي ترتاح من حصة الدياليز الفايتة.",
+  },
+  "care.reason_before_session": {
+    en: "Only well before you go in — not after.",
+    tn: "برك قبل ما تمشي بوقت — موش من بعد.",
+  },
+  "care.reason_dialysis_day": {
+    en: "Dialysis today. No training around it.",
+    tn: "اليوم دياليز. ما فماش تمرين حواليه.",
+  },
+  "care.reason_recovering": {
+    en: "Still recovering from your last session.",
+    tn: "مازلت ترتاح من الحصة الفايتة.",
+  },
+  "care.reason_window_not_open": {
+    en: "Too early today — the recovery window has not closed.",
+    tn: "بكري برشة اليوم — مازال وقت الراحة ما وفاش.",
+  },
+  "care.reason_window_closed": { en: "Today\u2019s window has passed.", tn: "وقت اليوم فات." },
+  "care.reason_too_close_to_session": {
+    en: "Too close to your dialysis session.",
+    tn: "قريب برشة من حصة الدياليز.",
+  },
+  "care.reason_schedule_missing": {
+    en: "We need your dialysis days before we can plan a week.",
+    tn: "نحتاجو أيام الدياليز متاعك قبل ما نخططو الجمعة.",
+  },
+  "care.reason_session_time_missing": {
+    en: "We know you go in today, but not when.",
+    tn: "نعرفو إلي اليوم عندك حصة، أما ما نعرفوش الوقت.",
+  },
+  "care.reason_no_dialysis_schedule_needed": { en: "No schedule needed.", tn: "ما تلزمش روزنامة." },
+
+  // Lower body — the orthopedist\u2019s line.
+  "care.wb_unknown": {
+    en: "Legs are on hold until your orthopedist writes down what you may put weight on. Upper body and seated work run as normal.",
+    tn: "الساقين موقّفين حتى يكتب طبيب العظام شنوة تنجم تحط عليه ثقل. الجزء العلوي والتمارين قاعد يخدمو عادي.",
+  },
+  "care.wb_none": {
+    en: "No weight through the legs, on your orthopedist\u2019s instruction.",
+    tn: "ما فماش ثقل على الساقين، حسب تعليمات طبيب العظام.",
+  },
+  "care.wb_partial": {
+    en: "Partial weight-bearing: seated and supported leg work only, no added load.",
+    tn: "ثقل جزئي: تمارين ساقين قاعد وبسند برك، بلا وزن زايد.",
+  },
+  "care.wb_full": { en: "Full weight-bearing, cleared.", tn: "ثقل كامل، مسموح." },
+  "care.seated_only": {
+    en: "Seated or supported only for now.",
+    tn: "قاعد ولا بسند برك في الوقت هذا.",
+  },
+  "care.exercise_ok": { en: "Available today.", tn: "متوفر اليوم." },
+
+  // Blood pressure — the intensity cap.
+  "care.bp_unknown": {
+    en: "No blood-pressure clearance on file, so sessions stay at the lowest setting and you measure before every one.",
+    tn: "ما عندناش موافقة على الضغط، على هذاكا الحصص تبقى في أخف مستوى وتقيس قبل كل وحدة.",
+  },
+  "care.bp_not_cleared": {
+    en: "Your doctor has not cleared training. Nothing is scheduled until that changes.",
+    tn: "الطبيب ما وافقش على التمرين. ما فماش شيء مبرمج حتى يتبدل الحال.",
+  },
+  "care.bp_light_only": { en: "Cleared for light effort only.", tn: "مسموح بمجهود خفيف برك." },
+  "care.bp_moderate": { en: "Cleared for moderate effort.", tn: "مسموح بمجهود متوسط." },
+  "care.bp_no_threshold": {
+    en: "Recorded. Your doctor has not set a number to stop at, so we are not judging it.",
+    tn: "تسجّل. الطبيب ما حددش رقم توقف عنده، على هذاكا ما نحكموش عليه.",
+  },
+  "care.bp_above_threshold": {
+    en: "Above the number your doctor set. Skip today.",
+    tn: "فوق الرقم إلي حددو الطبيب. اليوم ما تتمرنش.",
+  },
+  "care.bp_in_range": { en: "Within your range.", tn: "في المجال متاعك." },
+  "care.bp_not_taken": {
+    en: "Measure your blood pressure before you start.",
+    tn: "قيس الضغط قبل ما تبدا.",
+  },
+
+  // Glucose.
+  "care.glucose_no_range": {
+    en: "Recorded. Your diabetologist has not set a range yet, so we show it without judging it.",
+    tn: "تسجّل. طبيب السكري مازال ما حددش مجال، على هذاكا نوريوه بلا ما نحكمو عليه.",
+  },
+  "care.glucose_below": {
+    en: "Below your range. Take your fast carbs and skip the session.",
+    tn: "تحت المجال متاعك. خوذ السكر السريع وما تتمرنش.",
+  },
+  "care.glucose_above": {
+    en: "Above your range. Skip the session today.",
+    tn: "فوق المجال متاعك. اليوم ما تتمرنش.",
+  },
+  "care.glucose_in_range": { en: "Within your range.", tn: "في المجال متاعك." },
+  "care.glucose_not_taken": {
+    en: "Check your sugar before you start.",
+    tn: "قيس السكر قبل ما تبدا.",
+  },
+
+  // The access limb.
+  "care.access_left": {
+    en: "Left arm has your access: no load through it, and no cuff on it.",
+    tn: "الذراع اليسرى فيها الفيستيلا: ما تحملش بيها وما تحطش عليها آلة الضغط.",
+  },
+  "care.access_right": {
+    en: "Right arm has your access: no load through it, and no cuff on it.",
+    tn: "الذراع اليمنى فيها الفيستيلا: ما تحملش بيها وما تحطش عليها آلة الضغط.",
+  },
+  "care.access_unknown": {
+    en: "We have not recorded which arm your access is in. Ask your unit, and keep load and cuffs off it until then.",
+    tn: "ما سجلناش في أنهي ذراع الفيستيلا متاعك. اسأل المركز، وحتى ذاك الوقت ما تحملش وما تقيسش عليها.",
+  },
+  "care.access_none": { en: "No limb restriction recorded.", tn: "ما فماش تقييد على ذراع." },
+
+  // The outstanding letters.
+  "care.clearances_title": { en: "What we are waiting on", tn: "شنوة مازالنا نستناو فيه" },
+  "care.clearances_none": {
+    en: "Everything we need is on file.",
+    tn: "كل شيء نحتاجوه موجود.",
+  },
+  "care.who_orthopedist": { en: "Orthopedist", tn: "طبيب العظام" },
+  "care.who_cardiologist": { en: "Doctor managing your blood pressure", tn: "الطبيب متاع الضغط" },
+  "care.who_diabetologist": { en: "Diabetologist", tn: "طبيب السكري" },
+  "care.who_dialysis_unit": { en: "Dialysis unit", tn: "مركز الدياليز" },
+  "care.need_weight_bearing": {
+    en: "One line: full weight-bearing, partial, or none.",
+    tn: "سطر واحد: ثقل كامل، جزئي، ولا حتى شيء.",
+  },
+  "care.need_bp_clearance": {
+    en: "What effort you are cleared for, and the reading to stop at.",
+    tn: "شنوة المجهود المسموح، وشنوة الرقم إلي توقف عندو.",
+  },
+  "care.need_glucose_range": {
+    en: "The sugar range you may train inside.",
+    tn: "مجال السكر إلي تنجم تتمرن فيه.",
+  },
+  "care.need_schedule": { en: "Your session days and start time.", tn: "أيام الحصص والوقت متاعها." },
+  "care.need_access": { en: "Which arm your access is in.", tn: "في أنهي ذراع الفيستيلا." },
+
+  // Session shape.
+  "care.shape_title": { en: "How a session runs", tn: "كيفاش تمشي الحصة" },
+  "care.shape_minutes": { en: "Length", tn: "المدة" },
+  "care.shape_rest": { en: "Rest between sets", tn: "الراحة بين المجموعات" },
+  "care.shape_effort": { en: "Stop at", tn: "توقف في" },
+  "care.shape_effort_value": { en: "out of 10", tn: "من 10" },
+  "care.shape_seated": { en: "Seated or supported", tn: "قاعد ولا بسند" },
+  "care.hard_stop": {
+    en: "This is a stop rule, not a target. Reaching it means the session is over — never push past it.",
+    tn: "هذي قاعدة توقيف، موش هدف. كي توصلها الحصة سالات — عمرك ما تكمل عليها.",
+  },
+
+  // Checks.
+  "care.checks_title": { en: "Before you train", tn: "قبل ما تتمرن" },
+  "care.check_glucose": { en: "Sugar", tn: "السكر" },
+  "care.check_bp": { en: "Blood pressure", tn: "الضغط" },
+  "care.check_taken": { en: "Taken", tn: "تقاس" },
+  "care.check_take": { en: "Take it now", tn: "قيسو توا" },
+  "care.pre_session": { en: "Before", tn: "قبل" },
+  "care.post_session": { en: "After", tn: "بعد" },
+  "care.spot": { en: "Any time", tn: "في أي وقت" },
+  "care.save_reading": { en: "Save", tn: "سجّل" },
+  "care.fast_carbs": {
+    en: "Keep fast sugar within reach for every session.",
+    tn: "خلي السكر السريع قريب منك في كل حصة.",
+  },
+
+  // Fluid + the dietitian\u2019s plan.
+  "care.fluid_title": { en: "Fluid today", tn: "الماء اليوم" },
+  "care.fluid_add": { en: "Add", tn: "زيد" },
+  "care.fluid_allowance": { en: "Your allowance", tn: "الكمية المسموحة" },
+  "care.fluid_no_allowance": {
+    en: "No daily allowance on file — ask your dietitian for the number.",
+    tn: "ما فماش كمية يومية مسجلة — اسأل أخصائي التغذية على الرقم.",
+  },
+  "care.plan_title": { en: "Your renal plan", tn: "نظام الكلى متاعك" },
+  "care.plan_none": {
+    en: "No plan uploaded yet. This section shows your dietitian\u2019s plan — HYPE does not write it.",
+    tn: "مازال ما تحمّلش نظام. هوني يتعرض نظام أخصائي التغذية متاعك — HYPE ما يكتبوش.",
+  },
+  "care.plan_by": { en: "Written by", tn: "كتبو" },
+  "care.plan_not_ours": {
+    en: "These are your dietitian\u2019s numbers. HYPE only reminds and records.",
+    tn: "هاذوما أرقام أخصائي التغذية متاعك. HYPE يفكّر ويسجّل برك.",
+  },
+  "care.plan_calories": { en: "Calories", tn: "السعرات" },
+  "care.plan_protein": { en: "Protein", tn: "البروتين" },
+  "care.plan_sodium": { en: "Sodium", tn: "الصوديوم" },
+  "care.plan_potassium": { en: "Potassium", tn: "البوتاسيوم" },
+  "care.plan_phosphorus": { en: "Phosphorus", tn: "الفوسفور" },
+  "care.plan_fluid": { en: "Fluid", tn: "السوائل" },
+  "care.plan_meals": { en: "Meals", tn: "الوجبات" },
+  "care.adherence_title": { en: "Did today match the plan?", tn: "اليوم مشا كيف النظام؟" },
+  "care.adherence_on_plan": { en: "Yes", tn: "إي" },
+  "care.adherence_partial": { en: "Mostly", tn: "تقريبا" },
+  "care.adherence_off_plan": { en: "No", tn: "لا" },
+  "care.adherence_saved": { en: "Logged", tn: "تسجّل" },
+
+  // Symptoms.
+  "care.symptoms_title": { en: "Anything you felt", tn: "شنوة حسيت بيه" },
+  "care.symptoms_hint": {
+    en: "This is what moves your program, so flag it even if it passed.",
+    tn: "هذا هو إلي يحرك البرنامج متاعك، على هذاكا سجلو حتى كان فات.",
+  },
+  "care.sym_cramps": { en: "Cramps", tn: "تقلصات" },
+  "care.sym_dizziness": { en: "Dizziness", tn: "دوخة" },
+  "care.sym_breathlessness": { en: "Short of breath", tn: "ضيق نفس" },
+  "care.sym_chest_discomfort": { en: "Chest discomfort", tn: "وجيعة في الصدر" },
+  "care.sym_palpitations": { en: "Heart racing", tn: "خفقان" },
+  "care.sym_swelling": { en: "Swelling", tn: "انتفاخ" },
+  "care.sym_access_site_pain": { en: "Pain at the access", tn: "وجيعة في الفيستيلا" },
+  "care.sym_nausea": { en: "Nausea", tn: "غثيان" },
+  "care.sym_hypo_symptoms": { en: "Low-sugar feeling", tn: "إحساس بهبوط السكر" },
+  "care.sym_unusual_fatigue": { en: "Unusual tiredness", tn: "عياء موش عادي" },
+  "care.sym_joint_pain": { en: "Joint pain", tn: "وجيعة في المفاصل" },
+  "care.sym_headache": { en: "Headache", tn: "وجيعة راس" },
+  "care.sev_mild": { en: "Mild", tn: "خفيف" },
+  "care.sev_moderate": { en: "Moderate", tn: "متوسط" },
+  "care.sev_severe": { en: "Severe", tn: "قوي" },
+
+  // Progression.
+  "care.prog_title": { en: "Where the program goes next", tn: "لوين ماشي البرنامج" },
+  "care.step_stop_and_review": { en: "Stop and get checked", tn: "وقف وأمشي للطبيب" },
+  "care.step_reduce": { en: "Go shorter next time", tn: "نقص المرة الجاية" },
+  "care.step_hold": { en: "Same again", tn: "نفس الشيء" },
+  "care.step_add_minutes": { en: "Five more minutes", tn: "زيد 5 دقايق" },
+  "care.step_add_exercise": { en: "One more exercise", tn: "زيد تمرين" },
+  "care.prog_red_flag": {
+    en: "You flagged something that belongs in front of a doctor, not in a lighter session. Tell your unit before you train again.",
+    tn: "سجلت حاجة لازمها طبيب، موش حصة أخف. قول لمركزك قبل ما ترجع تتمرن.",
+  },
+  "care.prog_stopped_early": {
+    en: "You had to stop last time, so the next one is shorter.",
+    tn: "وقفت المرة الفايتة، على هذاكا الجاية أقصر.",
+  },
+  "care.prog_wiped_out": {
+    en: "The day after wiped you out. We take it back down.",
+    tn: "النهار الي بعدو عييتك برشة. ننقصو.",
+  },
+  "care.prog_repeat_symptoms": {
+    en: "The same symptoms keep coming back. Less, not more.",
+    tn: "نفس الأعراض راجعة. ننقصو، ما نزيدوش.",
+  },
+  "care.prog_add_minutes": {
+    en: "Three clean sessions in a row — five more minutes, same exercises.",
+    tn: "3 حصص متتالية بلا مشاكل — زيد 5 دقايق، نفس التمارين.",
+  },
+  "care.prog_add_exercise": {
+    en: "Three clean sessions and you are at the time cap — one more exercise instead.",
+    tn: "3 حصص نظاف ووصلت للوقت الأقصى — زيد تمرين عوض الوقت.",
+  },
+  "care.prog_hold": {
+    en: "Holding here until three sessions in a row go well.",
+    tn: "نبقاو هكا حتى 3 حصص متتالية يمشيو بالباهي.",
+  },
+  "care.prog_awaiting_answers": {
+    en: "Tell us how the last sessions went and how you recovered — that is what moves this.",
+    tn: "قلنا كيفاش مشاو الحصص الفايتة وكيفاش رتحت — هذا إلي يحرك الأمور.",
+  },
+  "care.prog_no_history": {
+    en: "Nothing logged yet. The first sessions set the baseline.",
+    tn: "مازال ما تسجل شيء. الحصص الأولى تحدد نقطة البداية.",
+  },
+  "care.prog_not_load": {
+    en: "Nothing here goes up by weight. It goes up by minutes and by how many exercises — and only when you recovered well.",
+    tn: "هوني ما فماش زيادة في الوزن. الزيادة في الدقايق وعدد التمارين — وكان برك كي ترتاح مليح.",
+  },
+
+  // Session wellness questions.
+  "care.wellness_title": { en: "How did that go?", tn: "كيفاش مشات؟" },
+  "care.wellness_felt": { en: "How did it feel?", tn: "كيفاش حسيت؟" },
+  "care.felt_good": { en: "Good", tn: "باهي" },
+  "care.felt_ok": { en: "OK", tn: "عادي" },
+  "care.felt_rough": { en: "Rough", tn: "صعيب" },
+  "care.wellness_stopped": { en: "I had to stop early", tn: "اضطريت نوقف بكري" },
+  "care.wellness_effort": { en: "How hard was it, out of 10?", tn: "قداش كانت صعيبة، من 10؟" },
+  "care.recovery_title": { en: "How were you the day after?", tn: "كيفاش كنت النهار الي بعدو؟" },
+  "care.recovery_recovered": { en: "Back to normal", tn: "رجعت عادي" },
+  "care.recovery_tired": { en: "Tired", tn: "عيان" },
+  "care.recovery_wiped_out": { en: "Wiped out", tn: "مهدود" },
+
+  // Gate banners on the workout screens.
+  "care.blocked_title": { en: "Not today", tn: "موش اليوم" },
+  "care.warnings_title": { en: "Keep in mind", tn: "خلي في بالك" },
+  "care.open_care": { en: "Open Care", tn: "افتح الرعاية" },
+  "care.next_window": { en: "Next training day", tn: "نهار التمرين الجاي" },
+
+  // The clinical file form.
+  "care.file_title": { en: "Clinical file", tn: "الملف الطبي" },
+  "care.file_intro": {
+    en: "Copy in what each doctor has written. HYPE decides nothing here — it only applies what is on this page.",
+    tn: "انقل شنوة كتب كل طبيب. HYPE ما يقرر شيء هوني — يطبق برك إلي مكتوب في الصفحة هاذي.",
+  },
+  "care.file_conditions": { en: "Conditions", tn: "الحالات" },
+  "care.cond_dialysis": { en: "Dialysis", tn: "دياليز" },
+  "care.cond_diabetes_insulin": { en: "Diabetes (insulin)", tn: "سكري (أنسولين)" },
+  "care.cond_diabetes_oral": { en: "Diabetes (tablets)", tn: "سكري (دواء بالفم)" },
+  "care.cond_hypertension": { en: "High blood pressure", tn: "ضغط الدم" },
+  "care.file_dialysis_days": { en: "Dialysis days", tn: "أيام الدياليز" },
+  "care.file_start_time": { en: "Start time", tn: "وقت البداية" },
+  "care.file_duration": { en: "How long (minutes)", tn: "المدة (دقايق)" },
+  "care.file_recovery_hours": { en: "Hours washed out afterwards", tn: "قداش من ساعة تحس بالعياء من بعد" },
+  "care.file_buffer_hours": { en: "Hours to keep clear before a session", tn: "قداش من ساعة تخلي فارغة قبل الحصة" },
+  "care.file_access": { en: "Access", tn: "الفيستيلا" },
+  "care.file_weight_bearing": { en: "Weight-bearing (orthopedist)", tn: "تحميل الثقل (طبيب العظام)" },
+  "care.file_bp_clearance": { en: "Cleared for", tn: "مسموح بـ" },
+  "care.file_bp_skip": { en: "Skip above", tn: "ما تتمرنش فوق" },
+  "care.file_glucose_range": { en: "Train inside", tn: "تمرن بين" },
+  "care.file_set_by": { en: "Who said so", tn: "شكون قال" },
+  "care.file_dated": { en: "Dated", tn: "بتاريخ" },
+  "care.file_notes": { en: "Notes", tn: "ملاحظات" },
+  "care.file_save": { en: "Save the file", tn: "سجّل الملف" },
+  "care.file_saved": { en: "Saved", tn: "تسجّل" },
+  "care.opt_unknown": { en: "Not on file", tn: "ما عندناش" },
+  "care.opt_none": { en: "None", tn: "حتى شيء" },
+  "care.opt_partial": { en: "Partial", tn: "جزئي" },
+  "care.opt_full": { en: "Full", tn: "كامل" },
+  "care.opt_not_cleared": { en: "Not cleared", tn: "موش مسموح" },
+  "care.opt_light_only": { en: "Light effort only", tn: "مجهود خفيف برك" },
+  "care.opt_moderate": { en: "Moderate effort", tn: "مجهود متوسط" },
+  "care.opt_catheter": { en: "Catheter", tn: "قسطرة" },
+  "care.opt_fistula_left": { en: "Fistula, left arm", tn: "فيستيلا، ذراع يسرى" },
+  "care.opt_fistula_right": { en: "Fistula, right arm", tn: "فيستيلا، ذراع يمنى" },
+  "care.opt_graft_left": { en: "Graft, left arm", tn: "طعم، ذراع يسرى" },
+  "care.opt_graft_right": { en: "Graft, right arm", tn: "طعم، ذراع يمنى" },
+  "care.dow_1": { en: "Mon", tn: "الإثنين" },
+  "care.dow_2": { en: "Tue", tn: "الثلاثاء" },
+  "care.dow_3": { en: "Wed", tn: "الأربعاء" },
+  "care.dow_4": { en: "Thu", tn: "الخميس" },
+  "care.dow_5": { en: "Fri", tn: "الجمعة" },
+  "care.dow_6": { en: "Sat", tn: "السبت" },
+  "care.dow_7": { en: "Sun", tn: "الأحد" },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

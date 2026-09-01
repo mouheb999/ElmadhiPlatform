@@ -78,6 +78,13 @@ export const ALWAYS_FREE_PREFIXES = [
  * it that write data guard themselves.
  */
 export const PAID_PREFIXES = [
+  // Deliberately absent: /care. It is the one screen in the product that can
+  // say "your sugar is too low to train today" and "no load through that arm",
+  // and a lapsed subscription is not a reason to take those off a dialysis
+  // patient's phone. The care gate in front of a session is unaffected either
+  // way — /workout/session is paid, so an unpaid account never reaches the
+  // point the gate guards.
+  //
   // Deliberately absent: /ai. The page opens for everyone and explains what the
   // estimator does, because a feature nobody has seen cannot sell itself — the
   // same reason the program and the meal plan are readable unpaid. Its page

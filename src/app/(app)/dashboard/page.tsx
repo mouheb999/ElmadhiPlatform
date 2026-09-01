@@ -13,6 +13,7 @@ import { Reveal } from "@/components/shared/reveal";
 import { UpgradeSummary } from "@/components/shared/locked";
 import { NutritionSection, NutritionSectionSkeleton } from "./_sections/nutrition-section";
 import { QaSparkSection, QaSparkSectionSkeleton } from "./_sections/qa-spark-section";
+import { CareSection, CareSectionSkeleton } from "./_sections/care-section";
 import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
 
 export const dynamic = "force-dynamic";
@@ -238,6 +239,15 @@ export default async function DashboardPage() {
           <span className="text-sm font-bold text-accent">{t(locale, "qa.answered_read")} →</span>
         </Link>
       )}
+
+      {/* Above the workout card on purpose: for an account with a clinical
+          file, whether today is a training day at all is decided here, and
+          reading "Start session" first and "today is dialysis" second is the
+          wrong order to meet those two facts in. Renders nothing — not even a
+          gap — for every account without one. */}
+      <Suspense fallback={<CareSectionSkeleton />}>
+        <CareSection locale={locale} userId={user!.id} />
+      </Suspense>
 
       <Reveal>
         <TodayWorkout locale={locale} state={workoutState} day={todayDay} locked={!paid} />

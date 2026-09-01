@@ -88,3 +88,38 @@ export function hoursSince(iso: string | null | undefined, now: number = Date.no
   if (!Number.isFinite(then)) return null;
   return Math.max(0, Math.floor((now - then) / 3_600_000));
 }
+
+/**
+ * ISO weekday of a Tunis date key: 1 = Monday … 7 = Sunday.
+ *
+ * The key is already a Tunis calendar day, so it is read at UTC midnight and
+ * shifted from JS's Sunday-first numbering. Matches the numbering stored in
+ * `clinical_profiles.dialysis_days`, which is the only reason this needs to be
+ * ISO rather than whatever `getUTCDay()` returns.
+ */
+export function isoWeekday(dateKey: string): number {
+  const jsDay = new Date(`${dateKey}T00:00:00Z`).getUTCDay(); // Sun=0 … Sat=6
+  return jsDay === 0 ? 7 : jsDay;
+}
+
+/** The next Tunis calendar day as YYYY-MM-DD — `prevDateKey` the other way. */
+export function nextDateKey(key: string): string {
+  const d = new Date(`${key}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * A wall-clock time on a Tunis calendar day, as a real UTC instant.
+ *
+ * "Dialysis starts at 07:30 on Monday" is a Tunis wall-clock fact; comparing it
+ * to `new Date()` on a UTC server needs it converted exactly once, here, rather
+ * than at each of the three call sites that would each get the sign wrong in a
+ * different way.
+ */
+export function tunisInstantUtc(dateKey: string, hhmm: string): Date {
+  const [h, m] = hhmm.split(":").map((n) => parseInt(n, 10));
+  return new Date(
+    Date.parse(`${dateKey}T00:00:00Z`) - TUNIS_OFFSET_MS + (h * 60 + m) * 60_000,
+  );
+}
