@@ -144,6 +144,24 @@ const STRINGS = {
   "lock.cta": { en: "See plans", tn: "شوف العروض" },
   "lock.not_now": { en: "Not now", tn: "موش توّا" },
 
+  // ---- Add to Home Screen, iOS only (Safari exposes no install API) ----
+  "install.ios.title": {
+    en: "Put HYPE on your home screen",
+    tn: "حطّ HYPE على الشاشة متاعك",
+  },
+  "install.ios.body": {
+    en: "It opens full screen, like a real app — no browser bar.",
+    tn: "يتحل شاشة كاملة، كيف تطبيق عادي — بلا براوزر.",
+  },
+  "install.ios.step1": { en: "Tap Share below", tn: "أنقر على Share في الأسفل" },
+  "install.ios.step2": {
+    en: "Scroll to Add to Home Screen",
+    tn: "نزّل لـ Add to Home Screen",
+  },
+  "install.ios.step3": { en: "Tap Add — done", tn: "أنقر Add — هاو كمل" },
+  "install.ios.got_it": { en: "Got it", tn: "فهمت" },
+  "install.ios.not_now": { en: "Not now", tn: "موش توّا" },
+
   // ---- AI walkthrough, shown to anyone not on Premium ----
   "ai.how_title": { en: "How it works", tn: "كيفاش تخدم" },
   "ai.how_1": { en: "Photograph your meal", tn: "صوّر ماكلتك" },

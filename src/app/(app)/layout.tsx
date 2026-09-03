@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { countUnreadSupportReplies } from "@/lib/support";
 import { t } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
+import { InstallGate } from "@/components/shared/install-gate";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 import { AdminCopyBar } from "@/components/admin/copy-bar";
 import { getSubscription } from "@/lib/subscription-server";
@@ -89,6 +90,8 @@ export default async function AppLayout({
       <main className="container-page flex-1 py-6 pb-28">{children}</main>
 
       <AppBottomNav locale={locale} />
+
+      <InstallGate locale={locale} />
 
       {subscription.is_admin && <AdminCopyBar locale={locale} />}
     </div>
