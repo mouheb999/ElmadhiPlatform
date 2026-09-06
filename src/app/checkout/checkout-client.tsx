@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Clock, ImageUp, Lock, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, ImageUp, Lock, RefreshCw, Send } from "lucide-react";
 import {
   attachPaymentProof,
   isAccountActive,
@@ -17,7 +17,7 @@ import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { type Locale, dir, t, type StringKey } from "@/lib/i18n";
+import { type Locale, dir, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
 import type { Database } from "@/types/db";
 
@@ -25,11 +25,35 @@ type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
 type Method = Database["public"]["Tables"]["payment_methods"]["Row"];
 type Plan = Database["public"]["Tables"]["subscription_plans"]["Row"];
 
-type Tier = "standard" | "premium";
+/**
+ * The tier the single offer is sold on.
+ *
+ * Standard and Premium were two products with two feature sets and a grid
+ * asking a stranger to compare them before they knew what the app was. There
+ * is one product now — full access, priced by how long you commit — and it is
+ * sold on the tier that already means full access, so `profiles.plan_type`,
+ * the /ai gate and every access check keep working untouched. Migration 052
+ * takes Standard off sale; this is the client-side half of the same decision,
+ * and it keeps a legacy Standard row from re-appearing as a second offer for
+ * the same term if one is ever re-enabled by hand.
+ */
+const OFFER_TIER = "premium";
 
-const TIER_FEATURES: Record<Tier, StringKey[]> = {
-  standard: ["plans.f_std_1", "plans.f_std_2", "plans.f_std_3", "plans.f_std_4"],
-  premium: ["plans.f_prem_all", "plans.f_prem_1", "plans.f_prem_2", "plans.f_prem_3"],
+/**
+ * Which term wears the badge.
+ *
+ * Merchandising, not arithmetic: 12 months is the lowest price per month, but
+ * six is the term we want chosen — long enough to show results, short enough
+ * to say yes to — so it is badged and preselected.
+ */
+const BEST_VALUE_MONTHS = 6;
+
+/** The one line under each term. Keyed by months; unknown terms get none. */
+const TERM_BLURB: Record<number, StringKey> = {
+  1: "plans.term_1",
+  3: "plans.term_3",
+  6: "plans.term_6",
+  12: "plans.term_12",
 };
 
 /** Which locked control sent them here, so the page can open by naming it. */
@@ -141,11 +165,9 @@ export function CheckoutClient({
    * so a stale or mistyped id falls back rather than pretending.
    */
   const chosen = initialPlanId ? plans.find((p) => p.id === initialPlanId) : undefined;
-  const [tier, setTier] = useState<Tier>(
-    chosen?.tier === "standard" ? "standard" : "premium",
-  );
-  // Psychological default: the middle option, not the cheapest.
-  const [months, setMonths] = useState<number>(chosen?.months ?? 3);
+  // The badged term, not the cheapest and not the middle one. See
+  // BEST_VALUE_MONTHS: the card that is preselected is the card that is sold.
+  const [months, setMonths] = useState<number>(chosen?.months ?? BEST_VALUE_MONTHS);
 
   /**
    * Where a returning customer picks up. Two ways to open on step 2:
@@ -205,12 +227,28 @@ export function CheckoutClient({
 
   const whatsappNumber = (settings?.whatsapp_number ?? "").replace(/[^\d]/g, "");
 
-  const tierPlans = useMemo(
-    () => plans.filter((p) => p.tier === tier).sort((a, b) => a.months - b.months),
-    [plans, tier],
-  );
-  const selectedPlan = tierPlans.find((p) => p.months === months) ?? tierPlans[0] ?? null;
-  const monthlyBase = tierPlans.find((p) => p.months === 1)?.price_tnd ?? null;
+  /**
+   * The offer: one row per term, shortest first.
+   *
+   * Two tiers used to mean two rows for every term and a grid on top to choose
+   * between them. Migration 052 leaves only the `premium` rows on sale, but the
+   * table still holds the retired Standard ones and an admin can re-enable a
+   * row by hand — so a term is collapsed to a single card here rather than
+   * trusting the query to return one, and the full-access row wins.
+   */
+  const offers = useMemo(() => {
+    const byTerm = new Map<number, Plan>();
+    for (const plan of plans) {
+      const held = byTerm.get(plan.months);
+      if (!held || (held.tier !== OFFER_TIER && plan.tier === OFFER_TIER)) {
+        byTerm.set(plan.months, plan);
+      }
+    }
+    return [...byTerm.values()].sort((a, b) => a.months - b.months);
+  }, [plans]);
+
+  const selectedPlan = offers.find((p) => p.months === months) ?? offers[0] ?? null;
+  const monthlyBase = offers.find((p) => p.months === 1)?.price_tnd ?? null;
   const activeMethod = useMemo(
     () => methods.find((m) => m.key === methodKey) ?? null,
     [methods, methodKey],
@@ -261,23 +299,17 @@ export function CheckoutClient({
     };
   }, [paymentStatus, awaitingReview, router]);
 
-  const activeMonths = selectedPlan?.months ?? months;
-  // Plain arithmetic over six rows; the compiler memoizes it. The hand-written
-  // useMemo that used to be here could no longer be preserved once the plan
-  // preselection landed above, and a `useMemo` the compiler bails out of makes
-  // the whole component opt out of optimisation.
-  const premiumUpgradePerMonth = ((): number | null => {
-    const std = plans.find((p) => p.tier === "standard" && p.months === activeMonths);
-    const prem = plans.find((p) => p.tier === "premium" && p.months === activeMonths);
-    if (!std || !prem) return null;
-    const delta = (prem.price_tnd - std.price_tnd) / activeMonths;
-    return delta > 0 ? delta : null;
-  })();
-
-  function savingsPct(plan: Plan): number | null {
+  /**
+   * What a term saves against paying month by month, in dinars.
+   *
+   * Dinars rather than the percentage this used to show: "Save 72 DT" is the
+   * number a customer can check against the row above it — twelve times the
+   * one-month price, minus the price on the card — and a percentage is not.
+   */
+  function savingsDt(plan: Plan): number | null {
     if (!monthlyBase || plan.months === 1) return null;
-    const pct = Math.round((1 - plan.price_tnd / (monthlyBase * plan.months)) * 100);
-    return pct > 0 ? pct : null;
+    const saved = monthlyBase * plan.months - plan.price_tnd;
+    return saved > 0 ? saved : null;
   }
 
   /** One decimal at most, no trailing ".0" — 36.5 stays 36.5, 43.0 becomes 43. */
@@ -285,14 +317,9 @@ export function CheckoutClient({
     return String(Math.round(value * 10) / 10);
   }
 
-  function monthsLabel(m: number): string {
-    if (m === 1) return t(locale, "plans.month_1");
-    if (m === 3) return t(locale, "plans.months_3");
-    return t(locale, "plans.months_6");
-  }
-
-  function tierLabel(value: Tier): string {
-    return value === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard");
+  /** The term, in words. Shared with the sign-up screen, which restates it. */
+  function term(m: number): string {
+    return monthsLabel(locale, m);
   }
 
 
@@ -521,7 +548,11 @@ export function CheckoutClient({
         {step === 1 && (
           <>
             <div className="text-center">
-              <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "co.s1")}</h1>
+              {/* The page's own title, not the step bar's label for it: the
+                  strip above already says "Step 1 · Pick your plan". */}
+              <h1 className="text-2xl font-extrabold tracking-tight">
+                {t(locale, "checkout.title")}
+              </h1>
               {fromFeature ? (
                 <p className="mt-1 text-sm text-muted">{t(locale, FROM_REASON[fromFeature])}</p>
               ) : (
@@ -567,103 +598,108 @@ export function CheckoutClient({
               </p>
             ) : (
               <>
-                <div ref={plansRef} className="grid grid-cols-2 gap-3">
-                  {(["standard", "premium"] as Tier[]).map((value) => {
-                    const selected = tier === value;
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setTier(value)}
-                        className={cn(
-                          "relative flex flex-col gap-2 rounded-2xl border p-4 text-start transition-colors",
-                          selected
-                            ? "border-accent bg-accent/5 ring-1 ring-accent"
-                            : "border-hairline bg-surface hover:bg-white/5",
-                        )}
-                      >
-                        {value === "premium" && (
-                          <span className="absolute -top-2.5 start-3 flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-bg">
-                            <Sparkles className="h-3 w-3" />
-                            {t(locale, "plans.most_popular")}
-                          </span>
-                        )}
-                        <span className="pt-1 font-extrabold">{tierLabel(value)}</span>
-                        <span className="min-h-[1.125rem] text-xs text-muted">
-                          {value === "premium" && premiumUpgradePerMonth !== null ? (
-                            <>
-                              <bdi className="font-extrabold text-accent tabular-nums">
-                                +{dt(premiumUpgradePerMonth)} DT
-                              </bdi>
-                              {t(locale, "plans.per_month")} {t(locale, "plans.vs_standard")}
-                            </>
-                          ) : value === "standard" ? (
-                            t(locale, "plans.base_price")
-                          ) : null}
-                        </span>
-                        <ul className="mt-1 flex flex-col gap-1">
-                          {TIER_FEATURES[value].map((key) => (
-                            <li
-                              key={key}
-                              className="flex items-start gap-1.5 text-[11px] leading-snug text-muted"
-                            >
-                              <Check className="mt-0.5 h-3 w-3 shrink-0 text-accent" />
-                              {t(locale, key)}
-                            </li>
-                          ))}
-                        </ul>
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* One offer, four terms.
 
-                <div className="flex flex-col gap-2">
-                  <p className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
-                    {t(locale, "plans.duration")} · {tierLabel(tier)}
-                  </p>
-                  {tierPlans.map((plan) => {
+                    The tier grid that used to sit above this list asked a
+                    stranger to compare two feature sets before they knew what
+                    the app was, and the duration list underneath then asked
+                    them to decide a second time. There is one product now, so
+                    there is one list: the only question on the screen is how
+                    long. The palette is unchanged — accent on surface, the
+                    same selected treatment every other choice in the app
+                    uses. */}
+                <div ref={plansRef} className="flex flex-col gap-3">
+                  {offers.map((plan) => {
                     const selected = selectedPlan?.id === plan.id;
-                    const save = savingsPct(plan);
+                    const best = plan.months === BEST_VALUE_MONTHS;
                     const perMonth = Math.round((plan.price_tnd / plan.months) * 10) / 10;
+                    // The badge and the savings chip say the same thing in two
+                    // ways; the badged card keeps the badge and drops the chip.
+                    const save = best ? null : savingsDt(plan);
+                    const blurb = TERM_BLURB[plan.months];
                     return (
                       <button
                         key={plan.id}
                         type="button"
                         onClick={() => setMonths(plan.months)}
+                        aria-pressed={selected}
                         className={cn(
-                          "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-start transition-colors",
+                          "flex items-center justify-between gap-3 rounded-2xl border px-4 py-4 text-start transition-colors",
                           selected
                             ? "border-accent bg-accent/5 ring-1 ring-accent"
                             : "border-hairline bg-surface hover:bg-white/5",
                         )}
                       >
-                        <span className="flex flex-col">
-                          <span className="flex items-center gap-2 font-bold">
-                            {monthsLabel(plan.months)}
-                            {plan.months === 6 && (
-                              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold uppercase text-accent">
-                                {t(locale, "plans.best_value")}
+                        <span className="flex min-w-0 flex-col gap-1">
+                          {best && (
+                            <span className="w-fit rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-bg">
+                              {t(locale, "plans.best_value")}
+                            </span>
+                          )}
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="font-display text-lg font-extrabold">
+                              {term(plan.months)}
+                            </span>
+                            {save !== null && (
+                              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
+                                {t(locale, "plans.save")} <bdi>{dt(save)} DT</bdi>
                               </span>
                             )}
                           </span>
-                          {save !== null && monthlyBase !== null && (
-                            <span className="text-xs text-muted">
-                              <span className="line-through">{dt(monthlyBase * plan.months)} DT</span>{" "}
-                              <span className="font-bold text-accent">
-                                {t(locale, "plans.save")} {save}%
-                              </span>
+                          {blurb && (
+                            <span className="text-xs leading-snug text-muted">
+                              {t(locale, blurb)}
                             </span>
                           )}
                         </span>
-                        <span className="text-end tabular-nums">
-                          <span className="text-lg font-extrabold">{dt(perMonth)}</span>
-                          <span className="text-xs text-muted"> DT{t(locale, "plans.per_month")}</span>
-                          {plan.months > 1 && (
-                            <span className="block text-[11px] text-muted">
-                              {dt(plan.price_tnd)} DT {t(locale, "plans.billed_every")}{" "}
-                              {monthsLabel(plan.months)}
+
+                        <span className="flex shrink-0 items-center gap-3">
+                          <span className="flex flex-col items-end tabular-nums">
+                            <span>
+                              {/* The whole amount in one <bdi>: in Arabic the
+                                  page is RTL and "96 DT" must not come apart
+                                  around the term that follows it. */}
+                              <bdi className="whitespace-nowrap">
+                                <span className="text-xl font-extrabold">
+                                  {dt(plan.price_tnd)}
+                                </span>
+                                <span className="text-sm font-bold"> DT</span>
+                              </bdi>
+                              {/* Its own isolate, so the term cannot reorder
+                                  against the amount beside it in Arabic. */}
+                              <bdi className="text-xs text-muted">
+                                {" "}
+                                {plan.months === 1
+                                  ? t(locale, "plans.per_month")
+                                  : `/${term(plan.months)}`}
+                              </bdi>
                             </span>
-                          )}
+                            {/* The per-month price, which is the number the
+                                terms are actually being compared on. */}
+                            {plan.months > 1 && (
+                              <span
+                                className={cn(
+                                  "text-sm font-bold",
+                                  selected ? "text-accent" : "text-muted",
+                                )}
+                              >
+                                <bdi className="whitespace-nowrap">{dt(perMonth)} DT</bdi>
+                                <span className="text-xs font-medium text-muted">
+                                  {t(locale, "plans.per_month")}
+                                </span>
+                              </span>
+                            )}
+                          </span>
+                          {/* Says "pick one of these", which a card that only
+                              changes colour when chosen does not. */}
+                          <span
+                            className={cn(
+                              "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-colors",
+                              selected ? "border-accent" : "border-white/25",
+                            )}
+                          >
+                            {selected && <span className="h-2.5 w-2.5 rounded-full bg-accent" />}
+                          </span>
                         </span>
                       </button>
                     );
@@ -672,10 +708,10 @@ export function CheckoutClient({
 
                 {/* The pulsing "Limited-time offer" pill used to sit here. It
                     was permanent, had no deadline, and was attached to no
-                    discount — the real savings (12% at three months, 25% at
-                    six) are already on the rows above and are true. A standing
-                    urgency badge beside honest numbers costs credibility with
-                    exactly the sceptical buyer this page has to convince.
+                    discount — the savings on the cards above are real and are
+                    checkable against the one-month row. A standing urgency
+                    badge beside honest numbers costs credibility with exactly
+                    the sceptical buyer this page has to convince.
 
                     `payment_settings.offer_label_*` still exists and is still
                     editable in /admin; nothing renders it until it means
@@ -689,8 +725,35 @@ export function CheckoutClient({
                   className="w-full"
                 >
                   {signedIn ? t(locale, "co.next") : t(locale, "co.next_signup")}
-                  {selectedPlan && ` · ${dt(selectedPlan.price_tnd)} DT`}
+                  {selectedPlan && ` — ${dt(selectedPlan.price_tnd)} DT`}
+                  {/* Points the way the reader is going. Not Tailwind's `rtl:`
+                      variant: it matches on any ancestor with dir="rtl", and
+                      <html> is rtl by default, so it flipped the arrow on the
+                      English page too — where <main dir="ltr"> is the closer
+                      one. The direction this component already computed is the
+                      one that is actually in force. */}
+                  {direction === "rtl" ? <ArrowLeft /> : <ArrowRight />}
                 </Button>
+
+                {/* The two objections that stop a first-time buyer on a manual
+                    transfer page, answered where the decision is made. */}
+                <div className="flex items-stretch justify-center gap-4 text-xs">
+                  <span className="flex items-center gap-2">
+                    <Lock className="h-4 w-4 shrink-0 text-muted" />
+                    <span className="flex flex-col">
+                      <span className="font-bold text-ink">{t(locale, "co.secure_title")}</span>
+                      <span className="text-muted">{t(locale, "co.secure_body")}</span>
+                    </span>
+                  </span>
+                  <span className="w-px bg-hairline" aria-hidden="true" />
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4 shrink-0 text-muted" />
+                    <span className="flex flex-col">
+                      <span className="font-bold text-ink">{t(locale, "co.cancel_title")}</span>
+                      <span className="text-muted">{t(locale, "co.cancel_body")}</span>
+                    </span>
+                  </span>
+                </div>
 
                 {/* Names the form before it arrives. Somebody who taps a button
                     that says "continue" and gets an account form instead reads
@@ -738,7 +801,7 @@ export function CheckoutClient({
               <span className="flex flex-col">
                 <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
                 <span className="font-bold text-ink">
-                  {tierLabel(tier)} · {monthsLabel(selectedPlan.months)}
+                  {t(locale, "plans.full_access")} · {term(selectedPlan.months)}
                 </span>
               </span>
               <span className="flex flex-col text-end">

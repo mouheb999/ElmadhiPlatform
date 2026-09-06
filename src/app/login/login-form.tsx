@@ -18,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type Locale, t, type StringKey } from "@/lib/i18n";
+import { type Locale, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
 import { REVERSE_TRIAL } from "@/lib/access";
@@ -211,14 +211,12 @@ export function LoginForm({
           <div className="flex items-center justify-between gap-3 border-b border-hairline px-6 py-4">
             <span className="flex flex-col">
               <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
+              {/* One offer now, so the term is the whole description of what
+                  they are buying — and the twelve-month term the tier grid
+                  never had is named rather than called "6 months" by a chain
+                  of ternaries that ran out of branches. */}
               <span className="font-bold text-ink">
-                {plan.tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")}
-                {" · "}
-                {plan.months === 1
-                  ? t(locale, "plans.month_1")
-                  : plan.months === 3
-                    ? t(locale, "plans.months_3")
-                    : t(locale, "plans.months_6")}
+                {t(locale, "plans.full_access")} · {monthsLabel(locale, plan.months)}
               </span>
             </span>
             <span className="text-lg font-extrabold tabular-nums text-ink">

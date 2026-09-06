@@ -41,8 +41,8 @@ const STRINGS = {
   // ---- checkout ----
   "checkout.title": { en: "Choose your plan", tn: "اختار العرض متاعك" },
   "checkout.subtitle": {
-    en: "Your coach, your plan — pick what fits and start today.",
-    tn: "مدربك وبرنامجك — اختار اللي يناسبك وابدا اليوم.",
+    en: "The same powerful features. Just choose how long you want to train with us.",
+    tn: "نفس المزايا الكاملة. اختار برك قداش تحب تتمرّن معانا.",
   },
   "checkout.lifetime": { en: "Lifetime access", tn: "دخول دائم" },
   "checkout.renewal_banner": {
@@ -58,10 +58,7 @@ const STRINGS = {
   // ---- subscription plans ----
   "plans.standard": { en: "Standard", tn: "ستاندرد" },
   "plans.premium": { en: "Premium", tn: "بريميوم" },
-  "plans.most_popular": { en: "Most popular", tn: "الأكثر طلباً" },
   "plans.best_value": { en: "Best value", tn: "أفضل سعر" },
-  "plans.base_price": { en: "Base price", tn: "السعر الأساسي" },
-  "plans.vs_standard": { en: "vs Standard", tn: "عن ستاندرد" },
   "plans.duration": { en: "Duration", tn: "المدة" },
   "plans.your_choice": { en: "Your choice", tn: "اختيارك" },
   "plans.total_today": { en: "Total today", tn: "الجملة اليوم" },
@@ -69,16 +66,15 @@ const STRINGS = {
   "plans.month_1": { en: "1 month", tn: "شهر" },
   "plans.months_3": { en: "3 months", tn: "3 أشهر" },
   "plans.months_6": { en: "6 months", tn: "6 أشهر" },
+  "plans.months_12": { en: "12 months", tn: "12 شهر" },
   "plans.save": { en: "Save", tn: "وفّر" },
   "plans.billed_every": { en: "billed every", tn: "تخلّص كل" },
-  "plans.f_std_1": { en: "Diet & Workout Makers", tn: "صانع الريجيم والتمرين" },
-  "plans.f_std_2": { en: "Workout logging & food diary", tn: "تسجيل الحصص ودفتر الماكلة" },
-  "plans.f_std_3": { en: "Weekly review & adaptive coach", tn: "مراجعة الجمعة ومدرب يتأقلم" },
-  "plans.f_std_4": { en: "Q&A library", tn: "مكتبة الأسئلة" },
-  "plans.f_prem_all": { en: "Everything in Standard", tn: "كل شيء في ستاندرد" },
-  "plans.f_prem_1": { en: "AI calorie camera", tn: "كاميرا السعرات بالذكاء" },
-  "plans.f_prem_2": { en: "Priority WhatsApp support", tn: "دعم واتساب بالأولوية" },
-  "plans.f_prem_3": { en: "Early access to new features", tn: "الجديد يوصلك الأول" },
+  // One offer, four terms: the card copy is about the term, not about a tier.
+  "plans.full_access": { en: "Full access", tn: "دخول كامل" },
+  "plans.term_1": { en: "Full access. No commitment.", tn: "دخول كامل. بلا التزام." },
+  "plans.term_3": { en: "Better results. Less per month.", tn: "نتائج أحسن. أقل في الشهر." },
+  "plans.term_6": { en: "Most popular. Maximum value.", tn: "الأكثر طلباً. أحسن قيمة." },
+  "plans.term_12": { en: "Biggest savings. Longest progress.", tn: "أكبر توفير. أطول تقدّم." },
   "checkout.choose_method": {
     en: "Choose how you want to pay",
     tn: "اختار الطريقة اللي تحب تخلّص بيها",
@@ -237,6 +233,11 @@ const STRINGS = {
   "co.file_too_big": { en: "Image must be under 5 MB.", tn: "التصويرة لازم تكون أقل من 5 ميغا." },
   "co.file_not_image": { en: "That file isn't an image.", tn: "هذا الملف موش تصويرة." },
   "co.need_help": { en: "Something wrong? Message us", tn: "فما مشكلة؟ راسلنا" },
+  // The reassurance strip under the Continue button.
+  "co.secure_title": { en: "Secure payment", tn: "خلاص آمن" },
+  "co.secure_body": { en: "Your data is safe", tn: "معطياتك في أمان" },
+  "co.cancel_title": { en: "Cancel anytime", tn: "توقّف وقت ما تحب" },
+  "co.cancel_body": { en: "No questions asked", tn: "بلا أسئلة" },
 
   // ---- the payment method picker ----
   //
@@ -1828,6 +1829,22 @@ export function t(locale: Locale, key: StringKey): string {
   if (override !== undefined) return override;
   const entry = STRINGS[key];
   return locale === "tn" ? entry.tn : entry.en;
+}
+
+/**
+ * A subscription term, in words.
+ *
+ * Lives here rather than in the checkout page because the sign-up screen
+ * restates the chosen term above its form, and the two drifted the last time a
+ * term was added: the login form's chain of ternaries called every unknown
+ * length "6 months".
+ */
+export function monthsLabel(locale: Locale, months: number): string {
+  if (months === 1) return t(locale, "plans.month_1");
+  if (months === 3) return t(locale, "plans.months_3");
+  if (months === 6) return t(locale, "plans.months_6");
+  if (months === 12) return t(locale, "plans.months_12");
+  return `${months} ${t(locale, "admin.months_short")}`;
 }
 
 /** Every key in the catalogue, for the admin copy editor's search. */
