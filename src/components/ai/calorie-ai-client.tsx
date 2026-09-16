@@ -218,10 +218,18 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   }
 
   async function onPickFile(file: File | undefined) {
+    // A cancelled picker fires a change event with no file. The viewfinder it
+    // was opened from has to stay up, or cancelling would dump the user back
+    // to an empty page with the camera silently stopped.
     if (!file) return;
     setError(null);
     try {
-      setPhoto(await fileToPhoto(file));
+      const picked = await fileToPhoto(file);
+      // The gallery can be opened from inside the full-screen viewfinder, and
+      // that overlay is painted above everything. Leaving it running would
+      // hide the photo the user just chose behind a live camera feed.
+      stopCamera();
+      setPhoto(picked);
     } catch {
       setError(t(locale, "ai.camera_error"));
     }
@@ -359,13 +367,22 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
 
       {/* ---- Camera / photo ---- */}
       <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+        {/* No `capture` attribute: this input is the gallery, and the live
+            camera has its own path through `openCamera`. `capture` made every
+            "pick a photo" button launch the camera app instead of the picker,
+            so choosing an existing photo was impossible on a phone. Clearing
+            the value lets the same file be picked twice in a row — otherwise
+            a retake of the same photo fires no change event at all. */}
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="hidden"
-          onChange={(e) => onPickFile(e.target.files?.[0])}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            void onPickFile(file);
+          }}
         />
 
         {photo ? (
