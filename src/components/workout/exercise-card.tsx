@@ -63,7 +63,7 @@ export function ExerciseCard({
             type="number"
             value={exercise.sets}
             onChange={(e) => onSetsChange(Number(e.target.value))}
-            className="h-10 w-14 text-center text-sm"
+            className="h-10 w-16 px-1 text-center text-sm"
           />
           {exercise.substitutes.length > 0 && (
             <button
