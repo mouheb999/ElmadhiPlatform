@@ -20,7 +20,7 @@ import { DecimalInput, Input } from "@/components/ui/input";
 import { cn, parseDecimal } from "@/lib/utils";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { estimateMealAction, logEstimate } from "@/app/actions/ai-estimate";
-import { clamp } from "@/lib/ai/estimate-shape";
+import { clamp, type EstimatedItem } from "@/lib/ai/estimate-shape";
 import {
   MAX_VALUE,
   toDraftItem,
@@ -123,7 +123,36 @@ export function cameraErrorKey(error: unknown): StringKey {
 
 type CameraState = "idle" | "starting" | "live";
 
-export function CalorieAiClient({ locale }: { locale: Locale }) {
+export function CalorieAiClient({
+  locale,
+  preview,
+}: {
+  locale: Locale;
+  /**
+   * Run this screen with nothing behind it, for the checkout preview.
+   *
+   * Three things are replaced, and only these three:
+   *
+   *   - **The camera.** A marketing page must never trigger a permission
+   *     prompt, so `openCamera` hands back a sample frame instead of calling
+   *     getUserMedia. The frame is a flat illustration, not a photograph —
+   *     showing a stranger a stock photo and implying our camera read it is
+   *     the kind of small lie this funnel is built to avoid.
+   *   - **The estimate.** `estimateMealAction` costs money per call and refuses
+   *     a visitor with no account; preview supplies the items it would have
+   *     returned, after the same pause, so the real analysing screen plays.
+   *   - **Logging.** That is the paid action, so it raises the wall.
+   *
+   * Everything between — the editor, the steppers, the per-item macros, the
+   * confidence chips, the running total, the slot picker — is untouched, which
+   * is the part worth showing.
+   */
+  preview?: {
+    samplePhotoUrl: string;
+    items: EstimatedItem[];
+    onLog: () => void;
+  };
+}) {
   const [photo, setPhoto] = useState<Photo | null>(null);
   const [camera, setCamera] = useState<CameraState>("idle");
   /** True once the stream reports real dimensions — capture needs them. */
@@ -183,6 +212,16 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
     setError(null);
     setPhoto(null);
     setVideoReady(false);
+
+    if (preview) {
+      setPhoto({
+        base64: "",
+        mediaType: "image/jpeg",
+        previewUrl: preview.samplePhotoUrl,
+        source: "camera",
+      });
+      return;
+    }
 
     // getUserMedia only exists in a secure context. Over plain http on a LAN
     // address — the usual way of testing on a real phone — mediaDevices is
@@ -248,6 +287,18 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   function estimate() {
     if (!photo) return;
     setError(null);
+
+    if (preview) {
+      startTransition(async () => {
+        // Long enough for the analysing screen to run its four lines, which is
+        // roughly what the real call costs anyway.
+        await new Promise((resolve) => setTimeout(resolve, 2600));
+        setItems(preview.items.map(toDraftItem));
+        setSimulated(false);
+      });
+      return;
+    }
+
     startTransition(async () => {
       const result = await estimateMealAction({
         description: notes,
@@ -294,6 +345,12 @@ export function CalorieAiClient({ locale }: { locale: Locale }) {
   function log() {
     if (!items) return;
     setError(null);
+
+    if (preview) {
+      preview.onLog();
+      return;
+    }
+
     startTransition(async () => {
       const result = await logEstimate({ slot, fromImage: true, items: items.map(toLoggedItem) });
       if (!result.ok) {

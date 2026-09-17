@@ -3,6 +3,8 @@ import type { QaSparkCard } from "@/components/dashboard/qa-spark";
 import type { QaCardData } from "@/components/qa/qa-card";
 import type { EditorItem } from "@/components/diet/meal-card";
 import type { IngredientOption } from "@/components/diet/ingredient-picker";
+import type { SessionExercise } from "@/components/workout/session-client";
+import type { EstimatedItem } from "@/lib/ai/estimate-shape";
 import type { MacroTotals } from "@/lib/algorithms/nutrition-feedback";
 
 /**
@@ -233,3 +235,159 @@ export function sumMacros(list: MacroTotals[]): MacroTotals {
     { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
   );
 }
+
+/**
+ * Today's session, as `/workout/session/[dayId]` receives it.
+ *
+ * English names are the illustration keys — `illustrationFor` slugifies them
+ * — so the preview gets the product's real exercise artwork rather than a
+ * stand-in. The Arabic names are the ones the catalogue uses.
+ *
+ * `lastWeightKg` and `maxWeightKg` are what make the screen feel like it knows
+ * you: every set opens prefilled with last week's load, and beating the max
+ * raises the PR badge. The bench is set up so that the suggested 62.5 kg IS a
+ * personal record — tick four sets of it and the summary at the end has
+ * something real in it, which is the note the session is meant to end on.
+ */
+export const SAMPLE_SESSION: SessionExercise[] = [
+  {
+    rowId: "e1",
+    exerciseId: "ex-bench",
+    nameEn: "Barbell Bench Press",
+    nameAr: "ضغط بار للصدر",
+    equipment: "barbell",
+    targetSets: 4,
+    repRange: "6-8",
+    restSeconds: 120,
+    lastWeightKg: 60,
+    lastReps: 8,
+    maxWeightKg: 60,
+    suggestedWeightKg: 62.5,
+    suggestionReasonKey: "progress.reason_up",
+    thumbnailUrl: null,
+    videoUrl: null,
+    notes: "Shoulder blades back and down. | Bar to mid-chest, elbows about 45°.",
+    notesAr: "اسحب لوحي الكتف للخلف وللأسفل. | البار إلى منتصف الصدر، والمرفقان بزاوية 45 تقريباً.",
+  },
+  {
+    rowId: "e2",
+    exerciseId: "ex-incline",
+    nameEn: "Incline Dumbbell Press",
+    nameAr: "ضغط دمبل مائل",
+    equipment: "dumbbell",
+    targetSets: 3,
+    repRange: "8-12",
+    restSeconds: 90,
+    lastWeightKg: 22,
+    lastReps: 10,
+    maxWeightKg: 24,
+    suggestedWeightKg: null,
+    suggestionReasonKey: null,
+    thumbnailUrl: null,
+    videoUrl: null,
+    notes: "Bench at 30°. | Stop before the dumbbells touch.",
+    notesAr: "المقعد بزاوية 30 درجة. | توقّف قبل أن يتلامس الدمبلان.",
+  },
+  {
+    rowId: "e3",
+    exerciseId: "ex-lateral",
+    nameEn: "Lateral Raise",
+    nameAr: "رفع جانبي",
+    equipment: "dumbbell",
+    targetSets: 3,
+    repRange: "12-15",
+    restSeconds: 60,
+    lastWeightKg: 10,
+    lastReps: 15,
+    maxWeightKg: 10,
+    suggestedWeightKg: null,
+    suggestionReasonKey: null,
+    thumbnailUrl: null,
+    videoUrl: null,
+    notes: "Lead with the elbows, not the hands.",
+    notesAr: "ارفع بالمرفقين، لا باليدين.",
+  },
+  {
+    rowId: "e4",
+    exerciseId: "ex-pushdown",
+    nameEn: "Triceps Pushdown",
+    nameAr: "دفع الترايسبس",
+    equipment: "cable",
+    targetSets: 3,
+    repRange: "10-12",
+    restSeconds: 60,
+    lastWeightKg: 25,
+    lastReps: 12,
+    maxWeightKg: 27.5,
+    suggestedWeightKg: null,
+    suggestionReasonKey: null,
+    thumbnailUrl: null,
+    videoUrl: null,
+    notes: null,
+    notesAr: null,
+  },
+  {
+    rowId: "e5",
+    exerciseId: "ex-crossover",
+    nameEn: "Cable Crossover",
+    nameAr: "تقاطع الكابل",
+    equipment: "cable",
+    targetSets: 3,
+    repRange: "12-15",
+    restSeconds: 60,
+    lastWeightKg: 15,
+    lastReps: 14,
+    maxWeightKg: 15,
+    suggestedWeightKg: null,
+    suggestionReasonKey: null,
+    thumbnailUrl: null,
+    videoUrl: null,
+    notes: null,
+    notesAr: null,
+  },
+];
+
+/**
+ * What the camera "finds" in the preview, as `estimateMealAction` returns it.
+ *
+ * A Tunisian plate at realistic portions, and deliberately not three confident
+ * guesses: the olive oil comes back at 0.58, because oil is the thing a photo
+ * genuinely cannot measure. The screen renders that as "rough guess — check
+ * it", and showing the reader where the estimate is weak is what makes the
+ * other two numbers worth believing.
+ */
+export const SAMPLE_ESTIMATE: EstimatedItem[] = [
+  { name: "Grilled chicken", quantityG: 180, calories: 297, proteinG: 55, carbsG: 0, fatG: 7, confidence: 0.92 },
+  { name: "White rice", quantityG: 150, calories: 195, proteinG: 4, carbsG: 42, fatG: 1, confidence: 0.86 },
+  { name: "Olive oil", quantityG: 10, calories: 88, proteinG: 0, carbsG: 0, fatG: 10, confidence: 0.58 },
+];
+
+/**
+ * The frame the preview's camera "captures".
+ *
+ * A flat illustration, inline as a data URI — not a photograph. Showing a
+ * stranger a stock photo of a meal and implying our camera read it is exactly
+ * the sort of small lie the rest of this funnel avoids, and the one a sceptical
+ * reader is best at catching. Drawn in the brand palette so it reads as a
+ * diagram of a plate rather than a claim about one.
+ *
+ * To make this screen better: put a real photograph of a real plate at
+ * `/public/preview/plate.jpg` and point this at it. It has to be a photo of
+ * food that actually exists — ours, or a customer's, with permission.
+ */
+export const SAMPLE_PLATE = `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+    <rect width="400" height="400" fill="#17180F"/>
+    <circle cx="200" cy="205" r="150" fill="#202020"/>
+    <circle cx="200" cy="205" r="132" fill="#252622"/>
+    <path d="M110 190a62 46 0 0 1 124 0 62 46 0 0 1-124 0z" fill="#C0DA1B" opacity="0.85"/>
+    <path d="M140 168h64M140 186h64M140 204h48" stroke="#17180F" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
+    <ellipse cx="258" cy="236" rx="64" ry="48" fill="#F8F8F8" opacity="0.9"/>
+    <circle cx="238" cy="228" r="4" fill="#DDDDD2"/><circle cx="256" cy="220" r="4" fill="#DDDDD2"/>
+    <circle cx="272" cy="236" r="4" fill="#DDDDD2"/><circle cx="250" cy="246" r="4" fill="#DDDDD2"/>
+    <circle cx="276" cy="252" r="4" fill="#DDDDD2"/><circle cx="230" cy="246" r="4" fill="#DDDDD2"/>
+    <path d="M132 268a44 30 0 0 1 88 0 44 30 0 0 1-88 0z" fill="#4E7A2E"/>
+    <path d="M150 262c14-10 30-10 44 0M146 276c16-8 34-8 50 0" stroke="#6FA544" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <circle cx="300" cy="150" r="16" fill="#F5A623" opacity="0.85"/>
+  </svg>`,
+)}`;

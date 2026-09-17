@@ -3,14 +3,12 @@
 import Image from "next/image";
 import {
   ArrowLeft,
-  Camera,
   Check,
   Flame,
   Play,
   Plus,
-  Sparkles,
-  Timer,
 } from "lucide-react";
+import { CalorieAiClient } from "@/components/ai/calorie-ai-client";
 import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
 import { NutritionLiveTile } from "@/components/dashboard/nutrition-live-tile";
 import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
@@ -20,18 +18,22 @@ import { IngredientPicker, type IngredientOption } from "@/components/diet/ingre
 import { MacroRing } from "@/components/diet/macro-ring";
 import { MealCard, type EditorItem } from "@/components/diet/meal-card";
 import { QaCard } from "@/components/qa/qa-card";
+import { PROGRAM } from "./preview-data";
+import { SessionClient } from "@/components/workout/session-client";
 import { cn } from "@/lib/utils";
 import { type Locale, t, type StringKey } from "@/lib/i18n";
-import { AI_ITEMS, PROGRAM } from "./preview-data";
 import {
   macrosOf,
   SAMPLE_DAY,
+  SAMPLE_ESTIMATE,
   SAMPLE_EATEN,
   SAMPLE_INGREDIENTS,
   SAMPLE_LAST_WEIGHT,
   SAMPLE_MEALS,
+  SAMPLE_PLATE,
   SAMPLE_QA,
   SAMPLE_QA_SPARK,
+  SAMPLE_SESSION,
   SAMPLE_STREAK,
   SAMPLE_TARGET,
   SAMPLE_WEEK,
@@ -68,8 +70,6 @@ import {
 export type PreviewMealState = { slot: string; items: EditorItem[] };
 
 export type PreviewState = {
-  /** Per exercise, which sets have been ticked off. */
-  sets: Record<string, boolean[]>;
   /** The day's meals. Portions are editable, so the items live here. */
   meals: PreviewMealState[];
   /** Which meals have been logged against the day — only these count. */
@@ -81,7 +81,6 @@ export type PreviewState = {
 };
 
 export const INITIAL_STATE: PreviewState = {
-  sets: Object.fromEntries(PROGRAM.map((e) => [e.id, Array(e.sets).fill(false)])),
   meals: SAMPLE_MEALS.map((m) => ({ slot: m.slot, items: m.items.map((i) => ({ ...i })) })),
   eaten: [...SAMPLE_EATEN],
   extra: [],
@@ -98,22 +97,20 @@ export const INITIAL_STATE: PreviewState = {
   checkin: { weightKg: 78.4, energy: 4, sleepHours: 7 },
 };
 
-/** Everything the screens show about the day, derived rather than stored. */
+/**
+ * The day's macros, derived rather than stored.
+ *
+ * Sets used to be counted here too. They are not any more: the session screen
+ * is the product's own `SessionClient`, and it keeps its own set state exactly
+ * as it does for a paying customer.
+ */
 export function totals(state: PreviewState) {
   // Only logged meals count towards the day, which is what makes tapping
   // "log it" move the ring.
   const eatenItems = state.meals
     .filter((m) => state.eaten.includes(m.slot))
     .flatMap((m) => m.items);
-  const macros = sumMacros([...eatenItems, ...state.extra].map(macrosOf));
-
-  const done = Object.values(state.sets).flat().filter(Boolean).length;
-  const total = Object.values(state.sets).flat().length;
-  const volume = PROGRAM.reduce(
-    (n, e) => n + (state.sets[e.id]?.filter(Boolean).length ?? 0) * e.weight * Number(e.reps),
-    0,
-  );
-  return { macros, setsDone: done, setsTotal: total, volume };
+  return { macros: sumMacros([...eatenItems, ...state.extra].map(macrosOf)) };
 }
 
 /** A saved check-in, in the shape the real card hands back. */
@@ -273,7 +270,7 @@ export function TodayScreen({
 
       <TodayWorkout
         locale={locale}
-        state={sum.setsDone > 0 ? "in_progress" : "ready"}
+        state="ready"
         day={SAMPLE_DAY}
       />
 
@@ -351,119 +348,40 @@ export function ProgramScreen({ locale, onStart }: { locale: Locale; onStart: ()
 
 export function SessionScreen({
   locale,
-  state,
-  onToggleSet,
-  onBack,
   onFinish,
 }: {
   locale: Locale;
-  state: PreviewState;
-  onToggleSet: (exerciseId: string, index: number) => void;
-  onBack: () => void;
-  onFinish: () => void;
+  onFinish: (summary: { setCount: number; volumeKg: number }) => void;
 }) {
-  const sum = totals(state);
+  /**
+   * The live workout logger — the product's own `SessionClient`.
+   *
+   * This is the screen the whole preview builds towards, so it is the one that
+   * had least business being a replica. The real thing carries everything a
+   * replica leaves out and a lifter notices: last week's load prefilled into
+   * every set, the coaching cues from the split, a rest timer that keeps
+   * counting, the "go up in weight" suggestion with its reason, the PR badge
+   * when a set beats the stored max.
+   *
+   * It runs with `preview`, so nothing reaches the server and nothing is left
+   * in the visitor's browser — see `SessionClient`. Finishing hands back the
+   * set count and the volume instead of closing a session row, and the wall
+   * goes up there: recording the day is the paid part, and by then the reader
+   * has done the work and is looking at the summary they would lose.
+   */
   return (
-    <div className="flex flex-col gap-3">
-      <ScreenHeader
-        locale={locale}
-        title={t(locale, "tour.t_day")}
-        sub={t(locale, "tour.s_tap")}
-        onBack={onBack}
-      />
-
-      <div className="flex items-center justify-between rounded-2xl border border-hairline bg-surface px-4 py-2.5">
-        <span className="text-[11px] text-muted">
-          <bdi dir="ltr" className="font-display text-[15px] font-extrabold text-ink tabular-nums">
-            {sum.setsDone}/{sum.setsTotal}
-          </bdi>{" "}
-          {t(locale, "tour.s_done")}
-        </span>
-        <span className="text-[11px] text-muted">
-          {t(locale, "tour.s_volume")}{" "}
-          <bdi dir="ltr" className="font-display text-[15px] font-extrabold text-accent tabular-nums">
-            {(sum.volume / 1000).toFixed(1)}t
-          </bdi>
-        </span>
-      </div>
-
-      {PROGRAM.map((e) => {
-        const done = state.sets[e.id] ?? [];
-        return (
-          <div key={e.id} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-3">
-            <div className="flex items-center gap-3">
-              <span className="relative h-11 w-[66px] shrink-0 overflow-hidden rounded-lg border border-hairline bg-[#161616]">
-                <Image src={e.img} alt="" fill sizes="66px" className="object-contain" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-bold">{t(locale, e.name)}</span>
-                <bdi dir="ltr" className="block text-[11px] text-muted">
-                  {e.sets} × {e.reps} · {e.weight} kg
-                </bdi>
-              </span>
-            </div>
-
-            <div className="grid grid-cols-[20px_1fr_1fr_38px] items-center gap-1.5 text-center text-[9px] font-bold uppercase tracking-wide text-muted">
-              <span>#</span>
-              <span>{t(locale, "tour.s_kg")}</span>
-              <span>{t(locale, "tour.s_reps")}</span>
-              <span />
-            </div>
-
-            {done.map((isDone, i) => (
-              <div key={i} className="grid grid-cols-[20px_1fr_1fr_38px] items-center gap-1.5">
-                <span className="text-center text-[11px] font-bold text-muted">{i + 1}</span>
-                <span
-                  dir="ltr"
-                  className={cn(
-                    "grid h-9 place-items-center rounded-lg border border-hairline text-[13px] font-bold tabular-nums",
-                    isDone ? "bg-white/[0.03] text-muted" : "text-ink",
-                  )}
-                >
-                  {e.weight}
-                </span>
-                <span
-                  dir="ltr"
-                  className={cn(
-                    "grid h-9 place-items-center rounded-lg border border-hairline text-[13px] font-bold tabular-nums",
-                    isDone ? "bg-white/[0.03] text-muted" : "text-ink",
-                  )}
-                >
-                  {e.reps}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onToggleSet(e.id, i)}
-                  aria-label={`${t(locale, e.name)} ${i + 1}`}
-                  aria-pressed={isDone}
-                  className={cn(
-                    "grid h-9 w-9 place-items-center rounded-lg border transition-colors",
-                    isDone ? "border-accent bg-accent text-bg" : "border-hairline text-muted",
-                  )}
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-
-            {done.some(Boolean) && !done.every(Boolean) && (
-              <p className="flex items-center gap-1.5 text-[11px] font-bold text-accent">
-                <Timer className="h-3.5 w-3.5" />
-                {t(locale, "tour.s_rest")}
-              </p>
-            )}
-          </div>
-        );
-      })}
-
-      <PrimaryButton onClick={onFinish} icon={Check}>
-        {t(locale, "tour.s_finish")}
-      </PrimaryButton>
-    </div>
+    <SessionClient
+      locale={locale}
+      dayId="preview-day"
+      dayName={SAMPLE_DAY.name}
+      exercises={SAMPLE_SESSION}
+      initialSession={null}
+      plannedCardioMinutes={null}
+      weightKg={SAMPLE_LAST_WEIGHT}
+      preview={{ onFinish }}
+    />
   );
 }
-
-/* ------------------------------------------------------------- nutrition */
 
 export function DiaryScreen({
   locale,
@@ -593,88 +511,29 @@ export function AddFoodScreen({
 
 export function AiScreen({
   locale,
-  phase,
-  onShoot,
-  onAdd,
+  onLog,
 }: {
   locale: Locale;
-  phase: "idle" | "scanning" | "done";
-  onShoot: () => void;
-  onAdd: () => void;
+  onLog: () => void;
 }) {
-  const total = AI_ITEMS.reduce((n, i) => n + i.kcal, 0);
+  /**
+   * The calorie camera — the product's own `CalorieAiClient`.
+   *
+   * The editor is the reason this screen sells: three foods come back with
+   * their portions, each one steppable, every macro recomputing as the portion
+   * moves, and a confidence chip that admits when the estimate is a guess.
+   * None of that survived being re-drawn at preview scale.
+   *
+   * Runs with `preview`, so the camera never asks a visitor for permission,
+   * the estimate is canned rather than billed, and logging raises the wall.
+   */
   return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="flex items-end justify-between">
-        <h1 className="font-display text-lg font-extrabold">{t(locale, "tour.ai_title")}</h1>
-        <span className="flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
-          <Sparkles className="h-3 w-3" />
-          {t(locale, "tour.ai_sub")}
-        </span>
-      </div>
-
-      <div
-        className={cn(
-          "relative grid min-h-[140px] flex-1 place-items-center overflow-hidden rounded-3xl border bg-gradient-to-br from-white/[0.06] to-transparent",
-          phase === "scanning" ? "border-accent/60" : "border-hairline",
-        )}
-      >
-        <div className="glow-accent pointer-events-none absolute inset-0" />
-        <Camera
-          className={cn(
-            "relative h-8 w-8",
-            phase === "scanning" ? "animate-pulse text-accent" : "text-muted",
-          )}
-          aria-hidden
-        />
-        {phase === "scanning" && (
-          <span className="absolute bottom-4 text-[11px] font-bold text-accent">
-            {t(locale, "tour.ai_scan")}
-          </span>
-        )}
-        {["start-4 top-4 border-s-2 border-t-2 rounded-ss-xl", "end-4 top-4 border-e-2 border-t-2 rounded-se-xl", "start-4 bottom-4 border-s-2 border-b-2 rounded-es-xl", "end-4 bottom-4 border-e-2 border-b-2 rounded-ee-xl"].map((c) => (
-          <span key={c} className={cn("absolute h-5 w-5 border-accent/70", c)} aria-hidden />
-        ))}
-      </div>
-
-      {phase === "done" && (
-        <Card className="flex flex-col gap-2.5 p-3">
-          {AI_ITEMS.map((item) => (
-            <div key={item.name} className="flex items-center gap-2.5">
-              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent/15">
-                <Check className="h-3 w-3 text-accent" aria-hidden />
-              </span>
-              <span className="flex-1 truncate text-[12px] font-semibold">{t(locale, item.name)}</span>
-              <bdi dir="ltr" className="text-[12px] font-bold tabular-nums text-muted">
-                {item.kcal} kcal
-              </bdi>
-            </div>
-          ))}
-          <div className="mt-1 flex items-center justify-between border-t border-hairline pt-2.5">
-            <span className="text-[12px] font-bold">{t(locale, "diary.totals")}</span>
-            <bdi dir="ltr" className="font-display text-[15px] font-extrabold tabular-nums text-accent">
-              {total} kcal
-            </bdi>
-          </div>
-        </Card>
-      )}
-
-      <div className="mt-auto">
-        {phase === "done" ? (
-          <PrimaryButton onClick={onAdd} icon={Plus}>
-            {t(locale, "tour.ai_add")}
-          </PrimaryButton>
-        ) : (
-          <PrimaryButton onClick={onShoot} icon={Camera}>
-            {t(locale, "tour.ai_shoot")}
-          </PrimaryButton>
-        )}
-      </div>
-    </div>
+    <CalorieAiClient
+      locale={locale}
+      preview={{ samplePhotoUrl: SAMPLE_PLATE, items: SAMPLE_ESTIMATE, onLog }}
+    />
   );
 }
-
-/* ------------------------------------------------------------------- q&a */
 
 export function QaScreen({ locale }: { locale: Locale }) {
   /**

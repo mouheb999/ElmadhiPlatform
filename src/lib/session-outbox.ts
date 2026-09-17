@@ -99,8 +99,21 @@ export function useSessionOutbox(opts: {
   onBlocked: (code: SessionErrCode) => void;
   /** A non-retryable rejection (validation) — item was dropped. */
   onItemError: (message: string) => void;
+  /**
+   * Run the session screen with nothing behind it.
+   *
+   * The checkout preview renders the real `SessionClient` for a visitor with
+   * no account: every write here would be refused by `requirePaidUser`, and
+   * the queue would sit retrying with backoff behind a sync pill reading
+   * "offline". So in preview the queue accepts everything and stores nothing —
+   * no server call, no localStorage, no retry timer.
+   *
+   * Off by default, and every branch below is guarded, so a signed-in session
+   * takes exactly the path it always did.
+   */
+  preview?: boolean;
 }) {
-  const { dayId, initialSessionId, onBlocked, onItemError } = opts;
+  const { dayId, initialSessionId, onBlocked, onItemError, preview = false } = opts;
 
   const stateRef = useRef<OutboxState | null>(null);
   const flushingRef = useRef(false);
@@ -137,6 +150,10 @@ export function useSessionOutbox(opts: {
   }, [dayId, getState]);
 
   const flush = useCallback(async (): Promise<boolean> => {
+    // Belt and braces: preview's `enqueue` is a no-op so the queue is always
+    // empty, but the mount effect and the online/visibility listeners call
+    // this directly. Nothing in a preview may reach the server.
+    if (preview) return true;
     if (flushingRef.current) return false;
     flushingRef.current = true;
     if (retryTimerRef.current) {
@@ -222,7 +239,7 @@ export function useSessionOutbox(opts: {
       // The retry path re-enters flush itself; only release when not queued.
       if (!retryTimerRef.current) flushingRef.current = false;
     }
-  }, [dayId, getState, persist]);
+  }, [dayId, getState, persist, preview]);
 
   const enqueue = useCallback(
     (item: OutboxItem) => {
@@ -281,8 +298,29 @@ export function useSessionOutbox(opts: {
     [getState],
   );
 
+  /**
+   * Preview: a queue that always looks settled.
+   *
+   * Returned after every hook above has run, so the hook order is identical
+   * either way — the rule that matters is that they are called, not that their
+   * results are used.
+   */
+  if (preview) {
+    return {
+      sessionId: PREVIEW_SESSION_ID,
+      pendingCount: 0,
+      syncState: "saved" as SyncState,
+      enqueue: () => {},
+      flushAll: async () => true,
+      getSessionId: () => PREVIEW_SESSION_ID,
+    };
+  }
+
   return { sessionId, pendingCount, syncState, enqueue, flushAll, getSessionId };
 }
+
+/** Stands in for a real session row in the checkout preview. Never stored. */
+export const PREVIEW_SESSION_ID = "preview-session";
 
 /**
  * Best-effort cleanup of session keys for other days that have no pending

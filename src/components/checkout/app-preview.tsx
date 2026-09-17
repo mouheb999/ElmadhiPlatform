@@ -12,8 +12,6 @@ import {
 import { cn } from "@/lib/utils";
 import { type Locale, dir, t, type StringKey } from "@/lib/i18n";
 import type { IngredientOption } from "@/components/diet/ingredient-picker";
-import type { EditorItem } from "@/components/diet/meal-card";
-import { AI_ITEMS } from "./preview-data";
 import {
   AddFoodScreen,
   AiScreen,
@@ -79,7 +77,6 @@ export function AppPreview({
   const [tab, setTab] = useState<Tab>("today");
   const [view, setView] = useState<View>(null);
   const [state, setState] = useState<PreviewState>(INITIAL_STATE);
-  const [aiPhase, setAiPhase] = useState<"idle" | "scanning" | "done">("idle");
   const [locked, setLocked] = useState(false);
 
   const shell = useRef<HTMLDivElement>(null);
@@ -144,16 +141,6 @@ export function AppPreview({
     scroller.current?.scrollTo({ top: 0 });
   }
 
-  function toggleSet(exerciseId: string, index: number) {
-    setState((s) => ({
-      ...s,
-      sets: {
-        ...s.sets,
-        [exerciseId]: s.sets[exerciseId].map((done, i) => (i === index ? !done : done)),
-      },
-    }));
-  }
-
   function logMeal(slot: string) {
     setState((s) => (s.eaten.includes(slot) ? s : { ...s, eaten: [...s.eaten, slot] }));
   }
@@ -194,50 +181,6 @@ export function AppPreview({
     go("food");
   }
 
-  function shoot() {
-    setAiPhase("scanning");
-    // Long enough to read as work happening, short enough not to feel broken.
-    setTimeout(() => setAiPhase("done"), 1400);
-  }
-
-  function addEstimate() {
-    // The camera's three items, added as one logged entry — the same shape a
-    // food from the catalogue takes, so the diary cannot tell them apart.
-    const summed = AI_ITEMS.reduce(
-      (acc, i) => ({
-        kcal: acc.kcal + i.kcal,
-        protein: acc.protein + i.protein,
-        carbs: acc.carbs + i.carbs,
-        fat: acc.fat + i.fat,
-      }),
-      { kcal: 0, protein: 0, carbs: 0, fat: 0 },
-    );
-    const estimate: EditorItem = {
-      id: `ai-${state.extra.length}`,
-      foodRef: "ai-estimate",
-      nameEn: "Grilled chicken, rice, olive oil",
-      nameAr: "دجاج مشوي، أرز، زيت زيتون",
-      slot: "protein",
-      // Logged as one 100 g "portion" whose per-100 g values are the totals,
-      // which is how a quick entry behaves in the real diary.
-      quantityG: 100,
-      caloriesPer100g: summed.kcal,
-      proteinPer100g: summed.protein,
-      carbsPer100g: summed.carbs,
-      fatPer100g: summed.fat,
-      imageUrl: null,
-      unitEn: null,
-      unitEnPlural: null,
-      unitAr: null,
-      unitArPlural: null,
-      unitGrams: null,
-    };
-    setState((s) => ({ ...s, extra: [...s.extra, estimate] }));
-    setAiPhase("idle");
-    // Straight to the diary, because the point of the camera is what it does
-    // to the day's numbers, and that is a different screen.
-    go("food");
-  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -296,13 +239,7 @@ export function AppPreview({
                     <ProgramScreen locale={locale} onStart={() => go("workout", "session")} />
                   )}
                   {tab === "workout" && view === "session" && (
-                    <SessionScreen
-                      locale={locale}
-                      state={state}
-                      onToggleSet={toggleSet}
-                      onBack={() => go("workout")}
-                      onFinish={() => setLocked(true)}
-                    />
+                    <SessionScreen locale={locale} onFinish={() => setLocked(true)} />
                   )}
 
                   {tab === "food" && view !== "addFood" && (
@@ -319,7 +256,7 @@ export function AppPreview({
                   )}
 
                   {tab === "ai" && (
-                    <AiScreen locale={locale} phase={aiPhase} onShoot={shoot} onAdd={addEstimate} />
+                    <AiScreen locale={locale} onLog={() => setLocked(true)} />
                   )}
 
                   {tab === "qa" && <QaScreen locale={locale} />}

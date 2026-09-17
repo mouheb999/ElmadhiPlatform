@@ -165,6 +165,7 @@ export function SessionClient({
   initialSession,
   plannedCardioMinutes,
   weightKg,
+  preview,
 }: {
   locale: Locale;
   dayId: string;
@@ -175,6 +176,19 @@ export function SessionClient({
   plannedCardioMinutes: number | null;
   /** Bodyweight for the burn estimate — the same figure the server uses. */
   weightKg: number;
+  /**
+   * Run this screen with nothing behind it, for the checkout preview.
+   *
+   * The preview shows a visitor the real session logger — ticking sets off,
+   * watching the volume climb — before they have an account. Every write on
+   * this screen goes through `requirePaidUser`, so in preview the outbox
+   * accepts and discards (see `useSessionOutbox`), the draft is not persisted
+   * to localStorage, and finishing calls `onFinish` instead of the Server
+   * Function. Absent, which is every real session, nothing below changes.
+   */
+  preview?: {
+    onFinish: (input: { setCount: number; volumeKg: number }) => void;
+  };
 }) {
   const router = useRouter();
   const rowIds = useMemo(() => new Set(exercises.map((ex) => ex.rowId)), [exercises]);
@@ -267,10 +281,12 @@ export function SessionClient({
     initialSessionId: initialSession?.sessionId ?? null,
     onBlocked,
     onItemError,
+    preview: !!preview,
   });
 
   // ---- Draft restore / persist (unlocked fields only) ----
   useEffect(() => {
+    if (preview) return;
     const id = setTimeout(() => {
       try {
         pruneStaleSessionKeys(dayId);
@@ -329,7 +345,7 @@ export function SessionClient({
   }, [dayId]);
 
   useEffect(() => {
-    if (!hydrated.current || phase !== "logging") return;
+    if (preview || !hydrated.current || phase !== "logging") return;
     const draft: DraftV2 = {
       v: 2,
       savedAt: Date.now(),
@@ -349,7 +365,7 @@ export function SessionClient({
     } catch {
       /* storage full/blocked — session still works in memory */
     }
-  }, [entries, notes, showWeight, showRir, restEndsAt, dayId, phase]);
+  }, [entries, notes, showWeight, showRir, restEndsAt, dayId, phase, preview]);
 
   // ---- Rest timer (wall-clock based: survives reload and tab sleep) ----
   useEffect(() => {
@@ -465,6 +481,32 @@ export function SessionClient({
     [entries, skipped, exercises],
   );
 
+  /**
+   * Total load lifted, for the preview's summary.
+   *
+   * A real finish gets this from the server, recomputed from the stored sets,
+   * precisely so the client cannot inflate it. There is no server here, so it
+   * is computed from what the visitor ticked — the same weight × reps the
+   * screen already shows them per set.
+   */
+  const doneVolume = useMemo(
+    () =>
+      exercises
+        .filter((ex) => !skipped.includes(ex.rowId))
+        .reduce(
+          (sum, ex) =>
+            sum +
+            entries[ex.rowId]
+              .filter((entry) => entry.done)
+              .reduce(
+                (n, entry) => n + (parseDecimal(entry.weight) ?? 0) * (parseDecimal(entry.reps) ?? 0),
+                0,
+              ),
+          0,
+        ),
+    [entries, skipped, exercises],
+  );
+
   function isPr(ex: SessionExercise, entry: SetEntry): boolean {
     if (ex.maxWeightKg === null || !entry.done) return false;
     const w = parseDecimal(entry.weight);
@@ -497,6 +539,14 @@ export function SessionClient({
         prNames.push(pick(locale, ex.nameEn, ex.nameAr));
         prIds.push(ex.exerciseId);
       }
+    }
+
+    if (preview) {
+      // The paywall lives on this button. `finishSession` is the one call the
+      // preview cannot fake honestly — saving the day IS the paid part — so it
+      // hands control back instead of inventing a summary.
+      preview.onFinish({ setCount: doneCount, volumeKg: Math.round(doneVolume) });
+      return;
     }
 
     const result = await finishSession({ sessionId, notes: notes || null, prExerciseIds: prIds });
