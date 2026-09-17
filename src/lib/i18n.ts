@@ -1801,6 +1801,262 @@ const STRINGS = {
   "admin.pay_reply_ph": { en: "Reply to the customer…", tn: "جاوب الحريف…" },
   "admin.pay_send": { en: "Send", tn: "ابعث" },
   "admin.pay_no_thread": { en: "No messages yet.", tn: "مازال ما فماش رسائل." },
+
+  // ---- the sign-up funnel (/start) ----
+  //
+  // This is the screen an ad points at, and every line in it is doing one of
+  // two jobs: asking a question the plan genuinely needs, or telling the reader
+  // what their own answer means. Nothing here claims a result on somebody
+  // else's behalf — the testimonials that would do that live in
+  // lib/social-proof.ts and ship empty until there are real ones.
+  "fn.title": { en: "Build my plan", tn: "ابني البرنامج متاعي" },
+  "fn.meta_desc": {
+    en: "Answer eleven questions and see the training and nutrition plan your body actually needs.",
+    tn: "جاوب على إحدى عشر سؤال وشوف برنامج التمرين والماكلة اللي جسمك يلزمو فعلاً.",
+  },
+
+  // Shell
+  "fn.back": { en: "Back", tn: "لور" },
+  "fn.next": { en: "Continue", tn: "كمّل" },
+
+  // Opening screen
+  "fn.hero_title": { en: "Stop guessing. Get the plan.", tn: "بطّل تخمّم. خذ البرنامج." },
+  "fn.hero_sub": {
+    en: "Eleven questions about your body and your week. At the end you see your calories, your training split and the date your target lands on.",
+    tn: "إحدى عشر سؤال على جسمك وعلى جمعتك. في الآخر تشوف السعرات متاعك، تقسيم التمرين، والتاريخ اللي توصل فيه لهدفك.",
+  },
+  "fn.hero_cta": { en: "Start — it takes 2 minutes", tn: "ابدا — دقيقتين برك" },
+  "fn.hero_free": { en: "Free. No account, no card.", tn: "بلاش. بلا حساب، بلا كارت." },
+  "fn.hero_signin": { en: "Already have an account?", tn: "عندك حساب؟" },
+
+  // Questions
+  "fn.q_goal": { en: "What are you here to change?", tn: "شنوّة تحب تبدّل؟" },
+  "fn.q_goal_hint": { en: "Pick the one that matters most right now.", tn: "اختار اللي يهمّك أكثر توّا." },
+  "fn.q_gender": { en: "Your body runs on different numbers", tn: "الأرقام تتبدّل حسب الجسم" },
+  "fn.q_gender_hint": {
+    en: "Resting metabolism is calculated differently. This is the only reason we ask.",
+    tn: "حرق الجسم وهو مرتاح يتحسب بطريقة مختلفة. هذا السبب الوحيد باش نسألوك.",
+  },
+  "fn.q_age": { en: "How old are you?", tn: "قداش عمرك؟" },
+  "fn.q_height": { en: "How tall are you?", tn: "قداش طولك؟" },
+  "fn.q_weight": { en: "What do you weigh today?", tn: "قداش وزنك اليوم؟" },
+  "fn.q_weight_hint": { en: "Roughly is fine. The plan corrects itself weekly.", tn: "تقريبي يكفي. البرنامج يصحّح روحو كل جمعة." },
+  "fn.q_target": { en: "And where do you want to be?", tn: "ووين تحب توصل؟" },
+  "fn.q_target_hint": { en: "Your target weight — we put a date on it at the end.", tn: "الوزن اللي تحبّو — في الآخر نحطولو تاريخ." },
+  "fn.q_days": { en: "How many days a week can you really train?", tn: "قداش من نهار في الجمعة تنجم تتمرّن فعلاً؟" },
+  "fn.q_days_hint": {
+    en: "Be honest. A plan you finish beats a plan that looks impressive.",
+    tn: "كون صادق. برنامج تكمّلو خير من برنامج يبان باهي.",
+  },
+  "fn.q_activity": { en: "How does your day usually go?", tn: "كيفاش تمشي نهاريتك عادة؟" },
+  "fn.q_activity_hint": {
+    en: "Outside training — your job, your commute, your feet.",
+    tn: "برّا التمرين — خدمتك، الطريق، وقفتك على ساقيك.",
+  },
+  "fn.q_meals": { en: "How many times a day do you like to eat?", tn: "قداش من مرّة في النهار تحب تاكل؟" },
+  "fn.q_meals_hint": {
+    en: "Your plan is built around this, not against it.",
+    tn: "البرنامج يتبنى على هذا، موش ضدّو.",
+  },
+  "fn.q_experience": { en: "Where are you starting from?", tn: "منين باش تبدا؟" },
+  "fn.q_blocker": { en: "What stopped you last time?", tn: "شنوّة حبسك المرّة اللي فاتت؟" },
+  "fn.q_blocker_hint": {
+    en: "This one is not about your body. It decides what the plan protects you from.",
+    tn: "هذا السؤال موش على جسمك. هو اللي يقرّر البرنامج يحميك من شنوّة.",
+  },
+
+  "fn.unit_years": { en: "years", tn: "سنة" },
+  "fn.unit_cm": { en: "cm", tn: "صم" },
+  "fn.unit_kg": { en: "kg", tn: "كغ" },
+  "fn.out_of_range": { en: "That does not look right — check the number.", tn: "الرقم هذا يبان غالط — شوفو مرّة أخرى." },
+
+  // Goal subtitles — the same four goals the questionnaire uses, said in the
+  // reader's terms rather than the coach's.
+  "fn.goal_lose_fat_sub": { en: "Smaller waist, same strength", tn: "كرش أقل، نفس القوة" },
+  "fn.goal_build_muscle_sub": { en: "Add size without adding fat", tn: "تزيد حجم بلا شحم" },
+  "fn.goal_recomp_sub": { en: "Both at once — slower, but it holds", tn: "الزوز مع بعضهم — أبطأ، أما يدوم" },
+  "fn.goal_maintain_sub": { en: "Hold your weight, fix your habits", tn: "تحافظ على وزنك وتصلّح عاداتك" },
+
+  "fn.meals_3": { en: "3 meals", tn: "3 وجبات" },
+  "fn.meals_4": { en: "4 meals", tn: "4 وجبات" },
+  "fn.meals_5": { en: "5 meals", tn: "5 وجبات" },
+
+  "fn.exp_new": { en: "I am starting from zero", tn: "نبدا من الصفر" },
+  "fn.exp_new_sub": { en: "Never trained, or never properly", tn: "عمري ما تمرّنت، ولا ما تمرّنتش كيف يلزم" },
+  "fn.exp_returning": { en: "I have trained before and stopped", tn: "تمرّنت قبل وحبست" },
+  "fn.exp_returning_sub": { en: "Coming back after a break", tn: "راجع بعد انقطاع" },
+  "fn.exp_consistent": { en: "I train regularly", tn: "نتمرّن بانتظام" },
+  "fn.exp_consistent_sub": { en: "Looking for structure and progress", tn: "نلوّج على تنظيم وتقدّم" },
+
+  "fn.blk_what_to_eat": { en: "I never knew what to eat", tn: "عمري ما عرفت شنوّة ناكل" },
+  "fn.blk_no_program": { en: "I had no real program", tn: "ما كانش عندي برنامج حقيقي" },
+  "fn.blk_motivation": { en: "I lost motivation after a few weeks", tn: "ضاعت منّي العزيمة بعد شوية جماعي" },
+  "fn.blk_no_time": { en: "I could not find the time", tn: "ما لقيتش وقت" },
+  "fn.blk_stalled": { en: "I trained hard and nothing moved", tn: "تمرّنت بجد وما تبدّل والو" },
+
+  // Interstitial 1 — straight after the target weight, while the gap they
+  // just typed is still on their mind. The numbers are composed by the
+  // component; these are the sentences around them.
+  "fn.i1_title": { en: "We can put a date on that", tn: "نجمو نحطولو تاريخ" },
+  "fn.i1_gap_lose": { en: "to lose", tn: "باش تنقص" },
+  "fn.i1_gap_gain": { en: "to gain", tn: "باش تزيد" },
+  "fn.i1_body": {
+    en: "Not a promise — arithmetic. At the end of these questions you will see the week it lands on, worked out from your body at a pace a body can actually hold.",
+    tn: "موش وعد — حساب. في آخر الأسئلة باش تشوف الجمعة اللي توصل فيها، محسوبة من جسمك وبنسق جسم ينجم يتحمّلو.",
+  },
+  "fn.i1_body_same": {
+    en: "The scale is not the measure here. At the end of these questions you will see what your plan changes instead.",
+    tn: "الميزان موش هو المقياس هنا. في آخر الأسئلة باش تشوف شنوّة يبدّل البرنامج متاعك.",
+  },
+
+  // Interstitial 2 — after the body questions, before the personal ones. The
+  // mechanism, since there is nothing else honest to fill this slot with yet.
+  "fn.i2_title": { en: "What happens with your answers", tn: "شنوّة يصير بالإجابات متاعك" },
+  "fn.i2_sub": {
+    en: "Not a template with your name on it.",
+    tn: "موش قالب محطوط عليه اسمك.",
+  },
+
+  // Interstitial 3 — right after they name what stopped them last time.
+  "fn.i3_title": { en: "You are not the first to say that", tn: "ماكش أول واحد يقول هكا" },
+  "fn.ans_what_to_eat": {
+    en: "So the plan gives you the meals, not a calorie number to solve on your own. Real food, your budget, swaps for anything you do not have at home.",
+    tn: "علاهذا البرنامج يعطيك الوجبات، موش رقم سعرات تحلّو وحدك. ماكلة حقيقية، على قد جيبك، وبدائل لكل شيء ما عندكش في الدار.",
+  },
+  "fn.ans_no_program": {
+    en: "So the first thing you get is the program: which days, which exercises, which weights, and a video for every movement you have not done before.",
+    tn: "علاهذا أول حاجة تاخذها هي البرنامج: أنهي أيام، أنهي تمارين، أنهي أوزان، وفيديو لكل حركة ما عملتهاش قبل.",
+  },
+  "fn.ans_motivation": {
+    en: "So the plan is built around the week you actually have, and it changes when you stall. Motivation is what runs out; a plan that keeps working is what replaces it.",
+    tn: "علاهذا البرنامج يتبنى على الجمعة اللي عندك فعلاً، ويتبدّل كي تحبس. العزيمة هي اللي تكمّل؛ البرنامج اللي يخدم دايماً هو اللي يعوّضها.",
+  },
+  "fn.ans_no_time": {
+    en: "So you tell it how many days you have and it fits inside them. Three honest sessions beat six that never happen.",
+    tn: "علاهذا تقلّو قداش من نهار عندك وهو يدخل فيهم. ثلاث حصص صادقة خير من ستة ما يصيرو عمرهم.",
+  },
+  "fn.ans_stalled": {
+    en: "So your weight and your sessions get reviewed every week. When the scale stops, the numbers change — that is the part most people never do.",
+    tn: "علاهذا وزنك وحصصك يتراجعو كل جمعة. كي الميزان يحبس، الأرقام تتبدّل — وهذي الحاجة اللي أغلب الناس ما يعملوهاش.",
+  },
+
+  // The build screen. Four lines that tick over while the plan is assembled.
+  "fn.build_title": { en: "Building your plan", tn: "قاعدين نبنيو البرنامج متاعك" },
+  "fn.build_sub": { en: "A few seconds.", tn: "شوية ثواني." },
+  "fn.build_1": { en: "Reading your answers", tn: "نقراو الإجابات متاعك" },
+  "fn.build_2": { en: "Working out your calories", tn: "نحسبو السعرات متاعك" },
+  "fn.build_3": { en: "Choosing your training split", tn: "نختارو تقسيم التمرين متاعك" },
+  "fn.build_4": { en: "Filling your meals", tn: "نعمّرو الوجبات متاعك" },
+
+  // The reveal.
+  "fn.r_title": { en: "Your plan is ready", tn: "البرنامج متاعك حاضر" },
+  "fn.r_sub": {
+    en: "Built from the eleven answers you just gave. Nothing here is a default.",
+    tn: "مبني على الإحدى عشر إجابة اللي عطيتهم توّا. ما فما حتّى حاجة جاية من قالب.",
+  },
+  "fn.r_daily": { en: "Your daily target", tn: "الهدف اليومي متاعك" },
+  "fn.m_kcal": { en: "kcal a day", tn: "سعرة في اليوم" },
+  "fn.m_protein": { en: "Protein", tn: "بروتين" },
+  "fn.m_carbs": { en: "Carbs", tn: "كربوهيدرات" },
+  "fn.m_fat": { en: "Fat", tn: "دهون" },
+  "fn.r_maintenance": { en: "Your maintenance", tn: "الثبات متاعك" },
+  "fn.r_chart_title": { en: "Where this goes", tn: "لوين ماشي هذا" },
+  "fn.r_today": { en: "Today", tn: "اليوم" },
+  "fn.r_target": { en: "Target", tn: "الهدف" },
+  "fn.r_by": { en: "by", tn: "قبل" },
+  "fn.r_weeks": { en: "weeks", tn: "جمعة" },
+  "fn.r_first_week": { en: "First week", tn: "أول جمعة" },
+  "fn.r_estimate": {
+    en: "An estimate at a steady pace. The plan re-checks it against your real weight every week and adjusts — that is the part a calculator cannot do.",
+    tn: "تقدير بنسق ثابت. البرنامج يقارنو بوزنك الحقيقي كل جمعة ويعدّل — وهذي الحاجة اللي الآلة الحاسبة ما تنجمش تعملها.",
+  },
+  "fn.r_no_date": {
+    en: "At a pace your body can hold, this target is more than two years out. The plan still works — the date is the part we will not invent.",
+    tn: "بنسق جسمك ينجم يتحمّلو، الهدف هذا أبعد من عامين. البرنامج يخدم برك — أما التاريخ ما نخترعوهش.",
+  },
+  "fn.r_recomp_title": { en: "The scale is not your measure", tn: "الميزان موش هو المقياس متاعك" },
+  "fn.r_recomp_body": {
+    en: "At your target weight, what changes is what the weight is made of. Your plan tracks strength and measurements, not just the number.",
+    tn: "في الوزن اللي تحبّو، اللي يتبدّل هو شنوّة مكوّن منو الوزن. البرنامج يتابع القوة والمقاسات، موش الرقم برك.",
+  },
+  "fn.r_week_title": { en: "Your training week", tn: "جمعة التمرين متاعك" },
+  "fn.r_week_body": {
+    en: "Split across the days you said you have, with a video and a swap on every exercise.",
+    tn: "مقسّمة على الأيام اللي قلتلنا عليهم، وكل تمرين معاه فيديو وبديل.",
+  },
+  "fn.r_kept": {
+    en: "Your answers are saved. You will not be asked any of this a second time.",
+    tn: "الإجابات متاعك تسجّلو. ما باش نسألوك عليهم مرّة أخرى.",
+  },
+  "fn.r_cta": { en: "Unlock my plan", tn: "حلّ البرنامج متاعي" },
+  "fn.r_cta_sub": { en: "Next: choose how long you want to train with us.", tn: "بعد: اختار قداش تحب تتمرّن معانا." },
+  "fn.r_inside": { en: "What you get", tn: "شنوّة تاخذ" },
+
+  // ---- proof blocks, shared by /start and /checkout ----
+  "proof.title": { en: "What people say", tn: "شنوّة يقولو الناس" },
+
+  // ---- checkout: the recap of a plan built on /start ----
+  "co.recap_title": { en: "Your plan is waiting", tn: "البرنامج متاعك يستنّاك" },
+  "co.recap_body": {
+    en: "Built from your answers a moment ago. It unlocks the second your subscription is confirmed.",
+    tn: "مبني على الإجابات متاعك توّا. يتحلّ في اللحظة اللي يتأكّد فيها اشتراكك.",
+  },
+  "co.recap_kcal": { en: "kcal a day", tn: "سعرة في اليوم" },
+  "co.recap_days": { en: "training days", tn: "أيام تمرين" },
+  "co.recap_target": { en: "target", tn: "الهدف" },
+  "co.recap_redo": { en: "Answer again", tn: "جاوب مرّة أخرى" },
+  "co.build_plan": { en: "Build my plan first", tn: "ابني البرنامج متاعي قبل" },
+  "co.build_plan_sub": {
+    en: "Two minutes, free, no account — see your own numbers before you decide.",
+    tn: "دقيقتين، بلاش، بلا حساب — شوف الأرقام متاعك قبل ما تقرّر.",
+  },
+
+  // ---- checkout: the guarantee ----
+  //
+  // Worded as a promise the product can already keep: a coach can rebuild a
+  // plan by hand (actions/custom-diet.ts, custom-training.ts) and the support
+  // thread is how they are reached. A money-back line would convert better
+  // still — it is the strongest single element on a paywall — but it is a
+  // commitment for the owner to make, not for this file to invent. Add it
+  // here, or in /admin → Copy, once it is decided.
+  "co.guarantee_title": { en: "If the plan does not fit you, we rebuild it", tn: "كان البرنامج ما يمشيش معاك، نعاودو نبنيوه" },
+  "co.guarantee_body": {
+    en: "Message us in your first week and a coach goes through your answers and writes you a new one. You are not stuck with what the calculator produced.",
+    tn: "ابعثلنا في أول جمعة والمدرب يقرا الإجابات متاعك ويكتبلك برنامج جديد. ما تقعدش مربوط باللي طلع من الحساب.",
+  },
+
+  // ---- checkout: the questions a first-time buyer actually has ----
+  "faq.title": { en: "Before you pay", tn: "قبل ما تخلّص" },
+  "faq.q_when": { en: "When do I get access?", tn: "وقتاش نتحلّلي الحساب؟" },
+  "faq.a_when": {
+    en: "As soon as a human checks the transfer — usually within a few hours, and the screen unlocks itself while you have it open.",
+    tn: "كيف ما يتثبّت واحد من التحويل — عادة في ظرف شوية ساعات، والصفحة تتحلّ وحدها وأنت فيها.",
+  },
+  "faq.q_auto": { en: "Does it renew on its own?", tn: "يتجدّد وحدو؟" },
+  "faq.a_auto": {
+    en: "No. There is no card on file and nothing charges you again. When your term ends you choose whether to renew.",
+    tn: "لا. ما فما حتّى كارت مسجّل وما يتخصّملك والو مرّة أخرى. كي تكمل المدّة، إنت تقرّر تجدّد ولا لا.",
+  },
+  "faq.q_gym": { en: "Do I need a gym?", tn: "لازمني صالة؟" },
+  "faq.a_gym": {
+    en: "No. The program is built from the equipment you say you have, and every exercise can be swapped for one you can actually do.",
+    tn: "لا. البرنامج يتبنى على المعدات اللي تقول عندك، وكل تمرين تنجم تبدّلو بواحد آخر تنجم تعملو.",
+  },
+  "faq.q_beginner": { en: "I have never trained. Is this for me?", tn: "عمري ما تمرّنت. هذا يمشي معايا؟" },
+  "faq.a_beginner": {
+    en: "Yes — most people who start here have not. Every movement has a video, and the first weeks are deliberately light so the form comes before the weight.",
+    tn: "إي — أغلب اللي يبداو معانا ما تمرّنوش قبل. كل حركة معاها فيديو، وأول جماعي خفاف بقصد باش الأداء يجي قبل الوزن.",
+  },
+  "faq.q_food": { en: "Will I have to eat food I hate?", tn: "باش نضطر ناكل حاجات ما نحبهاش؟" },
+  "faq.a_food": {
+    en: "No. You list what you will not eat and it never appears. Meals are built from Tunisian food at the budget you pick.",
+    tn: "لا. تكتب شنوّة ما تاكلوش وعمرو ما يظهرلك. الوجبات مبنية على ماكلة تونسية على قد الميزانية اللي تختارها.",
+  },
+  "faq.q_help": { en: "What if I get stuck?", tn: "وكان تحبس؟" },
+  "faq.a_help": {
+    en: "You ask inside the app and a coach — a person, not a bot — answers in Derja.",
+    tn: "تسأل في التطبيق ومدرب — بنادم، موش روبو — يجاوبك بالدارجة.",
+  },
 } as const;
 
 export type StringKey = keyof typeof STRINGS;

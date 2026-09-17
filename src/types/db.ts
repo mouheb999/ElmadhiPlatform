@@ -30,6 +30,10 @@ export type Database = {
           plan_expires_at: string | null;
           payment_ref: string | null;
           paid_at: string | null;
+          /** The ad click this account came from. Migration 054. */
+          attribution: Json | null;
+          /** The /start answers it signed up with. Migration 054. */
+          funnel_answers: Json | null;
           created_at: string | null;
           updated_at: string | null;
         };
@@ -48,6 +52,8 @@ export type Database = {
           plan_expires_at?: string | null;
           payment_ref?: string | null;
           paid_at?: string | null;
+          attribution?: Json | null;
+          funnel_answers?: Json | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -66,6 +72,8 @@ export type Database = {
           plan_expires_at?: string | null;
           payment_ref?: string | null;
           paid_at?: string | null;
+          attribution?: Json | null;
+          funnel_answers?: Json | null;
           created_at?: string | null;
           updated_at?: string | null;
         };
@@ -1003,6 +1011,26 @@ export type Database = {
         Update: Partial<
           Database["public"]["Tables"]["food_favorites"]["Insert"]
         >;
+        Relationships: [];
+      };
+      funnel_events: {
+        Row: {
+          id: number;
+          visit_id: string;
+          step: string;
+          attribution: Json | null;
+          locale: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: number;
+          visit_id: string;
+          step: string;
+          attribution?: Json | null;
+          locale?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["funnel_events"]["Insert"]>;
         Relationships: [];
       };
       events: {

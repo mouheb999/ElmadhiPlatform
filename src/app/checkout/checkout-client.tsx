@@ -13,12 +13,15 @@ import {
 } from "@/app/actions/payment";
 import { AppPreview } from "@/components/checkout/app-preview";
 import { PaymentMethods } from "@/components/checkout/payment-methods";
+import { Faq, Guarantee, Testimonials } from "@/components/funnel/proof";
+import { BuildPlanPrompt, PlanRecap } from "@/components/funnel/plan-recap";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type Locale, dir, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
+import { isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
 import type { Database } from "@/types/db";
 
 type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
@@ -118,6 +121,12 @@ type Props = {
   /** The conversation attached to the open request, once a receipt exists. */
   thread: PaymentThread | null;
   from: string | null;
+  /**
+   * The plan they built on /start, when they came through the funnel. Drives
+   * the recap at the top of step 1 — and its absence drives the offer to go
+   * and build one.
+   */
+  funnelAnswers: Partial<FunnelAnswers>;
   settings: Settings | null;
   methods: Method[];
   plans: Plan[];
@@ -148,6 +157,7 @@ export function CheckoutClient({
   wasRejected,
   thread,
   from,
+  funnelAnswers,
   settings,
   methods,
   plans,
@@ -560,6 +570,24 @@ export function CheckoutClient({
               )}
             </div>
 
+            {/* Two readers arrive here, and they need opposite things.
+
+                One came through /start: they answered eleven questions and
+                watched a plan get built two minutes ago, so the price has to
+                read as the next step in that, not as a fresh pitch. The recap
+                restates their own numbers above the terms.
+
+                The other landed on the price with no plan at all — a direct
+                link, a bookmark, an ad pointed here instead of at /start. For
+                them the best possible offer is not another paragraph about the
+                product; it is two free minutes that end in their own calories
+                and their own target date. */}
+            {isComplete(funnelAnswers) ? (
+              <PlanRecap locale={locale} answers={funnelAnswers} />
+            ) : (
+              <BuildPlanPrompt locale={locale} />
+            )}
+
             {wasRejected && (
               <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
                 <p className="text-sm font-bold">{t(locale, "co.rejected_title")}</p>
@@ -755,6 +783,12 @@ export function CheckoutClient({
                   </span>
                 </div>
 
+                {/* The third objection, and the biggest one on a screen that
+                    asks for a bank transfer to a stranger: what happens if
+                    this turns out not to fit me. Left unanswered it is the
+                    last thought a hesitant reader has before closing the tab. */}
+                <Guarantee locale={locale} />
+
                 {/* Names the form before it arrives. Somebody who taps a button
                     that says "continue" and gets an account form instead reads
                     that as a bait; the button says what happens, and this says
@@ -776,6 +810,19 @@ export function CheckoutClient({
                     {t(locale, "co.stay_free")}
                   </Link>
                 )}
+
+                {/* Below the fold on purpose. A reader who has already decided
+                    taps the button above and never sees any of this; a reader
+                    who is hesitating scrolls, and what they are scrolling for
+                    is other people's experience and the answer to whatever is
+                    stopping them.
+
+                    Testimonials render nothing until there are real ones —
+                    see lib/social-proof.ts. */}
+                <div className="mt-2 flex flex-col gap-6 border-t border-hairline pt-6">
+                  <Testimonials locale={locale} />
+                  <Faq locale={locale} />
+                </div>
               </>
             )}
           </>

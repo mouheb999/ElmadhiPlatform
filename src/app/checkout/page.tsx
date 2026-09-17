@@ -1,7 +1,9 @@
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { isUnread } from "@/lib/support";
+import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
 import { CheckoutClient, type PaymentThread } from "./checkout-client";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,21 @@ export default async function CheckoutPage({
   // by the in-app upgrade cards. `plan` survives the trip through signup, so
   // somebody who chose Premium / 3 months comes back to Premium / 3 months.
   const { from, plan: planId } = await searchParams;
+
+  /**
+   * The plan they built on /start, if they built one.
+   *
+   * Read here rather than in the client so the recap is in the first paint —
+   * a card that pops in after hydration, above the plan grid, pushes the
+   * prices down under the reader's thumb at the exact moment they are reaching
+   * for one.
+   *
+   * Untrusted, and it does not need to be trusted: it picks copy and renders
+   * numbers the visitor typed about themselves. Nothing here grants access,
+   * sets a price or survives into the plan they get, which is rebuilt from the
+   * questionnaire they fill in after paying.
+   */
+  const funnelAnswers = parseFunnelAnswers((await cookies()).get(FUNNEL_COOKIE)?.value);
 
   const [{ data: settings }, { data: methods }, { data: plans }] = await Promise.all([
     supabase.from("payment_settings").select("*").eq("id", 1).maybeSingle(),
@@ -114,6 +131,7 @@ export default async function CheckoutPage({
       wasRejected={openRequest?.status === "rejected"}
       thread={thread}
       from={from ?? null}
+      funnelAnswers={funnelAnswers}
       settings={settings ?? null}
       methods={methods ?? []}
       plans={plans ?? []}

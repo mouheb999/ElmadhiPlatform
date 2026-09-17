@@ -13,10 +13,20 @@ type WizardAnswers = DietAnswers;
 export function DietQuestionsClient({
   locale,
   isRedo = false,
+  funnelPrefill,
 }: {
   locale: Locale;
   /** Carried through to the builder so the same rebuild quota check applies. */
   isRedo?: boolean;
+  /**
+   * The answers they already gave on /start, in this wizard's own vocabulary.
+   *
+   * Read from a cookie by the page above; see lib/funnel/answers.ts. Trusted
+   * only to fill in form fields the user is about to see and can change — every
+   * number the plan is built from is recomputed server-side from what they
+   * submit, so a hand-edited cookie buys nothing but a pre-filled form.
+   */
+  funnelPrefill?: Record<string, unknown>;
 }) {
   const router = useRouter();
   const tr = (k: StringKey) => t(locale, k);
@@ -221,6 +231,10 @@ export function DietQuestionsClient({
         budgetLevel: "medium",
         waterIntake: "unknown",
         trackingExperience: "never",
+        // Last, so a real answer from the sign-up funnel beats the default
+        // sitting in the same slot. Everything it does not cover keeps the
+        // default above.
+        ...(funnelPrefill ?? {}),
       }}
     />
       {/* On screen the whole way through: twenty questions is a long way to

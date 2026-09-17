@@ -7,6 +7,8 @@ import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { GATE_COOKIE } from "@/lib/paywall-gate";
 import { normalizePhone } from "@/lib/phone";
 import { siteOrigin } from "@/lib/site-url";
+import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/funnel/attribution";
+import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
 
 /**
  * The origin confirmation and OAuth links come back to.
@@ -36,6 +38,43 @@ async function siteUrl(): Promise<string | null> {
 }
 
 const MISCONFIGURED = "Sign-in is misconfigured. Please contact support.";
+
+/**
+ * What the visitor brought with them from before they had an account.
+ *
+ * Two cookies, both written in the browser during the funnel:
+ *
+ *   - the ad click that produced them, which is the only way a campaign can be
+ *     judged on subscribers rather than on clicks;
+ *   - the answers they gave on /start, so the questionnaire opens pre-filled
+ *     and an admin chasing a stalled payment can see who they are talking to.
+ *
+ * Both are re-parsed rather than forwarded: they are user-writable, so what
+ * reaches the database is the validated subset this code understands and not
+ * whatever was in the cookie. They ride along as sign-up metadata because the
+ * trigger in migration 054 copies them onto the profile row at creation — the
+ * one moment they are true, and the only write that does not need the user to
+ * hold an UPDATE grant on those columns.
+ *
+ * Failure here is silent on purpose. A malformed cookie must never be the
+ * reason somebody cannot create an account.
+ */
+async function funnelMetadata(): Promise<Record<string, string>> {
+  try {
+    const store = await cookies();
+    const metadata: Record<string, string> = {};
+
+    const attribution = parseAttribution(store.get(ATTRIBUTION_COOKIE)?.value);
+    if (attribution) metadata.attribution = JSON.stringify(attribution);
+
+    const answers = parseFunnelAnswers(store.get(FUNNEL_COOKIE)?.value);
+    if (Object.keys(answers).length) metadata.funnel_answers = JSON.stringify(answers);
+
+    return metadata;
+  } catch {
+    return {};
+  }
+}
 
 /**
  * Turn whatever the auth server said into something a customer can act on.
@@ -140,6 +179,8 @@ export async function signUpWithPassword(
       data: {
         ...(fullName ? { full_name: fullName } : {}),
         ...(normalized ? { phone: normalized } : {}),
+        // The ad they came from and the answers they arrived with. See above.
+        ...(await funnelMetadata()),
       },
       emailRedirectTo: `${origin}/dashboard`,
     },
