@@ -109,22 +109,22 @@ export function QuestionWizard<A extends Record<string, unknown>>({
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" variant="ghost" onClick={goBack} disabled={safeIndex === 0 || isSubmitting}>
-          {locale === "tn" ? "لوراء" : "Back"}
+          {locale === "tn" ? "رجوع" : "Back"}
         </Button>
         <div className="flex items-center gap-3">
           {step.optional && !isLast && (
             <Button type="button" variant="secondary" onClick={skip} disabled={isSubmitting}>
-              {locale === "tn" ? "أعدّي" : "Skip"}
+              {locale === "tn" ? "تجاوز" : "Skip"}
             </Button>
           )}
           <Button type="button" onClick={goNext} disabled={!valid || isSubmitting}>
             {isSubmitting
               ? locale === "tn"
-                ? "قاعد يحسب…"
+                ? "جارٍ الحساب…"
                 : "Working…"
               : isLast
                 ? locale === "tn"
-                  ? "كمّل"
+                  ? "أنهِ"
                   : "Finish"
                 : locale === "tn"
                   ? "التالي"

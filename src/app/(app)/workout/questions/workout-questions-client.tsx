@@ -89,7 +89,7 @@ export function WorkoutQuestionsClient({
   if (steps.length === 0) {
     return (
       <p className="text-center text-sm text-muted">
-        {isAr ? "الأسئلة مش متوفرة توّا." : "The questionnaire isn't available yet."}
+        {isAr ? "الأسئلة غير متوفّرة الآن." : "The questionnaire isn't available yet."}
       </p>
     );
   }

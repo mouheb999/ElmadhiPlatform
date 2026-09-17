@@ -50,7 +50,7 @@ export default async function WorkoutRationalePage() {
           headline={program.name}
           body={
             locale === "tn"
-              ? `هذا البرنامج بنيتو إنت: ${trainingProfile.days_per_week} أيام في الجمعة، والتمارين اللي اخترتهم إنت. تنجم تبدّل أو تزيد أي تمرين من صفحة البرنامج وقت ما تحب.`
+              ? `هذا البرنامج بنيته بنفسك: ${trainingProfile.days_per_week} أيام في الأسبوع، بالتمارين التي اخترتها. يمكنك تبديل أو إضافة أي تمرين من صفحة البرنامج متى شئت.`
               : `You built this one yourself: ${trainingProfile.days_per_week} days a week, with the exercises you picked. You can swap or add anything from the program page whenever you like.`
           }
           emphasis
@@ -73,8 +73,8 @@ export default async function WorkoutRationalePage() {
     ? `Your week runs ${weekOrder}. It matches the ${trainingProfile.days_per_week} days a week you can train.`
     : "This split matches how many days a week you can train.";
   const splitAr = weekOrder
-    ? `ترتيب جمعتك: ${weekOrder}. يناسب ${trainingProfile.days_per_week} أيام في الجمعة اللي تنجم تتمرن فيهم.`
-    : "هالتقسيمة تناسب عدد الأيام اللي تنجم تتمرن فيهم.";
+    ? `ترتيب أسبوعك: ${weekOrder}. يناسب ${trainingProfile.days_per_week} أيام في الأسبوع التي تستطيع التمرّن فيها.`
+    : "هذا التقسيم يناسب عدد الأيام التي تستطيع التمرّن فيها.";
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-5">
@@ -88,7 +88,7 @@ export default async function WorkoutRationalePage() {
         headline={locale === "tn" ? "عدد المجموعات والتكرارات" : "Sets and reps"}
         body={
           locale === "tn"
-            ? "كل تمرين يجي بنطاق التكرارات متاعه من البرنامج: الحركات المركبة الثقيلة تكرارات أقل وراحة أطول، وتمارين العزل تكرارات أعلى وراحة أقصر."
+            ? "كل تمرين يأتي بنطاق تكراراته من برنامجك: الحركات المركّبة الثقيلة تكرارات أقلّ وراحة أطول، وتمارين العزل تكرارات أعلى وراحة أقصر."
             : "Every exercise comes with its own rep range from your plan — heavier compound lifts use fewer reps and longer rest, isolation work uses higher reps and shorter rest."
         }
       />
@@ -98,7 +98,7 @@ export default async function WorkoutRationalePage() {
           headline={locale === "tn" ? "انتبه للإصابات" : "Injury awareness"}
           body={
             locale === "tn"
-              ? `سجّلنا إصاباتك: ${trainingProfile.injuries.join("، ")}. تنجم تبدّل أي تمرين من صفحة البرنامج بخيار يريّحك أكثر.`
+              ? `سجّلنا إصاباتك: ${trainingProfile.injuries.join("، ")}. يمكنك تبديل أي تمرين من صفحة البرنامج بخيار أرفق بك.`
               : `We noted your injuries: ${trainingProfile.injuries.join(", ")}. You can swap any exercise on the program page for a gentler option.`
           }
         />

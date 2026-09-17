@@ -118,7 +118,7 @@ export function SplitBuilder({
     setDays((prev) => {
       const next = prev.slice(0, count);
       while (next.length < count) {
-        next.push({ name: `${locale === "tn" ? "نهار" : "Day"} ${next.length + 1}`, exercises: [] });
+        next.push({ name: `${locale === "tn" ? "اليوم" : "Day"} ${next.length + 1}`, exercises: [] });
       }
       return next;
     });
@@ -130,7 +130,7 @@ export function SplitBuilder({
     if (!shape) {
       applyDayCount(dayCount);
       setDays((prev) =>
-        prev.map((day, i) => ({ ...day, name: `${locale === "tn" ? "نهار" : "Day"} ${i + 1}` })),
+        prev.map((day, i) => ({ ...day, name: `${locale === "tn" ? "اليوم" : "Day"} ${i + 1}` })),
       );
       return;
     }

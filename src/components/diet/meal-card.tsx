@@ -35,8 +35,8 @@ export const MEAL_LABELS: Record<string, { en: string; ar: string }> = {
   last_meal: { en: "Last meal", ar: "آخر وجبة" },
   // legacy diary slot keys
   breakfast: { en: "Breakfast", ar: "الفطور" },
-  lunch: { en: "Lunch", ar: "الغدا" },
-  dinner: { en: "Dinner", ar: "العشا" },
+  lunch: { en: "Lunch", ar: "الغداء" },
+  dinner: { en: "Dinner", ar: "العشاء" },
   snack_1: { en: "Snack", ar: "وجبة خفيفة" },
   snack_2: { en: "Snack", ar: "وجبة خفيفة" },
 };

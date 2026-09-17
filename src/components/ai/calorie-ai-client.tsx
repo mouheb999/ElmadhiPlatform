@@ -34,8 +34,8 @@ import type { MealSlot } from "@/app/actions/meal-logs";
 
 const SLOTS: { key: MealSlot; en: string; ar: string }[] = [
   { key: "breakfast", en: "Breakfast", ar: "الفطور" },
-  { key: "lunch", en: "Lunch", ar: "الغدا" },
-  { key: "dinner", en: "Dinner", ar: "العشا" },
+  { key: "lunch", en: "Lunch", ar: "الغداء" },
+  { key: "dinner", en: "Dinner", ar: "العشاء" },
   { key: "snack", en: "Snack", ar: "وجبة خفيفة" },
 ];
 

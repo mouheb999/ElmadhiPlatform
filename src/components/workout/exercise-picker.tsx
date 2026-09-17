@@ -31,17 +31,17 @@ export const MUSCLES = [
 ] as const;
 
 export const MUSCLE_LABELS: Record<string, { en: string; ar: string }> = {
-  chest: { en: "Chest", ar: "صدر" },
-  back: { en: "Back", ar: "ظهر" },
-  shoulders: { en: "Shoulders", ar: "أكتاف" },
-  quads: { en: "Quads", ar: "أمامي الفخذ" },
-  hamstrings: { en: "Hamstrings", ar: "خلفي الفخذ" },
-  glutes: { en: "Glutes", ar: "مؤخرة" },
-  calves: { en: "Calves", ar: "سمانة" },
-  biceps: { en: "Biceps", ar: "بيسپس" },
-  triceps: { en: "Triceps", ar: "ترايسپس" },
-  core: { en: "Core", ar: "وسط" },
-  forearms: { en: "Forearms", ar: "ساعد" },
+  chest: { en: "Chest", ar: "الصدر" },
+  back: { en: "Back", ar: "الظهر" },
+  shoulders: { en: "Shoulders", ar: "الأكتاف" },
+  quads: { en: "Quads", ar: "الفخذ الأمامي" },
+  hamstrings: { en: "Hamstrings", ar: "الفخذ الخلفي" },
+  glutes: { en: "Glutes", ar: "الأرداف" },
+  calves: { en: "Calves", ar: "السمانة" },
+  biceps: { en: "Biceps", ar: "بايسبس" },
+  triceps: { en: "Triceps", ar: "ترايسبس" },
+  core: { en: "Core", ar: "البطن" },
+  forearms: { en: "Forearms", ar: "الساعد" },
 };
 
 /** Cap on rendered rows. The catalog is 213 items; nobody scrolls past this. */

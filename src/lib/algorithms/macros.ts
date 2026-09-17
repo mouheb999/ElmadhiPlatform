@@ -201,15 +201,15 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
       bmr: usedLeanMass
         ? {
             en: `From your body fat, you carry about ${Math.round(w * (1 - (input.bodyFatPercent as number) / 100))} kg of lean mass — that burns around ${roundedBmr} kcal a day at rest.`,
-            ar: `من نسبة الدهون متاعك، عندك حوالي ${Math.round(w * (1 - (input.bodyFatPercent as number) / 100))} كيلو كتلة صافية — تحرق حوالي ${roundedBmr} سعرة في اليوم وأنت مرتاح.`,
+            ar: `من نسبة الدهون لديك، تحمل حوالي ${Math.round(w * (1 - (input.bodyFatPercent as number) / 100))} كيلو كتلة صافية — تحرق حوالي ${roundedBmr} سعرة في اليوم وأنت في الراحة.`,
           }
         : {
             en: `Your body burns about ${roundedBmr} kcal a day just to exist — breathing, organs, brain.`,
-            ar: `جسمك يحرق حوالي ${roundedBmr} سعرة في اليوم غير باش يعيش — التنفس، الأعضاء، الدماغ.`,
+            ar: `جسمك يحرق حوالي ${roundedBmr} سعرة في اليوم لمجرّد أن يعيش — التنفّس والأعضاء والدماغ.`,
           },
       tdee: {
         en: `Add how your day actually goes and you burn around ${tdee} kcal — that's your starting maintenance number. We correct it from your real weight and intake.`,
-        ar: `زيد كيفاش تمشي نهاريتك وتحرق حوالي ${tdee} سعرة — هذا رقم الثبات متاعك في البداية. نصححوه من وزنك ومن الماكلة الحقيقية متاعك.`,
+        ar: `أضف كيف يمرّ يومك فتحرق حوالي ${tdee} سعرة — هذا رقم ثباتك في البداية. ونصحّحه من وزنك ومن طعامك الحقيقي.`,
       },
       target: {
         en:
@@ -220,22 +220,22 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
               : `${strategy.label.en}: we add ${delta} kcal to your maintenance — that's ${calories} kcal a day.`,
         ar:
           delta === 0
-            ? `${strategy.label.ar}: تاكل قد ما تحرق — ${calories} سعرة في اليوم.`
+            ? `${strategy.label.ar}: تأكل بقدر ما تحرق — ${calories} سعرة في اليوم.`
             : delta < 0
-              ? `${strategy.label.ar}: ننقصو ${Math.abs(delta)} سعرة من الثبات متاعك — يعني ${calories} سعرة في اليوم.`
-              : `${strategy.label.ar}: نزيدو ${delta} سعرة على الثبات متاعك — يعني ${calories} سعرة في اليوم.`,
+              ? `${strategy.label.ar}: ننقص ${Math.abs(delta)} سعرة من ثباتك — أي ${calories} سعرة في اليوم.`
+              : `${strategy.label.ar}: نضيف ${delta} سعرة إلى ثباتك — أي ${calories} سعرة في اليوم.`,
       },
       protein: {
         en: `${proteinG}g of protein keeps your muscle while you ${input.goal === "lose_fat" ? "lose fat" : "build"}.`,
-        ar: `${proteinG}غ بروتين يحافظ على عضلك وأنت ${input.goal === "lose_fat" ? "تنشف" : "تبني"}.`,
+        ar: `${proteinG}غ بروتين تحافظ على عضلك وأنت ${input.goal === "lose_fat" ? "تنقص الدهون" : "تبني"}.`,
       },
       fat: {
         en: `${fatG}g of fat keeps your hormones and energy steady.`,
-        ar: `${fatG}غ دهون تخلي الهرمونات والطاقة متاعك ثابتة.`,
+        ar: `${fatG}غ دهون تُبقي هرموناتك وطاقتك ثابتة.`,
       },
       carbs: {
         en: `${carbsG}g of carbs fuel your training and your brain.`,
-        ar: `${carbsG}غ كربوهيدرات تعطيك طاقة للتمرين والدماغ.`,
+        ar: `${carbsG}غ كربوهيدرات تعطيك طاقة للتمرين وللدماغ.`,
       },
     },
   };

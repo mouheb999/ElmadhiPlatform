@@ -43,7 +43,7 @@ export default async function QaDetailPage({ params }: { params: Promise<{ id: s
     <div className="mx-auto flex max-w-lg flex-col gap-5">
       <Link href="/qa" className="flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink">
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-        {locale === "tn" ? "لوراء" : "Back"}
+        {locale === "tn" ? "رجوع" : "Back"}
       </Link>
 
       <QaAnswerCard

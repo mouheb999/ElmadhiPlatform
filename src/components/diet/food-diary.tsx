@@ -88,8 +88,8 @@ const PLAN_MEAL_LABELS: Record<string, { en: string; ar: string }> = {
   other: { en: "Other", ar: "أخرى" },
   // legacy slots, for days logged before the diary mirrored the plan
   breakfast: { en: "Breakfast", ar: "الفطور" },
-  lunch: { en: "Lunch", ar: "الغدا" },
-  dinner: { en: "Dinner", ar: "العشا" },
+  lunch: { en: "Lunch", ar: "الغداء" },
+  dinner: { en: "Dinner", ar: "العشاء" },
 };
 
 function slotLabel(locale: Locale, key: string): string {

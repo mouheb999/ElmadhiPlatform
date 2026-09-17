@@ -57,10 +57,10 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
         goal,
         calorieFactor: 0.85,
         proteinPerKg: 2.0,
-        label: { en: "Fat loss", ar: "تنشيف" },
+        label: { en: "Fat loss", ar: "إنقاص الدهون" },
         rationale: {
           en: "A calorie deficit with high protein, so you lose fat while holding onto muscle.",
-          ar: "نقص في السعرات مع بروتين عالي، باش تنشّف وتحافظ على العضل.",
+          ar: "عجز في السعرات مع بروتين عالٍ، لتنقص الدهون وتحافظ على العضل.",
         },
       };
     case "build_muscle":
@@ -68,10 +68,10 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
         goal,
         calorieFactor: 1.07,
         proteinPerKg: 2.0,
-        label: { en: "Lean muscle gain", ar: "تضخيم نظيف" },
+        label: { en: "Lean muscle gain", ar: "زيادة عضلية نظيفة" },
         rationale: {
           en: "A small, controlled surplus — enough to build muscle, small enough that most of what you gain is muscle.",
-          ar: "فائض صغير ومحسوب — يكفي باش تبني عضل، وصغير باش أغلب ما تزيدو يكون عضل.",
+          ar: "فائض صغير ومحسوب — يكفي لبناء العضل، وصغير بما يجعل أغلب ما تزيده عضلاً.",
         },
       };
     case "maintain":
@@ -82,7 +82,7 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
         label: { en: "Health and maintenance", ar: "صحة وثبات" },
         rationale: {
           en: "You eat at maintenance — no deficit or surplus — with a balanced split of protein, carbs and fat.",
-          ar: "تاكل قد ما تحرق — بلا نقص ولا زيادة — بتوزيع متوازن بين البروتين والكربوهيدرات والدهون.",
+          ar: "تأكل بقدر ما تحرق — بلا عجز ولا فائض — بتوزيع متوازن بين البروتين والكربوهيدرات والدهون.",
         },
       };
     case "recomp":
@@ -93,7 +93,7 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
         label: { en: "Body recomposition", ar: "إعادة تشكيل الجسم" },
         rationale: {
           en: "Calories stay at maintenance with high protein, so you can lose fat and build muscle at the same time.",
-          ar: "السعرات تبقى في الثبات مع بروتين عالي، باش تنشّف وتبني عضل في نفس الوقت.",
+          ar: "السعرات تبقى عند الثبات مع بروتين عالٍ، لتنقص الدهون وتبني العضل في الوقت نفسه.",
         },
       };
   }

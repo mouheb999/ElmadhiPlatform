@@ -28,7 +28,7 @@ export function validateMealPlan(totals: MealPlanTotals, target: MacroTargetLike
       type: "low_protein",
       message: {
         en: `Protein is ${totals.proteinG}g — your target is ${target.proteinG}g. Too little protein slows down muscle recovery.`,
-        ar: `البروتين ${totals.proteinG}غ — الهدف متاعك ${target.proteinG}غ. بروتين قليل يبطّي استرجاع العضل.`,
+        ar: `البروتين ${totals.proteinG}غ — وهدفك ${target.proteinG}غ. البروتين القليل يبطّئ استشفاء العضل.`,
       },
     });
   }
@@ -40,7 +40,7 @@ export function validateMealPlan(totals: MealPlanTotals, target: MacroTargetLike
       type: "over_calories",
       message: {
         en: `You're ${over} kcal over your daily target.`,
-        ar: `أنت زايد ${over} سعرة على هدفك اليومي.`,
+        ar: `أنت تتجاوز هدفك اليومي بـ ${over} سعرة.`,
       },
     });
   }
@@ -52,7 +52,7 @@ export function validateMealPlan(totals: MealPlanTotals, target: MacroTargetLike
       type: "under_calories",
       message: {
         en: `You're ${under} kcal under your daily target — that's too big a gap to sustain.`,
-        ar: `أنت ناقص ${under} سعرة عن هدفك اليومي — فرق كبير باش تكمّل فيه.`,
+        ar: `ينقصك ${under} سعرة عن هدفك اليومي — فارق كبير على أن تواصل به.`,
       },
     });
   }
@@ -65,8 +65,8 @@ const REQUIRED_MUSCLE_COVERAGE = ["chest", "back", "quads", "hamstrings", "shoul
 const MUSCLE_LABEL: Record<string, Bilingual> = {
   chest: { en: "chest", ar: "الصدر" },
   back: { en: "back", ar: "الظهر" },
-  quads: { en: "quads", ar: "عضلات الفخذ الأمامية" },
-  hamstrings: { en: "hamstrings", ar: "عضلات الفخذ الخلفية" },
+  quads: { en: "quads", ar: "الفخذ الأمامي" },
+  hamstrings: { en: "hamstrings", ar: "الفخذ الخلفي" },
   shoulders: { en: "shoulders", ar: "الأكتاف" },
 };
 
@@ -91,7 +91,7 @@ export function validateProgram(exercisePrimaryMuscles: string[]): Warning[] {
         type: `no_${muscle}`,
         message: {
           en: `No ${label.en} exercises this week.`,
-          ar: `ما فماش تمارين ${label.ar} هالأسبوع.`,
+          ar: `لا توجد تمارين ${label.ar} هذا الأسبوع.`,
         },
       });
     }
