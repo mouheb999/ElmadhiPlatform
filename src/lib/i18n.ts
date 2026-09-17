@@ -1960,10 +1960,20 @@ const STRINGS = {
   "fn.m_carbs": { en: "Carbs", tn: "كربوهيدرات" },
   "fn.m_fat": { en: "Fat", tn: "دهون" },
   "fn.r_maintenance": { en: "Your maintenance", tn: "سعرات الثبات" },
-  "fn.r_chart_title": { en: "Where this goes", tn: "إلى أين يصل هذا" },
+  // The line above the milestone track. Composed around the numbers, so the
+  // sentence reads "you will see +0.6 kg on the scale within 4 weeks."
+  "fn.r_first_line": { en: "You should see", tn: "من المفروض تشوف" },
+  "fn.r_first_line_tail": { en: "on the scale within", tn: "على الميزان في ظرف" },
+  "fn.r_start_here": { en: "Where you are now", tn: "من هنا تبدأ" },
+  "fn.r_chart_title": { en: "Your road to it", tn: "طريقك إليه" },
   "fn.r_today": { en: "Today", tn: "اليوم" },
   "fn.r_target": { en: "Target", tn: "الهدف" },
   "fn.r_by": { en: "by", tn: "قبل" },
+  // Arabic counts weeks in four forms, not two. See `weeksLabel`.
+  "fn.week_1": { en: "week", tn: "أسبوع" },
+  "fn.week_2": { en: "weeks", tn: "أسبوعين" },
+  "fn.weeks_few": { en: "weeks", tn: "أسابيع" },
+  "fn.weeks_many": { en: "weeks", tn: "أسبوعاً" },
   "fn.r_weeks": { en: "weeks", tn: "أسبوع" },
   "fn.r_first_week": { en: "First week", tn: "الأسبوع الأول" },
   "fn.r_estimate": {
@@ -2101,6 +2111,24 @@ export function monthsLabel(locale: Locale, months: number): string {
   if (months === 6) return t(locale, "plans.months_6");
   if (months === 12) return t(locale, "plans.months_12");
   return `${months} ${t(locale, "admin.months_short")}`;
+}
+
+/**
+ * A count of weeks, in words.
+ *
+ * Arabic does not pluralise like English. One is "أسبوع", two has its own dual
+ * form "أسبوعين", three to ten take the broken plural "أسابيع", and eleven
+ * upwards goes back to the singular. The milestone track prints this beside a
+ * number on every row, so getting it wrong reads as broken to a native speaker
+ * four times on the screen that is trying to sell them something.
+ *
+ * English has one plural and does not care; the same keys carry it.
+ */
+export function weeksLabel(locale: Locale, weeks: number): string {
+  if (weeks === 1) return t(locale, "fn.week_1");
+  if (weeks === 2) return t(locale, "fn.week_2");
+  if (weeks <= 10) return t(locale, "fn.weeks_few");
+  return t(locale, "fn.weeks_many");
 }
 
 /** Every key in the catalogue, for the admin copy editor's search. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { projectWeight, sampleCurve, type ProjectionInput } from "./projection";
+import { projectWeight, type ProjectionInput } from "./projection";
 
 /**
  * The date on the reveal is the most persuasive thing in the funnel, so these
@@ -103,20 +103,50 @@ describe("projectWeight", () => {
   });
 });
 
-describe("sampleCurve", () => {
-  it("leaves a short curve alone", () => {
-    const points = [
-      { week: 0, kg: 90 },
-      { week: 1, kg: 89 },
-    ];
-    expect(sampleCurve(points)).toEqual(points);
+describe("milestones", () => {
+  it("leads with a stop the reader can picture, not the endpoint", () => {
+    const p = projectWeight(CUTTING);
+    expect(p.milestones[0].kind).toBe("today");
+    expect(p.milestones[0].week).toBe(0);
+    // The first stop after today is near enough to be believable.
+    expect(p.milestones[1].week).toBeLessThanOrEqual(4);
   });
 
-  it("thins a long one but keeps both ends", () => {
-    const points = Array.from({ length: 104 }, (_, i) => ({ week: i, kg: 100 - i * 0.2 }));
-    const sampled = sampleCurve(points, 26);
-    expect(sampled).toHaveLength(26);
-    expect(sampled[0]).toEqual(points[0]);
-    expect(sampled[sampled.length - 1]).toEqual(points[points.length - 1]);
+  it("ends on the target when the target is reached", () => {
+    const p = projectWeight(CUTTING);
+    const last = p.milestones[p.milestones.length - 1];
+    expect(last.kind).toBe("target");
+    expect(last.kg).toBeCloseTo(CUTTING.targetWeightKg, 5);
+    expect(last.week).toBe(p.weeks);
+  });
+
+  it("does not call the last stop a target when the target was never reached", () => {
+    const p = projectWeight({ ...CUTTING, weightKg: 200, targetWeightKg: 70 });
+    expect(p.weeks).toBeNull();
+    const last = p.milestones[p.milestones.length - 1];
+    expect(last.kind).toBe("checkpoint");
+  });
+
+  it("never repeats a stop, however short the journey", () => {
+    // A three-week journey must not show "week 4" alongside "week 3".
+    const p = projectWeight({ ...CUTTING, weightKg: 92, targetWeightKg: 90 });
+    const weeks = p.milestones.map((m) => m.week);
+    expect(new Set(weeks).size).toBe(weeks.length);
+    expect([...weeks]).toEqual([...weeks].sort((a, b) => a - b));
+    for (let i = 1; i < weeks.length; i++) {
+      expect(weeks[i]).toBeGreaterThan(weeks[i - 1]);
+    }
+  });
+
+  it("dates every stop in the future, in order", () => {
+    const p = projectWeight(CUTTING);
+    for (let i = 1; i < p.milestones.length; i++) {
+      expect(p.milestones[i].date.getTime()).toBeGreaterThan(p.milestones[i - 1].date.getTime());
+    }
+  });
+
+  it("has no milestones for a recomposition, which has no scale journey", () => {
+    const p = projectWeight({ ...CUTTING, goal: "maintain", targetWeightKg: 92 });
+    expect(p.milestones).toEqual([]);
   });
 });

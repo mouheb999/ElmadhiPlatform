@@ -1,9 +1,9 @@
 "use client";
 
 import { CalendarDays, Check, Dumbbell, Flame, Lock } from "lucide-react";
-import { ProjectionChart } from "@/components/funnel/projection-chart";
+import { MilestoneTrack } from "@/components/funnel/milestone-track";
 import { ProofPoints, Testimonials } from "@/components/funnel/proof";
-import { t, type Locale, type StringKey } from "@/lib/i18n";
+import { t, weeksLabel, type Locale, type StringKey } from "@/lib/i18n";
 import type { FunnelAnswers } from "@/lib/funnel/answers";
 import { projectWeight } from "@/lib/funnel/projection";
 
@@ -60,7 +60,9 @@ export function PlanReveal({
       })
     : null;
 
-  const firstWeek = Math.abs(projection.firstWeekKg);
+  /** The nearest stop that is not today — what the headline above the track says. */
+  const firstStop = projection.milestones.find((stop) => stop.kind !== "today") ?? null;
+  const firstStopDelta = firstStop ? firstStop.kg - projection.milestones[0].kg : 0;
 
   return (
     <div className="flex flex-col gap-5 py-6">
@@ -106,43 +108,45 @@ export function PlanReveal({
 
       {/* ---- Where it goes ---- */}
       {projection.kind === "scale" ? (
-        <section className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface px-4 py-5">
-          <div className="flex items-center justify-between gap-3">
+        <section className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface px-4 py-5">
+          <div className="flex flex-col gap-1">
             <h2 className="font-display text-base font-extrabold">{t(locale, "fn.r_chart_title")}</h2>
-            {dateLabel && (
-              <span className="flex items-center gap-1.5 rounded-full bg-accent/15 px-2.5 py-1 text-xs font-bold text-accent">
-                <CalendarDays className="h-3.5 w-3.5" />
-                <bdi>
-                  {t(locale, "fn.r_by")} {dateLabel}
+            {/* The first stop, said in words above the track.
+
+                This is the headline now. The endpoint used to be, and it is
+                the wrong number to lead with: correct, far away, and easy to
+                disbelieve. What decides whether somebody starts is what
+                changes by the end of next month. */}
+            {firstStop && (
+              <p className="text-[13px] leading-relaxed text-muted">
+                {t(locale, "fn.r_first_line")}{" "}
+                <bdi className="font-bold text-accent">
+                  {firstStopDelta < 0 ? "−" : "+"}
+                  {Math.abs(firstStopDelta).toFixed(1)} {t(locale, "fn.unit_kg")}
+                </bdi>{" "}
+                {t(locale, "fn.r_first_line_tail")}{" "}
+                <bdi className="font-bold text-ink">
+                  {firstStop.week} {weeksLabel(locale, firstStop.week)}
                 </bdi>
-              </span>
+                .
+              </p>
             )}
           </div>
 
-          <ProjectionChart locale={locale} projection={projection} />
+          <MilestoneTrack
+            locale={locale}
+            milestones={projection.milestones}
+            unitLabel={t(locale, "fn.unit_kg")}
+          />
 
-          <div className="flex items-stretch justify-center gap-4 text-center">
-            {projection.weeks !== null && (
-              <>
-                <span className="flex flex-col">
-                  <span className="font-display text-lg font-extrabold tabular-nums">
-                    {projection.weeks}
-                  </span>
-                  <span className="text-[11px] text-muted">{t(locale, "fn.r_weeks")}</span>
-                </span>
-                <span className="w-px bg-hairline" aria-hidden />
-              </>
-            )}
-            <span className="flex flex-col">
-              <span className="font-display text-lg font-extrabold tabular-nums">
-                <bdi>
-                  {projection.firstWeekKg < 0 ? "−" : "+"}
-                  {firstWeek.toFixed(1)} {t(locale, "fn.unit_kg")}
-                </bdi>
-              </span>
-              <span className="text-[11px] text-muted">{t(locale, "fn.r_first_week")}</span>
-            </span>
-          </div>
+          {projection.weeks !== null && dateLabel && (
+            <p className="flex items-center justify-center gap-1.5 rounded-full bg-accent/10 px-3 py-2 text-xs font-bold text-accent">
+              <CalendarDays className="h-3.5 w-3.5 shrink-0" />
+              <bdi>
+                {t(locale, "fn.r_by")} {dateLabel} · {projection.weeks} {weeksLabel(locale, projection.weeks)}
+              </bdi>
+            </p>
+          )}
 
           <p className="text-center text-[12px] leading-relaxed text-muted">
             {t(locale, projection.weeks === null ? "fn.r_no_date" : "fn.r_estimate")}
