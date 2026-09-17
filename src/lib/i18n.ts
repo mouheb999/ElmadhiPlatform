@@ -1819,12 +1819,10 @@ const STRINGS = {
   "fn.back": { en: "Back", tn: "رجوع" },
   "fn.next": { en: "Continue", tn: "تابع" },
 
-  // Opening screen
-  "fn.hero_title": { en: "Stop guessing. Get the plan.", tn: "توقّف عن التخمين. خذ برنامجك." },
-  "fn.hero_sub": {
-    en: "Eleven questions about your body and your week. At the end you see your calories, your training split and the date your target lands on.",
-    tn: "11 سؤالاً عن جسمك وعن أسبوعك. في النهاية ترى سعراتك، تقسيم تمارينك، والتاريخ الذي تصل فيه إلى هدفك.",
-  },
+  // The button on the landing page, and the two lines under the funnel's first
+  // question. /start has no screen of its own before the questionnaire: the
+  // title and subtitle that used to sit there said what the landing page had
+  // just said, over a button that only asked permission to begin.
   "fn.hero_cta": { en: "Start — it takes 2 minutes", tn: "ابدأ — دقيقتان فقط" },
   "fn.hero_free": { en: "Free. No account, no card.", tn: "مجاني. بدون حساب، بدون بطاقة." },
   "fn.hero_signin": { en: "Already have an account?", tn: "عندك حساب؟" },

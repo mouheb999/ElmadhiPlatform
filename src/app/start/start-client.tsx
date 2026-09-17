@@ -23,7 +23,6 @@ import { recordFunnelStep } from "@/app/actions/funnel";
 import { inRange, isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
 import {
   captureAttribution,
-  loadAnswers,
   rawAttribution,
   saveAnswers,
   visitId,
@@ -39,6 +38,12 @@ import { dir, t, type Locale, type StringKey } from "@/lib/i18n";
  * not being asked "do you want a fitness app" — they are being asked whether
  * they want the plan they just watched get built, which is a question with a
  * much better answer rate.
+ *
+ * There is no welcome screen. The visitor arrives on question one, because a
+ * screen whose only content is a button asking whether they would like to begin
+ * is a tap charged against a click we paid for — and, pointed at from the
+ * landing page, it was the same headline and the same button twice. The first
+ * tap is an answer.
  *
  * Three rules hold the flow together:
  *
@@ -56,7 +61,6 @@ import { dir, t, type Locale, type StringKey } from "@/lib/i18n";
  */
 
 type Screen =
-  | { kind: "hero" }
   | {
       kind: "choice";
       step: string;
@@ -83,7 +87,32 @@ function isQuestion(screen: Screen): boolean {
   return screen.kind === "choice" || screen.kind === "number";
 }
 
-export function StartClient({ locale }: { locale: Locale }) {
+/**
+ * Where a visitor should be dropped into the flow.
+ *
+ * Somebody returning to a half-finished funnel should not have to tap past six
+ * questions they have already answered — that is the moment it stops being a
+ * plan and becomes a form. A funnel with every answer filled in reopens on the
+ * last question rather than the reveal, so the reveal is always something they
+ * arrived at, never something that was waiting for them.
+ */
+function firstUnanswered(screens: Screen[], answers: Partial<FunnelAnswers>): number {
+  const found = screens.findIndex(
+    (screen) => isQuestion(screen) && answers[(screen as { key: keyof FunnelAnswers }).key] === undefined,
+  );
+  if (found !== -1) return found;
+  const last = screens.map(isQuestion).lastIndexOf(true);
+  return last === -1 ? 0 : last;
+}
+
+export function StartClient({
+  locale,
+  initialAnswers,
+}: {
+  locale: Locale;
+  /** The cookie from a previous visit, read on the server. See page.tsx. */
+  initialAnswers: Partial<FunnelAnswers>;
+}) {
   const router = useRouter();
   const tr = useCallback((key: StringKey) => t(locale, key), [locale]);
 
@@ -106,7 +135,6 @@ export function StartClient({ locale }: { locale: Locale }) {
       }));
 
     return [
-      { kind: "hero" },
       {
         kind: "choice",
         step: "q_goal",
@@ -226,25 +254,27 @@ export function StartClient({ locale }: { locale: Locale }) {
 
   const questionCount = screens.filter(isQuestion).length;
 
-  const [index, setIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<FunnelAnswers>>({});
+  // Both seeded from the server-read cookie, so the first paint is already the
+  // right question with the right cards lit — no flash of question one.
+  const [index, setIndex] = useState(() => firstUnanswered(screens, initialAnswers));
+  const [answers, setAnswers] = useState<Partial<FunnelAnswers>>(initialAnswers);
   const [invalid, setInvalid] = useState<string | null>(null);
   const screen = screens[Math.min(index, screens.length - 1)];
 
   /**
-   * The ad parameters, kept before anything else can navigate away.
+   * The ad parameters, kept before anything else can navigate away, and the
+   * visit itself.
    *
-   * The answers from a previous visit are deliberately NOT loaded here. They
-   * live in a cookie, which the server render cannot see, so reading them into
-   * state on mount would mean rendering once without them and again with them
-   * — a cascading render on the first screen of the funnel, on a phone, on the
-   * click we paid for. They are read in `begin()` instead, at the moment the
-   * reader asks to start, which is the first moment anything on screen depends
-   * on them.
+   * `landed` is recorded here rather than by the screen effect below, because
+   * there is no longer a screen that means "arrived but has not answered
+   * anything". It is the denominator every other step in the funnel is read
+   * against: without it, a campaign's drop-off starts at question one and the
+   * people who bounced before answering are invisible.
    */
   useEffect(() => {
     captureAttribution();
-  }, []);
+    void recordFunnelStep(visitId(), "landed", rawAttribution(), locale);
+  }, [locale]);
 
   /**
    * Record each screen as it is reached.
@@ -255,7 +285,7 @@ export function StartClient({ locale }: { locale: Locale }) {
    */
   const sent = useRef(new Set<string>());
   useEffect(() => {
-    const step = screen.kind === "hero" ? "landed" : screen.step;
+    const step = screen.step;
     if (sent.current.has(step)) return;
     sent.current.add(step);
     void recordFunnelStep(visitId(), step, rawAttribution(), locale);
@@ -279,20 +309,10 @@ export function StartClient({ locale }: { locale: Locale }) {
     window.scrollTo({ top: 0 });
   }
 
-  /**
-   * Start, or pick up where they left off.
-   *
-   * Somebody returning to a half-finished funnel should not have to tap past
-   * six questions they have already answered — that is the moment they decide
-   * this is a form rather than a plan.
-   */
-  function begin() {
-    const stored = loadAnswers();
-    setAnswers(stored);
-    const firstUnanswered = screens.findIndex(
-      (s) => isQuestion(s) && stored[(s as { key: keyof FunnelAnswers }).key] === undefined,
-    );
-    setIndex(firstUnanswered === -1 ? 1 : firstUnanswered);
+  /** Back to whatever is still missing. Only the recovery screen needs this. */
+  function resume() {
+    setInvalid(null);
+    setIndex(firstUnanswered(screens, answers));
     window.scrollTo({ top: 0 });
   }
 
@@ -342,8 +362,14 @@ export function StartClient({ locale }: { locale: Locale }) {
           a sales page, and a "11/11" strip with a back arrow on it invites the
           reader to walk backwards into the loading animation they just sat
           through. */}
-      {screen.kind !== "hero" && screen.kind !== "building" && screen.kind !== "reveal" && (
-        <div className="sticky top-0 z-10 -mx-4 bg-bg/95 px-4 pb-2 pt-4 backdrop-blur">
+      {screen.kind !== "building" && screen.kind !== "reveal" && (
+        <div className="sticky top-0 z-10 -mx-4 flex flex-col gap-3 bg-bg/95 px-4 pb-2 pt-4 backdrop-blur">
+          {/* The one thing the deleted welcome screen was carrying that the
+              questionnaire could not say for itself. An ad click that lands on
+              a bare question has no confirmation it reached the thing it was
+              sold — the mark is small, constant across every screen, and does
+              not move when the question does. */}
+          <Logo className="mx-auto h-7" />
           <ProgressBar
             locale={locale}
             current={current}
@@ -352,8 +378,6 @@ export function StartClient({ locale }: { locale: Locale }) {
           />
         </div>
       )}
-
-      {screen.kind === "hero" && <Hero locale={locale} onStart={begin} />}
 
       {screen.kind === "choice" && (
         <ScreenBody title={tr(screen.title)} hint={screen.hint ? tr(screen.hint) : undefined}>
@@ -402,6 +426,8 @@ export function StartClient({ locale }: { locale: Locale }) {
         </>
       )}
 
+      {index === 0 && <OpeningFooter locale={locale} />}
+
       {screen.kind === "building" && <BuildingScreen locale={locale} onDone={goForward} />}
 
       {screen.kind === "reveal" &&
@@ -412,40 +438,28 @@ export function StartClient({ locale }: { locale: Locale }) {
           // version of the funnel, or a reload part-way through. Send them to
           // the first thing that is missing rather than rendering a plan built
           // on undefined.
-          <Recover locale={locale} onFix={begin} />
+          <Recover locale={locale} onFix={resume} />
         ))}
     </main>
   );
 }
 
-/** The opening screen. One promise, one button, and what it costs to press it. */
-function Hero({ locale, onStart }: { locale: Locale; onStart: () => void }) {
+/**
+ * What the welcome screen used to carry, under the first question.
+ *
+ * Two things on it were worth keeping and neither needed a screen. The price —
+ * nothing, no account, no card — answers the question a stranger asks before
+ * the first tap, so it sits where they are about to tap. The sign-in link is
+ * for the customer who followed an ad to a product they already pay for, and
+ * without it their only way back in is the browser's back button.
+ *
+ * Only under question one: past that they have started, and a way out of the
+ * funnel under every question is an invitation to take it.
+ */
+function OpeningFooter({ locale }: { locale: Locale }) {
   return (
-    <div className="flex flex-1 flex-col justify-center gap-7 py-12">
-      <div className="glow-accent pointer-events-none absolute inset-x-0 top-0 -z-10 h-[50vh]" />
-
-      <Logo className="mx-auto h-14" />
-
-      <div className="flex flex-col gap-3 text-center">
-        <h1 className="text-balance font-display text-[32px] font-extrabold leading-[1.1] tracking-tight">
-          {t(locale, "fn.hero_title")}
-        </h1>
-        <p className="mx-auto max-w-[36ch] text-balance text-[15px] leading-relaxed text-muted">
-          {t(locale, "fn.hero_sub")}
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={onStart}
-          className="flex h-14 w-full items-center justify-center rounded-full bg-accent font-display text-base font-bold text-bg shadow-[0_12px_32px_-8px_rgba(192,218,27,0.5)] transition-transform active:scale-[0.98]"
-        >
-          {t(locale, "fn.hero_cta")}
-        </button>
-        <p className="text-center text-xs font-bold text-muted">{t(locale, "fn.hero_free")}</p>
-      </div>
-
+    <div className="flex flex-col gap-2 pb-8 pt-2">
+      <p className="text-center text-xs font-bold text-muted">{t(locale, "fn.hero_free")}</p>
       <p className="text-center text-sm text-muted">
         {t(locale, "fn.hero_signin")}{" "}
         <Link href="/login" className="font-bold text-accent hover:underline">
