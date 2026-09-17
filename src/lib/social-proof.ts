@@ -62,7 +62,7 @@ export type Testimonial = {
  *     context: { en: "Sfax, 5 months in", tn: "صفاقس، 5 أشهر" },
  *     quote: {
  *       en: "First programme I actually finished. The weekly change is what did it.",
- *       tn: "أول برنامج كمّلتو. التبديل كل جمعة هو اللي خلاني نكمّل.",
+ *       tn: "أول برنامج أكملته. التعديل كل أسبوع هو ما جعلني أواصل.",
  *     },
  *     result: { en: "-9 kg", tn: "-9 كغ" },
  *   },
@@ -105,7 +105,7 @@ export const PROOF_POINTS: ProofPoint[] = [
     },
     body: {
       en: "Your days, your equipment, your injuries. Every exercise has a video and a one-tap swap if it does not suit you.",
-      tn: "أيامك، المعدات اللي عندك، الإصابات متاعك. كل تمرين عندو فيديو وتنجم تبدلو بضغطة وحدة.",
+      tn: "أيامك، المعدات التي تملكها، وإصاباتك. لكل تمرين فيديو، وتستطيع تبديله بضغطة واحدة.",
     },
   },
   {
@@ -113,11 +113,11 @@ export const PROOF_POINTS: ProofPoint[] = [
     icon: "utensils",
     title: {
       en: "Meals with real food, at your budget",
-      tn: "ماكلة حقيقية، على قد جيبك",
+      tn: "أكل حقيقي، في حدود ميزانيتك",
     },
     body: {
       en: "Calories and macros worked out from your body, then filled with food you already eat and can afford.",
-      tn: "السعرات والماكروز محسوبين من جسمك، ومعمرين بماكلة تاكل فيها وتنجم تشريها.",
+      tn: "السعرات والماكروز محسوبة من جسمك، والوجبات مبنيّة على أكل تأكله فعلاً وتستطيع شراءه.",
     },
   },
   {
@@ -125,11 +125,11 @@ export const PROOF_POINTS: ProofPoint[] = [
     icon: "sparkles",
     title: {
       en: "Photograph a plate, get the macros",
-      tn: "صوّر الصحن، تجيك الماكروز",
+      tn: "صوّر الصحن، تصلك الماكروز",
     },
     body: {
       en: "No searching a database for couscous. Point the camera at dinner and it lands in your diary.",
-      tn: "ما تلوجش في قاعدة بيانات على الكسكسي. صوّر العشاء وتتسجل توّا في اليومية متاعك.",
+      tn: "لا بحث في قاعدة بيانات عن الكسكسي. صوّر العشاء فيُسجَّل مباشرة في يومياتك.",
     },
   },
   {
@@ -137,11 +137,11 @@ export const PROOF_POINTS: ProofPoint[] = [
     icon: "trending",
     title: {
       en: "It changes when you stall",
-      tn: "يتبدّل كي تحبس",
+      tn: "يتغيّر عندما تتوقّف",
     },
     body: {
       en: "Weight and sessions are reviewed every week. When the scale stops moving, the numbers move instead of you guessing.",
-      tn: "الوزن والحصص يتراجعو كل جمعة. كي الميزان يحبس، الأرقام تتبدّل بدل ما تخمّم وحدك.",
+      tn: "وزنك وحصصك تُراجَع كل أسبوع. عندما يتوقّف الميزان، تتغيّر الأرقام بدل أن تخمّن وحدك.",
     },
   },
   {
@@ -149,11 +149,11 @@ export const PROOF_POINTS: ProofPoint[] = [
     icon: "message",
     title: {
       en: "A real coach answers, in Derja",
-      tn: "مدرب حقيقي يجاوبك، بالدارجة",
+      tn: "مدرّب حقيقي يجيبك، بالدارجة",
     },
     body: {
       en: "Not a chatbot. You ask, a person who writes the programs answers.",
-      tn: "موش روبو. تسأل، والشخص اللي يكتب البرامج هو اللي يجاوبك.",
+      tn: "ليس روبوتاً. تسأل، فيجيبك الشخص الذي يكتب البرامج.",
     },
   },
 ];
