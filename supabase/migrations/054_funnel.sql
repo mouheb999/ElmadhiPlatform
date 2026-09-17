@@ -93,6 +93,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Re-pin the search_path that migration 047 set.
+--
+-- CREATE OR REPLACE FUNCTION drops a function's SET clause, and this one is
+-- SECURITY DEFINER: unpinned, anyone able to create objects in a schema earlier
+-- on the path could shadow something it references and have it run with the
+-- definer's rights. Its two siblings from 047 keep the pin; this keeps all
+-- three identical. (Privileges are NOT reset by a replace, so 047's REVOKE on
+-- anon and authenticated still stands.)
+ALTER FUNCTION public.handle_new_user() SET search_path = public, pg_temp;
+
 -- Which campaign is producing subscribers, not just clicks.
 CREATE INDEX IF NOT EXISTS idx_profiles_attribution_source
   ON profiles ((attribution->>'source'))

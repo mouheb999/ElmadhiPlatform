@@ -1,0 +1,21 @@
+-- 055_restore_handle_new_user_search_path.sql
+--
+-- Applied to production after 054, which had already run there.
+--
+-- 054 replaced `handle_new_user` with CREATE OR REPLACE, and that drops a
+-- function's SET clause. Migration 047 had pinned `search_path` on it for a
+-- reason: the function is SECURITY DEFINER, so it runs with the definer's
+-- rights, and an unpinned search_path lets anyone who can create objects in a
+-- schema earlier on the path shadow a table or operator it references and have
+-- that executed with those rights. Supabase's own security advisor caught it.
+--
+-- 054 now ends with the same ALTER, so a fresh database gets this from 054
+-- alone and never has the gap. This migration exists for the databases where
+-- 054 had already been applied without it.
+--
+-- Privileges were never affected: CREATE OR REPLACE preserves a function's
+-- ACL, so 047's REVOKE on anon and authenticated held throughout.
+--
+-- Re-runnable.
+
+ALTER FUNCTION public.handle_new_user() SET search_path = public, pg_temp;
