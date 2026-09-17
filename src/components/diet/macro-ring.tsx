@@ -1,5 +1,7 @@
 "use client";
 
+import { t, type Locale } from "@/lib/i18n";
+
 const MACRO_COLORS = {
   protein: "#C0DA1B",
   carbs: "#F5A623",
@@ -27,6 +29,7 @@ function Bar({ label, value, target, color }: { label: string; value: number; ta
 }
 
 export function MacroRing({
+  locale,
   calories,
   caloriesTarget,
   proteinG,
@@ -37,6 +40,7 @@ export function MacroRing({
   fatTargetG,
   dailyTargetLabel,
 }: {
+  locale: Locale;
   calories: number;
   caloriesTarget: number;
   proteinG: number;
@@ -77,9 +81,12 @@ export function MacroRing({
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4">
-        <Bar label="Protein" value={proteinG} target={proteinTargetG} color={MACRO_COLORS.protein} />
-        <Bar label="Carbs" value={carbsG} target={carbsTargetG} color={MACRO_COLORS.carbs} />
-        <Bar label="Fats" value={fatG} target={fatTargetG} color={MACRO_COLORS.fat} />
+        {/* These read "Protein / Carbs / Fats" in English on every screen,
+            including the Arabic one, which is where they are mostly read. The
+            catalogue has had the words all along. */}
+        <Bar label={t(locale, "diary.macro_protein")} value={proteinG} target={proteinTargetG} color={MACRO_COLORS.protein} />
+        <Bar label={t(locale, "diary.macro_carbs")} value={carbsG} target={carbsTargetG} color={MACRO_COLORS.carbs} />
+        <Bar label={t(locale, "diary.macro_fat")} value={fatG} target={fatTargetG} color={MACRO_COLORS.fat} />
       </div>
     </div>
   );

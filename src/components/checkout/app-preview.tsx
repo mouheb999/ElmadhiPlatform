@@ -11,7 +11,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type Locale, dir, t, type StringKey } from "@/lib/i18n";
-import { AI_ITEMS, FOODS, type SlotKey } from "./preview-data";
+import type { IngredientOption } from "@/components/diet/ingredient-picker";
+import type { EditorItem } from "@/components/diet/meal-card";
+import { AI_ITEMS } from "./preview-data";
 import {
   AddFoodScreen,
   AiScreen,
@@ -22,6 +24,7 @@ import {
   SessionScreen,
   TodayScreen,
   type PreviewState,
+  type SampleCheckin,
 } from "./preview-screens";
 
 /**
@@ -99,6 +102,40 @@ export function AppPreview({
     return () => observer.disconnect();
   }, []);
 
+  /**
+   * Turn the real components' links into preview navigation.
+   *
+   * The cards inside the phone are the app's own, so their buttons are
+   * `<Link href="/workout/session/…">` — and left alone, tapping one would
+   * navigate the whole browser off /checkout and into a route that bounces a
+   * signed-out visitor to /login. That is the preview handing the reader to a
+   * form, which is the single thing this funnel exists to stop.
+   *
+   * So the frame swallows every link click and routes it to the matching tab
+   * instead. Captured on the way down, so it lands before the component's own
+   * handler; buttons are untouched, because they are not anchors.
+   *
+   * The alternative was threading an `onOpen` callback through every real card
+   * — props that exist only to serve the preview, on components the product
+   * ships. One listener here costs those components nothing.
+   */
+  function swallowLinks(event: React.MouseEvent<HTMLDivElement>) {
+    const anchor = (event.target as HTMLElement).closest?.("a[href]");
+    if (!anchor) return;
+    event.preventDefault();
+    event.stopPropagation();
+
+    const href = anchor.getAttribute("href") ?? "";
+    if (href.startsWith("/workout/session")) return go("workout", "session");
+    if (href.startsWith("/workout")) return go("workout");
+    if (href.startsWith("/diet")) return go("food");
+    if (href.startsWith("/qa")) return go("qa");
+    if (href.startsWith("/ai")) return go("ai");
+    // /progress and /review are the paid surface. Reaching for one is the
+    // question the wall answers, so it is the honest place to raise it.
+    if (href.startsWith("/progress") || href.startsWith("/review")) return setLocked(true);
+  }
+
   /** Every navigation starts at the top, like a real push. */
   function go(next: Tab, nextView: View = null) {
     setTab(next);
@@ -117,16 +154,42 @@ export function AppPreview({
     }));
   }
 
-  function logMeal(slot: SlotKey) {
-    setState((s) => (s.logged.includes(slot) ? s : { ...s, logged: [...s.logged, slot] }));
+  function logMeal(slot: string) {
+    setState((s) => (s.eaten.includes(slot) ? s : { ...s, eaten: [...s.eaten, slot] }));
   }
 
-  function addFood(id: string) {
-    const food = FOODS.find((f) => f.id === id);
-    if (!food) return;
+  /** Drag a portion in a meal card; the ring above it recomputes. */
+  function setQuantity(slot: string, itemId: string, quantityG: number) {
     setState((s) => ({
       ...s,
-      extra: [...s.extra, { ...food, id: `${food.id}-${s.extra.length}` }],
+      meals: s.meals.map((meal) =>
+        meal.slot === slot
+          ? {
+              ...meal,
+              items: meal.items.map((i) => (i.id === itemId ? { ...i, quantityG } : i)),
+            }
+          : meal,
+      ),
+    }));
+  }
+
+  function saveCheckin(checkin: SampleCheckin) {
+    setState((s) => ({ ...s, checkin }));
+  }
+
+  /** A food picked from the catalogue becomes a logged item, at its serving. */
+  function addFood(ingredient: IngredientOption) {
+    setState((s) => ({
+      ...s,
+      extra: [
+        ...s.extra,
+        {
+          ...ingredient,
+          id: `${ingredient.id}-${s.extra.length}`,
+          foodRef: ingredient.id,
+          quantityG: ingredient.unitGrams ?? 100,
+        },
+      ],
     }));
     go("food");
   }
@@ -138,6 +201,8 @@ export function AppPreview({
   }
 
   function addEstimate() {
+    // The camera's three items, added as one logged entry — the same shape a
+    // food from the catalogue takes, so the diary cannot tell them apart.
     const summed = AI_ITEMS.reduce(
       (acc, i) => ({
         kcal: acc.kcal + i.kcal,
@@ -147,10 +212,27 @@ export function AppPreview({
       }),
       { kcal: 0, protein: 0, carbs: 0, fat: 0 },
     );
-    setState((s) => ({
-      ...s,
-      extra: [...s.extra, { id: `ai-${s.extra.length}`, name: "tour.ai_i1" as StringKey, ...summed }],
-    }));
+    const estimate: EditorItem = {
+      id: `ai-${state.extra.length}`,
+      foodRef: "ai-estimate",
+      nameEn: "Grilled chicken, rice, olive oil",
+      nameAr: "دجاج مشوي، أرز، زيت زيتون",
+      slot: "protein",
+      // Logged as one 100 g "portion" whose per-100 g values are the totals,
+      // which is how a quick entry behaves in the real diary.
+      quantityG: 100,
+      caloriesPer100g: summed.kcal,
+      proteinPer100g: summed.protein,
+      carbsPer100g: summed.carbs,
+      fatPer100g: summed.fat,
+      imageUrl: null,
+      unitEn: null,
+      unitEnPlural: null,
+      unitAr: null,
+      unitArPlural: null,
+      unitGrams: null,
+    };
+    setState((s) => ({ ...s, extra: [...s.extra, estimate] }));
     setAiPhase("idle");
     // Straight to the diary, because the point of the camera is what it does
     // to the day's numbers, and that is a different screen.
@@ -196,15 +278,18 @@ export function AppPreview({
                     five exercises is taller than a phone. */}
                 <div
                   ref={scroller}
-                  className="absolute inset-x-0 bottom-0 top-[52px] flex flex-col overflow-y-auto overflow-x-hidden px-4 pb-[104px] pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  onClickCapture={swallowLinks}
+                  /* Block flow, not a flex column. The real screens are
+                     ordinary document flow inside a scrolling <main>, and a
+                     flex column here let the scroller shrink its children:
+                     the Today hero came out 84px tall with its start button
+                     rendered 30px below the card it belongs to, clipped by the
+                     card's own overflow-hidden. Cards size to their content
+                     again, exactly as they do in the app. */
+                  className="absolute inset-x-0 bottom-0 top-[52px] overflow-y-auto overflow-x-hidden px-4 pb-[104px] pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 >
                   {tab === "today" && (
-                    <TodayScreen
-                      locale={locale}
-                      state={state}
-                      onStart={() => go("workout", "session")}
-                      onFood={() => go("food")}
-                    />
+                    <TodayScreen locale={locale} state={state} onCheckin={saveCheckin} />
                   )}
 
                   {tab === "workout" && view !== "session" && (
@@ -226,6 +311,7 @@ export function AppPreview({
                       state={state}
                       onLogMeal={logMeal}
                       onAdd={() => go("food", "addFood")}
+                      onQuantityChange={setQuantity}
                     />
                   )}
                   {tab === "food" && view === "addFood" && (

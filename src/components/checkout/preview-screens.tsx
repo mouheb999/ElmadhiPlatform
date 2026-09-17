@@ -1,86 +1,127 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import {
   ArrowLeft,
   Camera,
   Check,
-  ChevronRight,
-  Dumbbell,
   Flame,
-  MessageCircleQuestion,
   Play,
   Plus,
   Sparkles,
   Timer,
 } from "lucide-react";
+import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-card";
+import { NutritionLiveTile } from "@/components/dashboard/nutrition-live-tile";
+import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
+import { QaSpark } from "@/components/dashboard/qa-spark";
+import { TodayWorkout } from "@/components/dashboard/today-workout";
+import { IngredientPicker, type IngredientOption } from "@/components/diet/ingredient-picker";
+import { MacroRing } from "@/components/diet/macro-ring";
+import { MealCard, type EditorItem } from "@/components/diet/meal-card";
+import { QaCard } from "@/components/qa/qa-card";
 import { cn } from "@/lib/utils";
 import { type Locale, t, type StringKey } from "@/lib/i18n";
+import { AI_ITEMS, PROGRAM } from "./preview-data";
 import {
-  AI_ITEMS,
-  FOODS,
-  MEALS,
-  PROGRAM,
-  QA_CARDS,
-  TARGETS,
-  type SlotKey,
-} from "./preview-data";
+  macrosOf,
+  SAMPLE_DAY,
+  SAMPLE_EATEN,
+  SAMPLE_INGREDIENTS,
+  SAMPLE_LAST_WEIGHT,
+  SAMPLE_MEALS,
+  SAMPLE_QA,
+  SAMPLE_QA_SPARK,
+  SAMPLE_STREAK,
+  SAMPLE_TARGET,
+  SAMPLE_WEEK,
+  SAMPLE_WEIGHTS,
+  sumMacros,
+} from "./preview-account";
 
 /**
  * The screens inside the phone on /checkout.
  *
- * These are not pictures of the app. They are the app's screens with a sample
- * account behind them, and they work: you open the session and tick sets off
- * and watch the volume climb, you log dinner and watch the ring close, you
- * point the camera at a plate and the macros it finds land in the diary. The
- * state is a few `useState`s rather than a database, and that is the only
- * difference.
+ * These are the app's screens. Not a likeness of them — the components
+ * themselves: `TodayWorkout`, `CheckinCard`, `ProgressTeaser`,
+ * `NutritionLiveTile`, `QaSpark`, `MacroRing`, `MealCard`, `IngredientPicker`,
+ * `QaCard`, imported from the same files `/dashboard` and `/diet` import them
+ * from. The only thing this file supplies is a sample account and a handful of
+ * `useState`s where the database would be.
  *
- * That is the whole argument for building it this way. A reader who has just
- * moved their own numbers has understood what the subscription is for; a
- * reader who tapped a button and got a price has understood that we want money.
- * The wall waits until the end, on the one action that is genuinely the paid
- * part — saving the day — because by then it is answering a question they have
- * actually asked.
+ * It used to be a second implementation, and that was the problem. A preview
+ * built out of lookalike cards drifts away from the product it is selling, and
+ * it drifts in one direction only — the real screens get worked on, the replica
+ * does not. A stranger deciding whether to pay was being shown a slightly worse
+ * app than the one they would get.
+ *
+ * Now a change to any real card shows up here on the next build, and a change
+ * to its props is a compile error rather than a silent lie.
+ *
+ * What is still this file's own: the workout session and the camera. Both are
+ * long, stateful screens wired to Server Functions that a signed-out visitor
+ * cannot call, so they are rebuilt here at preview scale — and they are the two
+ * that end in the paywall anyway.
  */
+
+/** One meal of the day, exactly as the diet screen holds it. */
+export type PreviewMealState = { slot: string; items: EditorItem[] };
 
 export type PreviewState = {
   /** Per exercise, which sets have been ticked off. */
   sets: Record<string, boolean[]>;
-  /** Which meals of the plan have been eaten. */
-  logged: SlotKey[];
-  /** Anything added on top: from the food list or from the camera. */
-  extra: { id: string; name: StringKey; kcal: number; protein: number; carbs: number; fat: number }[];
+  /** The day's meals. Portions are editable, so the items live here. */
+  meals: PreviewMealState[];
+  /** Which meals have been logged against the day — only these count. */
+  eaten: string[];
+  /** Anything added on top: from the picker or from the camera. */
+  extra: EditorItem[];
+  /** Today's check-in, once the visitor saves one. */
+  checkin: TodayCheckin;
 };
 
 export const INITIAL_STATE: PreviewState = {
   sets: Object.fromEntries(PROGRAM.map((e) => [e.id, Array(e.sets).fill(false)])),
-  logged: ["breakfast", "lunch"],
+  meals: SAMPLE_MEALS.map((m) => ({ slot: m.slot, items: m.items.map((i) => ({ ...i })) })),
+  eaten: [...SAMPLE_EATEN],
   extra: [],
+  /**
+   * Today's check-in, already done.
+   *
+   * Empty, the card opens as a two-field form with an inactive Save button —
+   * the tallest, emptiest thing on the screen, in the spot where a stranger
+   * forms their first impression of the product. Saved, it is the one-line
+   * "checked in · 78.4 kg" row, which is what the app looks like when somebody
+   * is using it rather than setting it up. The form is still one tap away on
+   * "edit", and it still saves, because this is the real card.
+   */
+  checkin: { weightKg: 78.4, energy: 4, sleepHours: 7 },
 };
 
 /** Everything the screens show about the day, derived rather than stored. */
 export function totals(state: PreviewState) {
-  const eaten = MEALS.filter((m) => state.logged.includes(m.slot));
-  const sum = (k: "kcal" | "protein" | "carbs" | "fat") =>
-    eaten.reduce((n, m) => n + m[k], 0) + state.extra.reduce((n, e) => n + e[k], 0);
+  // Only logged meals count towards the day, which is what makes tapping
+  // "log it" move the ring.
+  const eatenItems = state.meals
+    .filter((m) => state.eaten.includes(m.slot))
+    .flatMap((m) => m.items);
+  const macros = sumMacros([...eatenItems, ...state.extra].map(macrosOf));
+
   const done = Object.values(state.sets).flat().filter(Boolean).length;
   const total = Object.values(state.sets).flat().length;
   const volume = PROGRAM.reduce(
     (n, e) => n + (state.sets[e.id]?.filter(Boolean).length ?? 0) * e.weight * Number(e.reps),
     0,
   );
-  return {
-    kcal: sum("kcal"),
-    protein: sum("protein"),
-    carbs: sum("carbs"),
-    fat: sum("fat"),
-    setsDone: done,
-    setsTotal: total,
-    volume,
-  };
+  return { macros, setsDone: done, setsTotal: total, volume };
 }
+
+/** A saved check-in, in the shape the real card hands back. */
+export type SampleCheckin = {
+  weightKg: number | null;
+  energy: number | null;
+  sleepHours: number | null;
+};
 
 /* ------------------------------------------------------------------ pieces */
 
@@ -183,141 +224,80 @@ export function Donut({ pct, size, children }: { pct: number; size: number; chil
   );
 }
 
-function MacroBar({ label, value, target, color }: { label: string; value: number; target: number; color: string }) {
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      <div className="flex-1">
-        <div className="flex items-center justify-between text-[11px]">
-          <span className="font-semibold">{label}</span>
-          <bdi dir="ltr" className="tabular-nums text-muted">
-            {Math.round(value)}g / {target}g
-          </bdi>
-        </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/5">
-          <div
-            className="h-full rounded-full transition-[width] duration-500"
-            style={{ width: `${Math.min((value / target) * 100, 100)}%`, backgroundColor: color }}
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ----------------------------------------------------------------- today */
-
 export function TodayScreen({
   locale,
   state,
-  onStart,
-  onFood,
+  onCheckin,
 }: {
   locale: Locale;
   state: PreviewState;
-  onStart: () => void;
-  onFood: () => void;
+  onCheckin: (checkin: SampleCheckin) => void;
 }) {
   const sum = totals(state);
-  const inProgress = sum.setsDone > 0;
+
+  /**
+   * The real dashboard, with a sample account behind it.
+   *
+   * Every card below is the component `/dashboard` renders — same greeting
+   * row, same hero, same check-in form, same sparkline, same nutrition tile,
+   * same shuffle card. Nothing here is drawn twice.
+   *
+   * The one thing the preview supplies is where a saved check-in goes: there
+   * is no account yet, so it goes into React state instead of Postgres, and
+   * the card flips to its "done for today" row exactly as it would for a
+   * customer. See `CheckinCard`'s `onSave`.
+   */
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-            {t(locale, "tour.t_greeting")}
-          </p>
-          <h1 className="font-display text-lg font-extrabold">{t(locale, "tour.t_name")}</h1>
-        </div>
-        <span className="flex shrink-0 items-center gap-1 rounded-full border border-hairline px-2.5 py-1 text-[11px] font-bold">
-          <Flame className="h-3.5 w-3.5 text-accent" />
-          {t(locale, "tour.t_streak")}
-        </span>
-      </div>
-
-      <div className="relative overflow-hidden rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/[0.08] via-surface to-surface p-5">
-        <div className="glow-accent pointer-events-none absolute inset-0" />
-        <div className="relative flex flex-col gap-2.5">
-          <Eyebrow>{t(locale, "tour.t_workout")}</Eyebrow>
-          <h2 className="text-2xl font-extrabold leading-tight tracking-tight">{t(locale, "tour.t_day")}</h2>
-          <p className="flex items-center gap-2 text-[13px] text-muted">
-            <Dumbbell className="h-4 w-4" />
-            {inProgress ? (
-              <bdi dir="ltr">
-                {sum.setsDone} / {sum.setsTotal} {t(locale, "tour.s_done")}
-              </bdi>
-            ) : (
-              t(locale, "tour.t_meta")
-            )}
-          </p>
-          <div className="mt-1">
-            <PrimaryButton onClick={onStart} icon={Play} full={false}>
-              {t(locale, "tour.t_start")}
-            </PrimaryButton>
-          </div>
-        </div>
-      </div>
-
-      <button type="button" onClick={onFood} className="text-start">
-        <Card className="flex items-center gap-3">
-          <Donut pct={sum.kcal / TARGETS.kcal} size={44} />
-          <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-bold">{t(locale, "tour.f_title")}</p>
-            <bdi dir="ltr" className="block text-[11px] text-muted">
-              {sum.kcal} / {TARGETS.kcal} kcal
-            </bdi>
-          </div>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" />
-        </Card>
-      </button>
-
-      <Card className="flex items-center justify-between">
+    <div className="flex flex-col gap-5">
+      {/* The greeting row is inline in the dashboard page rather than a
+          component, so it is the one piece of markup this file restates. Kept
+          identical on purpose — if it drifts, it drifts visibly. */}
+      <div className="flex items-end justify-between">
         <div>
-          <p className="text-[13px] font-bold">{t(locale, "tour.t_checkin")}</p>
-          <p className="text-[11px] text-muted">
-            {t(locale, "tour.t_weight")} · <bdi dir="ltr">78.4 kg</bdi>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            {t(locale, "dashboard.greeting")}
           </p>
+          <h2 className="text-lg font-extrabold">{t(locale, "tour.t_name")}</h2>
         </div>
-        <span className="flex h-9 items-center rounded-full border border-hairline px-3 text-[12px] font-bold tabular-nums text-accent">
-          <bdi dir="ltr">2 / 3</bdi>
-        </span>
-      </Card>
+        <div className="flex gap-2">
+          <span className="flex items-center gap-1 rounded-full border border-hairline px-3 py-1.5 text-xs font-bold">
+            <Flame className="h-3.5 w-3.5 text-accent" />
+            {SAMPLE_STREAK} {t(locale, "today.streak_label")}
+          </span>
+          <span className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold tabular-nums">
+            {t(locale, "today.week_label")}: {SAMPLE_WEEK.done}/{SAMPLE_WEEK.target}{" "}
+            {t(locale, "today.sessions_label")}
+          </span>
+        </div>
+      </div>
 
-      <Card className="flex flex-col gap-2">
-        <div className="flex items-end justify-between">
-          <p className="text-[13px] font-bold">{t(locale, "tour.t_progress")}</p>
-          <bdi dir="ltr" className="text-[11px] font-bold tabular-nums text-accent">−2.6 kg</bdi>
-        </div>
-        <div dir="ltr">
-          <Sparkline />
-        </div>
-      </Card>
+      <TodayWorkout
+        locale={locale}
+        state={sum.setsDone > 0 ? "in_progress" : "ready"}
+        day={SAMPLE_DAY}
+      />
+
+      <CheckinCard
+        locale={locale}
+        todayCheckin={state.checkin}
+        lastWeightKg={SAMPLE_LAST_WEIGHT}
+        onSave={async (checkin) => {
+          onCheckin(checkin);
+          return { ok: true };
+        }}
+      />
+
+      <ProgressTeaser
+        locale={locale}
+        points={SAMPLE_WEIGHTS}
+        weekDone={SAMPLE_WEEK.done}
+        weekTarget={SAMPLE_WEEK.target}
+      />
+
+      <NutritionLiveTile locale={locale} target={SAMPLE_TARGET} consumed={sum.macros} />
+
+      <QaSpark locale={locale} cards={SAMPLE_QA_SPARK} />
     </div>
-  );
-}
-
-function Sparkline() {
-  const points = [81.0, 80.6, 80.7, 80.1, 79.6, 79.4, 78.7, 78.4];
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const path = points
-    .map((v, i) => {
-      const x = (i / (points.length - 1)) * 100;
-      const y = 30 - ((v - min) / (max - min)) * 26 - 2;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  return (
-    <svg viewBox="0 0 100 32" preserveAspectRatio="none" className="h-9 w-full" aria-hidden>
-      <defs>
-        <linearGradient id="tour-spark" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#C0DA1B" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#C0DA1B" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${path} L100,32 L0,32 Z`} fill="url(#tour-spark)" />
-      <path d={path} fill="none" stroke="#C0DA1B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-    </svg>
   );
 }
 
@@ -490,76 +470,88 @@ export function DiaryScreen({
   state,
   onLogMeal,
   onAdd,
+  onQuantityChange,
 }: {
   locale: Locale;
   state: PreviewState;
-  onLogMeal: (slot: SlotKey) => void;
+  onLogMeal: (slot: string) => void;
   onAdd: () => void;
+  onQuantityChange: (slot: string, itemId: string, quantityG: number) => void;
 }) {
   const sum = totals(state);
+
+  /**
+   * The nutrition screen, with the product's own `MacroRing` and `MealCard`.
+   *
+   * The meal cards are fully live: open one, drag a portion, and the ring
+   * above recomputes from the same arithmetic the paid screen uses. That is
+   * the moment this whole preview exists for — the reader changes a number
+   * about their own day and watches the rest of the screen answer.
+   */
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
       <ScreenHeader locale={locale} title={t(locale, "tour.f_title")} />
 
-      <Card className="flex items-center gap-4">
-        <Donut pct={sum.kcal / TARGETS.kcal} size={92}>
-          <bdi dir="ltr" className="font-display text-xl font-extrabold leading-none">
-            {sum.kcal}
-          </bdi>
-          <span className="mt-0.5 text-[9px] text-muted">/ {TARGETS.kcal} kcal</span>
-        </Donut>
-        <div className="flex flex-1 flex-col gap-2">
-          <MacroBar label={t(locale, "diary.macro_protein")} value={sum.protein} target={TARGETS.protein} color="#C0DA1B" />
-          <MacroBar label={t(locale, "diary.macro_carbs")} value={sum.carbs} target={TARGETS.carbs} color="#F5A623" />
-          <MacroBar label={t(locale, "diary.macro_fat")} value={sum.fat} target={TARGETS.fat} color="#B76CFF" />
-        </div>
-      </Card>
+      <MacroRing
+        locale={locale}
+        calories={Math.round(sum.macros.calories)}
+        caloriesTarget={SAMPLE_TARGET.calories}
+        proteinG={Math.round(sum.macros.proteinG)}
+        proteinTargetG={SAMPLE_TARGET.proteinG}
+        carbsG={Math.round(sum.macros.carbsG)}
+        carbsTargetG={SAMPLE_TARGET.carbsG}
+        fatG={Math.round(sum.macros.fatG)}
+        fatTargetG={SAMPLE_TARGET.fatG}
+        dailyTargetLabel={t(locale, "fn.r_daily")}
+      />
 
-      <div className="flex flex-col gap-2">
-        {MEALS.map((m) => {
-          const eaten = state.logged.includes(m.slot);
+      <div className="flex flex-col gap-3">
+        {state.meals.map((meal) => {
+          const eaten = state.eaten.includes(meal.slot);
           return (
-            <div
-              key={m.slot}
-              className={cn(
-                "flex items-center justify-between gap-3 rounded-2xl border p-3 transition-colors",
-                eaten ? "border-accent/30 bg-accent/[0.04]" : "border-hairline bg-surface",
-              )}
-            >
-              <span className="min-w-0">
-                <span className="block text-[13px] font-bold">{t(locale, m.label)}</span>
-                <span className="block truncate text-[11px] text-muted">{t(locale, m.items)}</span>
-              </span>
-              {eaten ? (
-                <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-accent">
-                  <Check className="h-3.5 w-3.5" />
-                  <bdi dir="ltr">{m.kcal} kcal</bdi>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => onLogMeal(m.slot)}
-                  className="shrink-0 rounded-full bg-accent px-3 py-1.5 font-display text-[11px] font-bold text-bg transition-transform active:scale-95"
-                >
-                  {t(locale, "tour.f_log")}
-                </button>
-              )}
+            <div key={meal.slot} className="flex flex-col">
+              <MealCard
+                locale={locale}
+                mealType={meal.slot}
+                items={meal.items}
+                ingredients={SAMPLE_INGREDIENTS}
+                onQuantityChange={(itemId, quantityG) =>
+                  onQuantityChange(meal.slot, itemId, quantityG)
+                }
+                onRemove={() => {}}
+                onAdd={() => {}}
+                onSwap={() => {}}
+              />
+              {/* The diary's own "I ate this" control, which is what turns a
+                  plan into a logged day. Unlogged meals do not count towards
+                  the ring, so tapping it is what moves the numbers. */}
+              {/* Attached under the card rather than floating beside it —
+                  it is that meal's control, and a loose pill in the gap reads
+                  as belonging to neither card. */}
+              <div
+                className={cn(
+                  "-mt-2 flex items-center justify-start rounded-b-2xl border border-t-0 px-3 pb-2 pt-3",
+                  eaten ? "border-accent/25 bg-accent/[0.04]" : "border-hairline bg-surface",
+                )}
+              >
+                {eaten ? (
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold text-accent">
+                    <Check className="h-3.5 w-3.5" />
+                    {t(locale, "tour.f_logged")}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onLogMeal(meal.slot)}
+                    className="rounded-full bg-accent px-3.5 py-1.5 font-display text-[11px] font-bold text-bg transition-transform active:scale-95"
+                  >
+                    {t(locale, "tour.f_log")}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}
-
-        {state.extra.map((e) => (
-          <div
-            key={e.id}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent/[0.04] p-3"
-          >
-            <span className="truncate text-[13px] font-bold">{t(locale, e.name)}</span>
-            <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold text-accent">
-              <Check className="h-3.5 w-3.5" />
-              <bdi dir="ltr">{e.kcal} kcal</bdi>
-            </span>
-          </div>
-        ))}
       </div>
 
       <button
@@ -580,37 +572,19 @@ export function AddFoodScreen({
   onBack,
 }: {
   locale: Locale;
-  onPick: (id: string) => void;
+  onPick: (ingredient: IngredientOption) => void;
   onBack: () => void;
 }) {
+  /** The product's own search-and-pick list, over a short sample catalogue. */
   return (
     <div className="flex flex-col gap-3">
       <ScreenHeader locale={locale} title={t(locale, "tour.f_pick")} onBack={onBack} />
-      <div className="flex flex-col gap-2">
-        {FOODS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => onPick(f.id)}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface p-3 text-start transition-colors hover:border-accent/40"
-          >
-            <span className="min-w-0">
-              <span className="block truncate text-[13px] font-bold">{t(locale, f.name)}</span>
-              <bdi dir="ltr" className="block text-[11px] text-muted">
-                P {f.protein} · C {f.carbs} · F {f.fat}
-              </bdi>
-            </span>
-            <span className="flex shrink-0 items-center gap-2">
-              <bdi dir="ltr" className="text-[12px] font-bold tabular-nums text-muted">
-                {f.kcal} kcal
-              </bdi>
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-accent text-bg">
-                <Plus className="h-4 w-4" />
-              </span>
-            </span>
-          </button>
-        ))}
-      </div>
+      <IngredientPicker
+        locale={locale}
+        ingredients={SAMPLE_INGREDIENTS}
+        onPick={onPick}
+        placeholder={t(locale, "diary.search_placeholder")}
+      />
     </div>
   );
 }
@@ -703,40 +677,20 @@ export function AiScreen({
 /* ------------------------------------------------------------------- q&a */
 
 export function QaScreen({ locale }: { locale: Locale }) {
-  const [open, setOpen] = useState<number | null>(null);
-
-  if (open !== null) {
-    const card = QA_CARDS[open];
-    return (
-      <div className="flex flex-col gap-3">
-        <ScreenHeader locale={locale} title={t(locale, "tour.qa_title")} onBack={() => setOpen(null)} />
-        <Card className="flex flex-col gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-full bg-accent/15">
-            <MessageCircleQuestion className="h-5 w-5 text-accent" aria-hidden />
-          </span>
-          <p className="text-[15px] font-extrabold leading-snug">{t(locale, card.q)}</p>
-          <p className="text-[12.5px] leading-relaxed text-muted">{t(locale, card.a)}</p>
-        </Card>
-      </div>
-    );
-  }
-
+  /**
+   * `/qa`, with three real rows from the library.
+   *
+   * `QaCard` is the product's own — same icon per category, same two-line
+   * clamp, same chevron. It is a `<Link>` into the full answer; inside the
+   * phone frame that navigation is swallowed (see `AppPreview`), so a tap
+   * shows the pressed state and goes nowhere, which is the honest behaviour
+   * for a card whose answer is behind the subscription.
+   */
   return (
     <div className="flex flex-col gap-3">
       <ScreenHeader locale={locale} title={t(locale, "tour.qa_title")} />
-      {QA_CARDS.map((c, i) => (
-        <button key={c.q} type="button" onClick={() => setOpen(i)} className="text-start">
-          <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-3 transition-colors hover:bg-white/5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent/15">
-              <MessageCircleQuestion className="h-4 w-4 text-accent" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[13px] font-bold leading-snug">{t(locale, c.q)}</span>
-              <span className="line-clamp-1 text-[11px] text-muted">{t(locale, c.a)}</span>
-            </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted rtl:rotate-180" />
-          </div>
-        </button>
+      {SAMPLE_QA.map((card) => (
+        <QaCard key={card.id} locale={locale} card={card} />
       ))}
     </div>
   );

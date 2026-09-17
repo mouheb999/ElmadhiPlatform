@@ -41,10 +41,26 @@ export function CheckinCard({
   locale,
   todayCheckin,
   lastWeightKg,
+  onSave,
 }: {
   locale: Locale;
   todayCheckin: TodayCheckin;
   lastWeightKg: number | null;
+  /**
+   * Where a saved check-in goes. Defaults to the real Server Function, which
+   * is what every screen in the product wants.
+   *
+   * The checkout preview supplies its own: it renders this exact card for a
+   * visitor who has no account yet, and `submitCheckin` would refuse them —
+   * correctly, but after a spinner and an error message, on the screen whose
+   * whole job is to show the app working. The override keeps the preview
+   * honest in the way that matters: it is this component, not a copy of it.
+   */
+  onSave?: (checkin: {
+    weightKg: number | null;
+    energy: number | null;
+    sleepHours: number | null;
+  }) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -86,17 +102,20 @@ export function CheckinCard({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await submitCheckin({
+      const payload = {
         weightKg: parseDecimal(weight),
         energy,
         sleepHours: parseDecimal(sleep),
-      });
+      };
+      const result = onSave ? await onSave(payload) : await submitCheckin(payload);
       if (!result.ok) {
-        setError(result.error);
+        setError(result.error ?? null);
         return;
       }
       setEditing(false);
-      router.refresh();
+      // Only the real write has server state to re-read; a caller that handled
+      // the save itself already owns whatever needs to change on screen.
+      if (!onSave) router.refresh();
     });
   }
 

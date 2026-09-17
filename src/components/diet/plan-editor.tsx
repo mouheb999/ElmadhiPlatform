@@ -197,6 +197,7 @@ export function PlanEditor({
   return (
     <div className="flex flex-col gap-5">
       <MacroRing
+        locale={locale}
         calories={totals.calories}
         caloriesTarget={target.calories}
         proteinG={totals.proteinG}

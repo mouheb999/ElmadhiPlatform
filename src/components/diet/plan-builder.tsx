@@ -360,6 +360,7 @@ export function PlanBuilder({
         <div className="flex flex-col gap-4">
           {targets && (
             <MacroRing
+              locale={locale}
               calories={totals.calories}
               caloriesTarget={targets.calories}
               proteinG={totals.proteinG}
