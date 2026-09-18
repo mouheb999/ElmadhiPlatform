@@ -425,7 +425,12 @@ export function StartClient({
 
       {screen.kind === "reveal" &&
         (isComplete(answers) ? (
-          <PlanReveal locale={locale} answers={answers} onContinue={toCheckout} />
+          <PlanReveal
+            locale={locale}
+            answers={answers}
+            onContinue={toCheckout}
+            onFix={resume}
+          />
         ) : (
           // Reached with a gap in the answers — a stale cookie from an older
           // version of the funnel, or a reload part-way through. Send them to

@@ -36,15 +36,57 @@ export function PlanReveal({
   locale,
   answers,
   onContinue,
+  onFix,
 }: {
   locale: Locale;
   answers: FunnelAnswers;
   onContinue: () => void;
+  /** Back to the first unanswered question, when the answers do not add up. */
+  onFix?: () => void;
 }) {
   const projection = calculateFitnessPlan(answers);
   const { targets } = projection;
   const rateKg = Math.abs(projection.weeklyRateKg);
   const last = projection.timeline[projection.timeline.length - 1];
+
+  /**
+   * The answers cannot support a plan, so no plan is shown.
+   *
+   * `start-client` already gates this screen on `isComplete`, and this is the
+   * second lock on the same door: the engine decides what counts as enough, and
+   * a screen that takes money on the strength of these numbers should refuse to
+   * print them the moment the engine says they are fallbacks. Nothing below
+   * this line renders — not the calories, not the macros, not the timeline.
+   */
+  if (!projection.valid) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 text-center">
+        <span className="grid h-12 w-12 place-items-center rounded-full bg-amber-500/15">
+          <Info className="h-6 w-6 text-amber-500" />
+        </span>
+        <h1 className="text-balance font-display text-2xl font-extrabold leading-tight">
+          {t(locale, "fn.r_need_answers")}
+        </h1>
+        <p className="max-w-[32ch] text-balance text-sm leading-relaxed text-muted">
+          {t(
+            locale,
+            projection.invalidReason === "impossible_values"
+              ? "fn.r_bad_values"
+              : "fn.r_need_answers_body",
+          )}
+        </p>
+        {onFix && (
+          <button
+            type="button"
+            onClick={onFix}
+            className="h-12 rounded-full bg-accent px-6 font-display font-bold text-bg"
+          >
+            {t(locale, "fn.r_finish_answers")}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   /**
    * Month and year, not a day.

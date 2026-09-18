@@ -61,9 +61,29 @@ export type GoalStrategy = {
   rationale: Bilingual;
 };
 
-/** Grams of fat per kg bodyweight, and the floor it may be cut to. */
-export const FAT_PER_KG = 0.9;
-export const FAT_PER_KG_FLOOR = 0.7;
+/**
+ * Fat, as a range rather than a target.
+ *
+ * It used to be a flat 0.9 g/kg with 0.2 g/kg of give, spent only once carbs
+ * were about to hit their floor. The effect was that fat took its full share
+ * first and carbohydrate lived on whatever survived — which is backwards on a
+ * deep cut, where the calorie budget is small and carbohydrate is what fuels
+ * the training the plan is asking for. A 90 kg man on 1,690 kcal came out with
+ * 80 g of fat and 65 g of carbs.
+ *
+ * Fat is now aimed at a share of CALORIES and clamped into this g/kg band. On a
+ * generous budget the ceiling binds and nothing changes from before; on a tight
+ * one the share falls out naturally, and the room goes to carbohydrate instead
+ * of having to be prised out of fat by a floor.
+ */
+export const FAT_KCAL_SHARE = 0.25;
+export const FAT_PER_KG_MAX = 0.9;
+/**
+ * The hard floor. Below roughly this, a diet stops supporting the hormonal side
+ * of training; it is a guardrail the solver may reach under duress, never a
+ * target it aims for.
+ */
+export const FAT_PER_KG_MIN = 0.6;
 
 /**
  * Protein and the wording for a goal. The calorie budget is NOT here.

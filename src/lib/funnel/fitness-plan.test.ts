@@ -289,3 +289,89 @@ describe("resolveEnergyPlan — training frequency is read", () => {
     expect(p.direction).toBe("hold"); // unknown goal → maintenance
   });
 });
+
+/**
+ * Incomplete answers must not become somebody's calorie prescription.
+ *
+ * The clamping in this engine exists so that nonsense cannot crash a page or
+ * produce NaN. It is emphatically NOT permission to present the result: a
+ * missing weight clamps to 70 kg and yields a confident, ordinary-looking 2,230
+ * kcal target, and that number is fiction about a person we know nothing about.
+ * `valid` is the flag that separates the two, and the reveal refuses to render
+ * anything when it is false.
+ */
+describe("calculateFitnessPlan — incomplete data cannot look like a plan", () => {
+  const COMPLETE: FitnessPlanInput = {
+    goal: "lose_fat", gender: "male", age: 23, heightCm: 180, weightKg: 75,
+    targetWeightKg: 68, activityLevel: "moderate", trainingDays: "3_4",
+  };
+
+  it("accepts a complete set of answers", () => {
+    const p = calculateFitnessPlan(COMPLETE);
+    expect(p.valid).toBe(true);
+    expect(p.invalidReason).toBeNull();
+  });
+
+  it("rejects an empty object", () => {
+    const p = calculateFitnessPlan({} as FitnessPlanInput);
+    expect(p.valid).toBe(false);
+    expect(p.invalidReason).toBe("missing_required_inputs");
+  });
+
+  it("rejects each required answer being absent, one at a time", () => {
+    for (const key of ["gender", "age", "heightCm", "weightKg", "activityLevel", "goal"] as const) {
+      const partial = { ...COMPLETE, [key]: undefined } as unknown as FitnessPlanInput;
+      const p = calculateFitnessPlan(partial);
+      expect(p.valid, `missing ${key} was accepted`).toBe(false);
+      expect(p.invalidReason, key).toBe("missing_required_inputs");
+    }
+  });
+
+  it("treats NaN and null as missing rather than as numbers", () => {
+    for (const bad of [Number.NaN, null, undefined]) {
+      const p = calculateFitnessPlan({ ...COMPLETE, weightKg: bad as never });
+      expect(p.valid).toBe(false);
+      expect(p.invalidReason).toBe("missing_required_inputs");
+    }
+  });
+
+  it("separates impossible values from missing ones", () => {
+    for (const bad of [{ weightKg: -5 }, { weightKg: 0 }, { heightCm: 0 }, { age: -1 }, { heightCm: 400 }]) {
+      const p = calculateFitnessPlan({ ...COMPLETE, ...bad });
+      expect(p.valid, JSON.stringify(bad)).toBe(false);
+      expect(p.invalidReason, JSON.stringify(bad)).toBe("impossible_values");
+    }
+  });
+
+  it("rejects a height and weight that cannot describe one body", () => {
+    // Each field is individually plausible; 35 kg at 210 cm is a BMI of 7.9.
+    const p = calculateFitnessPlan({ ...COMPLETE, heightCm: 210, weightKg: 35 });
+    expect(p.valid).toBe(false);
+    expect(p.invalidReason).toBe("impossible_values");
+  });
+
+  it("does not require a target weight — calories do not depend on one", () => {
+    const p = calculateFitnessPlan({ ...COMPLETE, targetWeightKg: undefined as never });
+    expect(p.valid).toBe(true);
+    expect(p.targets.calories).toBeGreaterThan(0);
+  });
+
+  it("still returns a structurally complete, NaN-free object when invalid", () => {
+    // So a caller that forgets to check `valid` cannot crash — it just must not
+    // show these numbers.
+    const p = calculateFitnessPlan({} as FitnessPlanInput);
+    for (const n of finiteNumbers(p)) expect(Number.isFinite(n)).toBe(true);
+    expect(p.timeline).toHaveLength(4);
+  });
+
+  it("accepts the questionnaire's own extremes, so the gate is not over-eager", () => {
+    // LIMITS in answers.ts: 14-90 years, 120-230 cm, 35-250 kg. Every corner of
+    // that box which describes a real body must produce a plan.
+    for (const age of [14, 90])
+      for (const heightCm of [150, 190])
+        for (const weightKg of [45, 120]) {
+          const p = calculateFitnessPlan({ ...COMPLETE, age, heightCm, weightKg, targetWeightKg: weightKg - 5 });
+          expect(p.valid, `${age}/${heightCm}/${weightKg}`).toBe(true);
+        }
+  });
+});

@@ -44,6 +44,7 @@ import { restingEnergy, type ActivityLevel } from "@/lib/algorithms/macros-core"
 import {
   KCAL_PER_KG,
   activityFactorFor,
+  bmiOf,
   clampNumber,
   healthyFloorKg,
   type GuidanceFlag,
@@ -69,6 +70,85 @@ function bandKgForWeek(week: number): number {
   if (week <= 8) return 0.7;
   return 1;
 }
+
+/**
+ * Why a set of answers cannot produce a plan.
+ *
+ * `missing_required_inputs` — a question has no answer at all. This is the
+ * common one: a stale cookie from an older version of the funnel, a reload
+ * part-way through, a direct link.
+ * `impossible_values` — an answer is present but cannot describe a body: a
+ * negative weight, a height of zero.
+ *
+ * The distinction matters to the screen, not to the arithmetic. One says "we
+ * need a couple more answers", the other says "that number cannot be right".
+ */
+export type InvalidReason = "missing_required_inputs" | "impossible_values";
+
+/**
+ * The bounds outside which a value is not a body, as opposed to merely unusual.
+ *
+ * Deliberately wider than `LIMITS` in answers.ts, which is what the
+ * questionnaire enforces (14-90 years, 120-230 cm, 35-250 kg). That is a
+ * product decision about who this is for; this is a physical one about what
+ * could exist. A 12-year-old is refused by the questionnaire and would be
+ * handled safely here; a weight of -5 kg is refused by both.
+ */
+const POSSIBLE = {
+  age: { min: 10, max: 100 },
+  heightCm: { min: 100, max: 250 },
+  weightKg: { min: 25, max: 350 },
+} as const;
+
+/**
+ * Is there enough here to build somebody a plan?
+ *
+ * Returns the reason rather than a boolean, and checks presence before
+ * plausibility so "you have not answered this" is never reported as "that value
+ * is impossible".
+ */
+function validate(input: FitnessPlanInput): InvalidReason | null {
+  if (!input || typeof input !== "object") return "missing_required_inputs";
+
+  if (input.gender !== "male" && input.gender !== "female") return "missing_required_inputs";
+  if (!ACTIVITY_LEVELS.includes(input.activityLevel)) return "missing_required_inputs";
+  if (!GOALS.includes(input.goal)) return "missing_required_inputs";
+
+  for (const key of ["age", "heightCm", "weightKg"] as const) {
+    const value = input[key];
+    if (value === undefined || value === null || typeof value !== "number" || Number.isNaN(value)) {
+      return "missing_required_inputs";
+    }
+    if (!Number.isFinite(value) || value < POSSIBLE[key].min || value > POSSIBLE[key].max) {
+      return "impossible_values";
+    }
+  }
+
+  // Height and weight can each be plausible and still describe nobody. 35 kg at
+  // 210 cm is a BMI of 7.9; the fields pass individually and the combination
+  // does not exist. Checked as a pair because that is the only way to see it.
+  const bmi = bmiOf(input.weightKg, input.heightCm);
+  if (bmi < 10 || bmi > 100) return "impossible_values";
+
+  // `targetWeightKg` is deliberately NOT required. Calories, macros and a rate
+  // are all computable without it — a maintenance plan never had one — so an
+  // unanswered target costs the projection its destination, not the plan.
+  const target = input.targetWeightKg;
+  if (target !== undefined && target !== null && Number.isFinite(target)) {
+    if (target < POSSIBLE.weightKg.min || target > POSSIBLE.weightKg.max) return "impossible_values";
+  }
+
+  return null;
+}
+
+const ACTIVITY_LEVELS: readonly ActivityLevel[] = [
+  "sedentary",
+  "light",
+  "moderate",
+  "active",
+  "very_active",
+];
+const GOALS: readonly Goal[] = ["lose_fat", "maintain", "build_muscle", "recomp"];
 
 /** Past this the arithmetic stops being a projection and starts being a story. */
 const MAX_WEEKS = 104;
@@ -105,6 +185,18 @@ export type TimelinePoint = {
 };
 
 export type FitnessPlan = {
+  /**
+   * False when the answers cannot support a plan. THE ONLY FIELD A CALLER
+   * SHOULD BRANCH ON before showing anything.
+   *
+   * The rest of the object is still structurally complete and free of NaN when
+   * this is false — a screen that forgets to check cannot crash — but the
+   * numbers in it are built from fallbacks and are not a prescription. They must
+   * not be rendered. See `PlanReveal`, which shows a "we need a few more
+   * answers" card instead.
+   */
+  valid: boolean;
+  invalidReason: InvalidReason | null;
   /** Calories, protein, carbs, fat, fiber, BMR, TDEE — from the shared engine. */
   targets: MacroTargets;
   goal: Goal;
@@ -156,6 +248,13 @@ function dateInWeeks(now: number, weeks: number): Date {
 }
 
 export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
+  // Asked BEFORE anything is clamped. Clamping is what lets the arithmetic
+  // survive nonsense without throwing; it is not permission to present the
+  // result as somebody's personalised plan. A weight of -5 kg clamps to 30 and
+  // produces a perfectly ordinary-looking 1,600 kcal prescription, and that
+  // number is fiction.
+  const invalidReason = validate(input ?? ({} as FitnessPlanInput));
+
   // Everything is clamped before it reaches arithmetic, so no combination of
   // answers — missing, zero, negative, absurd — can produce NaN or Infinity.
   const age = clampNumber(input.age, 10, 100, 30);
@@ -196,6 +295,8 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
   if (energy.direction === "hold" || (Math.abs(gap) < MEANINGFUL_KG && !planGoesDown && !planGoesUp)) {
     const now = Date.now();
     return {
+      valid: invalidReason === null,
+      invalidReason,
       targets,
       goal,
       kind: "recomposition",
@@ -291,6 +392,8 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
   });
 
   return {
+    valid: invalidReason === null,
+    invalidReason,
     targets,
     goal,
     kind: "scale",

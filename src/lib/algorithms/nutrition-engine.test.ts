@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { calculateMacros, type MacroProfileInput } from "./macros";
 import { resolveGoalStrategy } from "./diet-strategy";
+import { referenceWeightKg } from "./energy";
 import {
   fillTemplate,
   mealPlanForDay,
@@ -97,8 +98,30 @@ describe("calculateMacros", () => {
     expect(calculateMacros({ ...maleProfile, goal: "maintain" }).proteinG).toBe(128);
   });
 
-  it("prescribes 0.9 g/kg of fat when the budget allows it", () => {
+  it("caps fat at 0.9 g/kg when a generous budget would otherwise exceed it", () => {
+    // 25% of 2798 kcal is 78 g; the 0.9 g/kg ceiling brings it back to 72.
     expect(calculateMacros({ ...maleProfile, goal: "maintain" }).fatG).toBe(72);
+  });
+
+  /**
+   * Fat is aimed at a SHARE of calories and clamped into [0.6, 0.9] g/kg, so a
+   * tight budget produces a small fat number on its own rather than taking its
+   * full 0.9 g/kg and leaving carbohydrate to be rescued from a floor.
+   */
+  it("lets fat fall with the budget instead of holding 0.9 g/kg", () => {
+    const cut = calculateMacros({
+      gender: "male",
+      birthDate: new Date(new Date().getFullYear() - 30, 0, 1),
+      heightCm: 180,
+      weightKg: 90,
+      activityLevel: "sedentary",
+      goal: "lose_fat",
+    });
+    // Reference weight is 27.5 × 1.8² = 89.1 kg, so 0.9 g/kg would be 80 g.
+    expect(cut.fatG).toBeLessThan(80);
+    expect(cut.fatG / 89.1).toBeGreaterThanOrEqual(0.59);
+    // And the room that frees goes to carbohydrate: this case was 65 g before.
+    expect(cut.carbsG).toBeGreaterThan(110);
   });
 
   it("follows the formula order: carbs are the remainder, fiber from final calories", () => {
@@ -141,7 +164,7 @@ describe("calculateMacros", () => {
     const refKg = 27.5 * 1.6 * 1.6;
     expect(heavyCut.proteinG).toBe(Math.round(refKg * 2.0));
     expect(heavyCut.fatG).toBeLessThan(Math.round(0.9 * 100));
-    expect(heavyCut.fatG).toBeGreaterThanOrEqual(Math.round(0.7 * refKg));
+    expect(heavyCut.fatG / refKg).toBeGreaterThanOrEqual(0.59);
     // The point of the whole exercise: carbohydrate gets a real share.
     expect(heavyCut.carbsG).toBeGreaterThan(40);
     const fromMacros = heavyCut.proteinG * 4 + heavyCut.carbsG * 4 + heavyCut.fatG * 9;
@@ -530,7 +553,9 @@ describe("macro split — the three macros always add up to the target", () => {
     goal: ["lose_fat", "build_muscle", "recomp", "maintain"] as const,
   };
 
-  function everyPlan(visit: (m: ReturnType<typeof calculateMacros>, id: string, weightKg: number) => void) {
+  function everyPlan(
+    visit: (m: ReturnType<typeof calculateMacros>, id: string, weightKg: number, heightCm: number) => void,
+  ) {
     for (const gender of GRID.gender)
       for (const age of GRID.age)
         for (const heightCm of GRID.heightCm)
@@ -546,7 +571,12 @@ describe("macro split — the three macros always add up to the target", () => {
                   goal,
                   trainingDays: "3_4",
                 });
-                visit(m, `${gender}/${age}y/${heightCm}cm/${weightKg}kg/${activityLevel}/${goal}`, weightKg);
+                visit(
+                  m,
+                  `${gender}/${age}y/${heightCm}cm/${weightKg}kg/${activityLevel}/${goal}`,
+                  weightKg,
+                  heightCm,
+                );
               }
   }
 
@@ -565,15 +595,59 @@ describe("macro split — the three macros always add up to the target", () => {
     });
   });
 
-  it("keeps protein and fat inside sane per-kilo bands", () => {
-    everyPlan((m, id, weightKg) => {
+  /**
+   * Both rules are written per kilo of the REFERENCE weight, so that is the
+   * denominator they are checked against. Measuring them against scale weight
+   * makes a 250 kg man's perfectly correct 0.9 g/kg look like 0.32.
+   */
+  it("keeps protein and fat inside their per-kilo bands", () => {
+    everyPlan((m, id, weightKg, heightCm) => {
+      const refKg = referenceWeightKg(weightKg, heightCm);
       expect(m.proteinG, id).toBeGreaterThan(0);
       expect(m.fatG, id).toBeGreaterThan(0);
-      // Never more than 2.0 g/kg of scale weight, and never so little that a
-      // cut stops protecting muscle.
-      expect(m.proteinG / weightKg, id).toBeLessThanOrEqual(2.01);
-      expect(m.fatG / weightKg, id).toBeLessThanOrEqual(0.92);
+      // Protein: never above 2.0 g/kg, never cut below the 1.2 g/kg retention
+      // minimum. Fat: never above 0.9, never below the 0.6 hard floor. One gram
+      // of rounding slack on each.
+      expect(m.proteinG / refKg, id).toBeLessThanOrEqual(2.01);
+      expect(m.proteinG / refKg, id).toBeGreaterThanOrEqual(1.19);
+      expect(m.fatG / refKg, id).toBeLessThanOrEqual(0.92);
+      expect(m.fatG / refKg, id).toBeGreaterThanOrEqual(0.59);
     });
+  });
+
+  /**
+   * Deep deficits at high bodyweight — the shape that produced 65 g of carbs
+   * beside 80 g of fat, and before that a zero-carb plan. Each of these is a
+   * real body on a real cut, and each one is checked end to end.
+   */
+  it("leaves deep-deficit plans a real carbohydrate allowance", () => {
+    const CASES = [
+      { heightCm: 175, weightKg: 120, gender: "male" as const, age: 45 },
+      { heightCm: 160, weightKg: 100, gender: "female" as const, age: 50 },
+      { heightCm: 178, weightKg: 160, gender: "male" as const, age: 40 },
+      { heightCm: 180, weightKg: 250, gender: "male" as const, age: 40 },
+      { heightCm: 180, weightKg: 90, gender: "male" as const, age: 30 },
+    ];
+    for (const c of CASES) {
+      const m = calculateMacros({
+        gender: c.gender,
+        birthDate: new Date(new Date().getFullYear() - c.age, 0, 1),
+        heightCm: c.heightCm,
+        weightKg: c.weightKg,
+        activityLevel: "sedentary",
+        goal: "lose_fat",
+        trainingDays: "0",
+      });
+      const id = `${c.weightKg}kg/${c.heightCm}cm`;
+      const sum = m.proteinG * 4 + m.carbsG * 4 + m.fatG * 9;
+      expect(Math.abs(sum - m.calories), id).toBeLessThanOrEqual(10);
+      // Carbohydrate gets a real share, not a floor-scraping remainder.
+      expect(m.carbsG, id).toBeGreaterThanOrEqual(50);
+      // Fat is not driven to the floor just because the budget is tight.
+      const refKg = referenceWeightKg(c.weightKg, c.heightCm);
+      expect(m.fatG / refKg, id).toBeGreaterThanOrEqual(0.59);
+      expect(m.calories, id).toBeGreaterThanOrEqual(1200);
+    }
   });
 
   it("never lands under the calorie floor", () => {

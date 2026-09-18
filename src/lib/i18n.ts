@@ -2054,6 +2054,21 @@ const STRINGS = {
   // lib/algorithms/energy.ts), so nothing here can contradict the number above
   // it — which is what the old screen managed to do when it printed "0.0
   // kg/week" under a real calorie target.
+  // Shown INSTEAD of a plan when the answers cannot support one. A calculator
+  // that clamps a missing weight to a default and then prints a confident
+  // calorie target has invented somebody's prescription; this says what is
+  // actually true.
+  "fn.r_need_answers": { en: "We need a couple more answers", tn: "نحتاج إجابتين إضافيتين" },
+  "fn.r_need_answers_body": {
+    en: "Some of your answers did not come through, so there is nothing here we would stand behind yet. It takes a few seconds to finish them.",
+    tn: "بعض إجاباتك لم تصلنا، فلا يوجد هنا رقم نضمنه بعد. إكمالها يأخذ ثوانٍ.",
+  },
+  "fn.r_bad_values": {
+    en: "One of your answers cannot be right — a height or a weight outside what we can calculate from. Check them and we will build your plan.",
+    tn: "إحدى إجاباتك غير ممكنة — طول أو وزن خارج ما نستطيع الحساب منه. راجعها ونبني لك برنامجك.",
+  },
+  "fn.r_finish_answers": { en: "Finish my answers", tn: "أكمل إجاباتي" },
+
   "fn.r_goal_label": { en: "Your goal", tn: "هدفك" },
   "fn.r_pace_label": { en: "Expected pace", tn: "الوتيرة المتوقّعة" },
   "fn.r_pace_hold": { en: "Hold your weight", tn: "ثبات على وزنك" },

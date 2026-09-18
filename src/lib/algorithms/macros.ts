@@ -1,8 +1,9 @@
 import { differenceInYears } from "date-fns";
 import {
   resolveGoalStrategy,
-  FAT_PER_KG,
-  FAT_PER_KG_FLOOR,
+  FAT_KCAL_SHARE,
+  FAT_PER_KG_MAX,
+  FAT_PER_KG_MIN,
   type Bilingual,
   type Goal,
 } from "./diet-strategy";
@@ -128,7 +129,7 @@ export type MacroTargets = {
  * and nothing changes.
  */
 function proteinCeilingG(calories: number, refKg: number): number {
-  const reserved = MIN_CARBS_G * KCAL_PER_G_CARBS + FAT_PER_KG_FLOOR * refKg * KCAL_PER_G_FAT;
+  const reserved = MIN_CARBS_G * KCAL_PER_G_CARBS + FAT_PER_KG_MIN * refKg * KCAL_PER_G_FAT;
   const affordable = (calories - reserved) / KCAL_PER_G_PROTEIN;
   // The ceiling never drops below 1.2 g/kg: if a budget cannot even hold that,
   // the calorie floor is what is binding and protein is not the thing to cut.
@@ -138,11 +139,21 @@ function proteinCeilingG(calories: number, refKg: number): number {
 /**
  * Fat and carbs, given the calorie budget protein has already been taken out of.
  *
- * Fat is prescribed as an absolute 0.9 g/kg rather than as a share of calories.
- * On a deep cut for a heavy person that can leave almost nothing for carbs:
- * 200 g protein and 90 g fat is 1610 kcal of a 1620 kcal budget. This is what
- * the sheet's `fat >= poids × 0.7` minimum is for — fat has 0.2 g/kg of give in
- * it, and we spend that give here before letting carbs fall to nothing.
+ * The order of priority, which is the whole design:
+ *
+ *   1. Hit the calorie target.
+ *   2. Protein is already settled by the caller and is not touched here.
+ *   3. Fat takes a SHARE of calories, clamped into [0.6, 0.9] g/kg — it is not
+ *      handed 0.9 g/kg by default.
+ *   4. Carbohydrate takes the remainder.
+ *   5. If that remainder is still under the floor, fat gives way down to its
+ *      0.6 g/kg minimum. (Past that, protein gives way — see proteinCeilingG.)
+ *
+ * Step 3 is the change. Aiming fat at a share of the budget rather than at a
+ * fixed g/kg means a small budget produces a small fat number on its own,
+ * instead of a large one that carbohydrate then has to be rescued from. On a
+ * generous budget the 0.9 g/kg ceiling binds and the result is identical to
+ * before, so ordinary plans do not move.
  */
 function solveFatAndCarbs(
   calories: number,
@@ -151,20 +162,30 @@ function solveFatAndCarbs(
 ): { fatG: number; carbsG: number } {
   const afterProtein = calories - proteinG * KCAL_PER_G_PROTEIN;
 
-  let fatG = FAT_PER_KG * weightKg;
-  let carbsKcal = afterProtein - fatG * KCAL_PER_G_FAT;
+  const minFatG = FAT_PER_KG_MIN * weightKg;
+  const maxFatG = FAT_PER_KG_MAX * weightKg;
 
+  // A share of the whole budget, not of what protein left behind: fat is a
+  // property of the diet, not of the leftovers.
+  let fatG = Math.min(Math.max((calories * FAT_KCAL_SHARE) / KCAL_PER_G_FAT, minFatG), maxFatG);
+
+  // Carbohydrate is still short — spend fat's remaining give, down to the
+  // hard floor and no further.
+  const carbsKcal = afterProtein - fatG * KCAL_PER_G_FAT;
   if (carbsKcal < MIN_CARBS_G * KCAL_PER_G_CARBS) {
     const wanted = (afterProtein - MIN_CARBS_G * KCAL_PER_G_CARBS) / KCAL_PER_G_FAT;
-    fatG = Math.max(FAT_PER_KG_FLOOR * weightKg, wanted);
-    carbsKcal = afterProtein - fatG * KCAL_PER_G_FAT;
+    fatG = Math.max(minFatG, Math.min(fatG, wanted));
   }
 
+  const roundedFat = Math.max(1, Math.round(fatG));
   return {
-    fatG: Math.round(fatG),
-    // Rounded from the same fat figure the caller is shown, so the three macros
-    // the user reads back add up to the calories they are given.
-    carbsG: Math.max(0, Math.round((afterProtein - Math.round(fatG) * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS)),
+    fatG: roundedFat,
+    // Computed from the same fat figure the caller is shown, so the three
+    // macros the user reads back add up to the calories they are given.
+    carbsG: Math.max(
+      0,
+      Math.round((afterProtein - roundedFat * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS),
+    ),
   };
 }
 
