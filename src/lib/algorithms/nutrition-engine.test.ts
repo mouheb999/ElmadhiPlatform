@@ -508,3 +508,78 @@ describe("selectTemplate", () => {
     expect(chosen?.id).toBe("a");
   });
 });
+
+/**
+ * The header has to match the plan under it.
+ *
+ * A screen that prints "1,690 kcal" over macros that sum to 1,969 is not a
+ * rounding quibble — it is the calculator contradicting itself in the one place
+ * a customer can check it with a phone. Swept rather than spot-checked, because
+ * the failure this caught lived in one combination out of ~100,000: a very tall,
+ * very heavy person whose protein at 2.0 g/kg plus fat at its floor already
+ * exceeded the target, leaving carbohydrate clamped at zero and the three macros
+ * summing to MORE than the calories beside them.
+ */
+describe("macro split — the three macros always add up to the target", () => {
+  const GRID = {
+    gender: ["male", "female"] as const,
+    age: [14, 25, 45, 75, 90],
+    heightCm: [140, 165, 185, 210, 230],
+    weightKg: [35, 50, 70, 100, 140, 190, 250],
+    activityLevel: ["sedentary", "moderate", "very_active"] as const,
+    goal: ["lose_fat", "build_muscle", "recomp", "maintain"] as const,
+  };
+
+  function everyPlan(visit: (m: ReturnType<typeof calculateMacros>, id: string, weightKg: number) => void) {
+    for (const gender of GRID.gender)
+      for (const age of GRID.age)
+        for (const heightCm of GRID.heightCm)
+          for (const weightKg of GRID.weightKg)
+            for (const activityLevel of GRID.activityLevel)
+              for (const goal of GRID.goal) {
+                const m = calculateMacros({
+                  gender,
+                  birthDate: new Date(new Date().getFullYear() - age, 0, 1),
+                  heightCm,
+                  weightKg,
+                  activityLevel,
+                  goal,
+                  trainingDays: "3_4",
+                });
+                visit(m, `${gender}/${age}y/${heightCm}cm/${weightKg}kg/${activityLevel}/${goal}`, weightKg);
+              }
+  }
+
+  it("keeps protein×4 + carbs×4 + fat×9 within rounding distance of the target", () => {
+    everyPlan((m, id) => {
+      const sum = m.proteinG * 4 + m.carbsG * 4 + m.fatG * 9;
+      // Three macros each rounded to a whole gram cannot drift further than
+      // 2+2+4 kcal; the observed worst across the grid is 2.
+      expect(Math.abs(sum - m.calories), `${id}: ${sum} vs ${m.calories}`).toBeLessThanOrEqual(10);
+    });
+  });
+
+  it("never prescribes zero or negative carbohydrate", () => {
+    everyPlan((m, id) => {
+      expect(m.carbsG, id).toBeGreaterThan(0);
+    });
+  });
+
+  it("keeps protein and fat inside sane per-kilo bands", () => {
+    everyPlan((m, id, weightKg) => {
+      expect(m.proteinG, id).toBeGreaterThan(0);
+      expect(m.fatG, id).toBeGreaterThan(0);
+      // Never more than 2.0 g/kg of scale weight, and never so little that a
+      // cut stops protecting muscle.
+      expect(m.proteinG / weightKg, id).toBeLessThanOrEqual(2.01);
+      expect(m.fatG / weightKg, id).toBeLessThanOrEqual(0.92);
+    });
+  });
+
+  it("never lands under the calorie floor", () => {
+    everyPlan((m, id) => {
+      expect(m.calories, id).toBeGreaterThanOrEqual(1200);
+      expect(Number.isFinite(m.calories), id).toBe(true);
+    });
+  });
+});

@@ -111,6 +111,31 @@ export type MacroTargets = {
 };
 
 /**
+ * The most protein this calorie budget can actually hold.
+ *
+ * `solveFatAndCarbs` below gives fat 0.2 g/kg of give before carbohydrate is
+ * allowed to fall to the floor. Protein had none: it was prescribed at a flat
+ * g/kg and everything else had to fit around it. In the corner where protein at
+ * 2.0 g/kg plus fat at its 0.7 g/kg floor already exceeds the target — a very
+ * tall, very heavy person on a deep cut — carbohydrate was clamped to zero and
+ * the three macros then summed to MORE than the calories they were shown
+ * beside. One combination in 99,840 swept, but it is a plan with no
+ * carbohydrate in it and a total that does not match its own header.
+ *
+ * So protein yields too, after fat and after the carbohydrate minimum, and not
+ * below 1.2 g/kg — still comfortably above what muscle retention on a cut
+ * needs. For every ordinary body this ceiling sits far above the prescription
+ * and nothing changes.
+ */
+function proteinCeilingG(calories: number, refKg: number): number {
+  const reserved = MIN_CARBS_G * KCAL_PER_G_CARBS + FAT_PER_KG_FLOOR * refKg * KCAL_PER_G_FAT;
+  const affordable = (calories - reserved) / KCAL_PER_G_PROTEIN;
+  // The ceiling never drops below 1.2 g/kg: if a budget cannot even hold that,
+  // the calorie floor is what is binding and protein is not the thing to cut.
+  return Math.max(affordable, 1.2 * refKg);
+}
+
+/**
  * Fat and carbs, given the calorie budget protein has already been taken out of.
  *
  * Fat is prescribed as an absolute 0.9 g/kg rather than as a share of calories.
@@ -172,7 +197,9 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
   // and prescribing as though it did can consume a whole calorie budget before
   // carbohydrate gets any of it.
   const refKg = referenceWeightKg(w, input.heightCm);
-  const proteinG = Math.round(refKg * strategy.proteinPerKg);
+  const proteinG = Math.round(
+    Math.min(refKg * strategy.proteinPerKg, proteinCeilingG(calories, refKg)),
+  );
   const { fatG, carbsG } = solveFatAndCarbs(calories, proteinG, refKg);
 
   // Fiber from final calories.
