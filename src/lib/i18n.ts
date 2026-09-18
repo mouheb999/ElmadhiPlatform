@@ -173,6 +173,57 @@ const STRINGS = {
   "up.i3": { en: "Progress charts and the weekly review", tn: "رسوم التقدّم والمراجعة الأسبوعية" },
   "up.i4": { en: "Ask the coach your own questions", tn: "اسأل المدرّب أسئلتك أنت" },
 
+  // ---- the journey, from the price to an open account ----
+  //
+  // Four steps across three routes. The step strip used to say "Step 1 of 2"
+  // and count only the two screens of /checkout — which meant the account form
+  // in between them was, from the reader's side, an unannounced third screen
+  // in a two-screen process, and activation was not part of the count at all.
+  // These labels are short because four of them share the width of a phone.
+  "jn.plan": { en: "Plan", tn: "العرض" },
+  "jn.account": { en: "Account", tn: "الحساب" },
+  "jn.pay": { en: "Payment", tn: "الدفع" },
+  "jn.access": { en: "Access", tn: "الدخول" },
+  // Said on the sign-up screen, which is the one place in the flow the reader
+  // is asked for something before being told why it is the next thing.
+  "jn.after_account": {
+    en: "Next: your payment method and the receipt. The plan and price you chose are saved.",
+    tn: "بعدها: طريقة الدفع والوصل. العرض والسعر اللذان اخترتهما محفوظان.",
+  },
+
+  // ---- what happens after the button ----
+  //
+  // The payment here is a bank transfer confirmed by a human, and that is not
+  // going to change this quarter. What can change is whether the reader finds
+  // out about it before or after they commit: an unexpected step is friction,
+  // the same step named in advance is just a step. Every line below is what the
+  // code actually does — see actions/payment.ts and the checkout screen.
+  "act.title": { en: "How activation works", tn: "كيف يُفتح حسابك" },
+  "act.sub": {
+    en: "Four steps from here. Nothing is charged on this page.",
+    tn: "أربع خطوات من هنا. لا يُخصم منك شيء في هذه الصفحة.",
+  },
+  "act.s1": { en: "Create your account", tn: "أنشئ حسابك" },
+  "act.s1_body": {
+    en: "Name, phone, email, password — about a minute.",
+    tn: "الاسم، الهاتف، البريد، كلمة السر — حوالي دقيقة.",
+  },
+  "act.s2": { en: "Choose how you want to pay", tn: "اختر طريقة دفعك" },
+  "act.s2_body": {
+    en: "Pick your method and copy the account number off the screen.",
+    tn: "اختر طريقتك وانسخ رقم الحساب من الشاشة.",
+  },
+  "act.s3": { en: "Transfer, then attach the receipt", tn: "حوّل ثم أرفق الوصل" },
+  "act.s3_body": {
+    en: "The transfer itself happens in your own bank app. Come back to the same screen and attach the screenshot — that is the only thing we need from you.",
+    tn: "التحويل نفسه يتمّ من تطبيق بنكك. ارجع إلى نفس الشاشة وأرفق الصورة — هذا كل ما نحتاجه منك.",
+  },
+  "act.s4": { en: "Your access opens", tn: "يُفتح حسابك" },
+  "act.s4_body": {
+    en: "A person checks the transfer, usually within a few hours, and we message you on WhatsApp. Leave this page open and it unlocks itself.",
+    tn: "يتحقّق شخص من التحويل، عادةً في غضون ساعات، ونراسلك على واتساب. اترك هذه الصفحة مفتوحة وتُفتح وحدها.",
+  },
+
   // ---- checkout, step by step ----
   "co.step": { en: "Step", tn: "خطوة" },
   "co.of": { en: "of", tn: "من" },

@@ -13,6 +13,7 @@ import {
 } from "@/app/actions/payment";
 import { AppPreview } from "@/components/checkout/app-preview";
 import { PaymentMethods } from "@/components/checkout/payment-methods";
+import { ActivationSteps, JourneyBar } from "@/components/funnel/journey";
 import { Faq, Guarantee, Testimonials } from "@/components/funnel/proof";
 import { BuildPlanPrompt, PlanRecap } from "@/components/funnel/plan-recap";
 import { Logo } from "@/components/layout/logo";
@@ -22,6 +23,16 @@ import { cn } from "@/lib/utils";
 import { type Locale, dir, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
 import { isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
+import {
+  ACTIVATED,
+  CHECKOUT_VIEWED,
+  METHOD_SELECTED,
+  PAY_STEP,
+  PLAN_SELECTED,
+  RECEIPT_UPLOADED,
+  SIGNUP_STARTED,
+  trackStep,
+} from "@/lib/funnel/track";
 import type { Database } from "@/types/db";
 
 type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
@@ -223,6 +234,10 @@ export function CheckoutClient({
    */
   function continueWithPlan() {
     if (!selectedPlan) return;
+    // Recorded for both branches: this is the tap that commits to a price, and
+    // a report that only counted the signed-out half would make the drop-off
+    // at the account form look smaller than it is.
+    trackStep(SIGNUP_STARTED, locale, { value: selectedPlan.price_tnd });
     if (signedIn) {
       setStep(2);
       return;
@@ -310,6 +325,32 @@ export function CheckoutClient({
   }, [paymentStatus, awaitingReview, router]);
 
   /**
+   * The half of the funnel nobody could see.
+   *
+   * /start reported eleven questions and then stopped at `to_checkout`, so
+   * every campaign report ended at the price: "cheap traffic, no subscribers"
+   * with no way to tell whether people balk at the amount, at the account form,
+   * or at being sent to their bank app. These are the missing rows. Each one is
+   * an anonymous visit id and a step name — see lib/funnel/track.ts — and each
+   * is sent once per visit.
+   */
+  useEffect(() => {
+    if (paymentStatus === "active") {
+      trackStep(ACTIVATED, locale);
+      return;
+    }
+    // Not for somebody parked on the review screen: they are waiting on a human,
+    // not reading an offer, and counting that visit as another look at the price
+    // would overstate the top of the funnel every time they refresh.
+    if (paymentStatus === "pending" && hasProof) return;
+    trackStep(CHECKOUT_VIEWED, locale);
+  }, [paymentStatus, hasProof, locale]);
+
+  useEffect(() => {
+    if (step === 2) trackStep(PAY_STEP, locale);
+  }, [step, locale]);
+
+  /**
    * What a term saves against paying month by month, in dinars.
    *
    * Dinars rather than the percentage this used to show: "Save 72 DT" is the
@@ -391,6 +432,11 @@ export function CheckoutClient({
         router.refresh();
         return;
       }
+      // The last thing that happens while the customer is still on the page —
+      // the money has left their bank and the proof is with us. Activation is
+      // a person's decision hours later, so for an ad platform this is the
+      // conversion that can actually be optimised towards.
+      trackStep(RECEIPT_UPLOADED, locale, { value: selectedPlan.price_tnd });
       router.refresh();
     });
   }
@@ -428,6 +474,7 @@ export function CheckoutClient({
         setError(res.error);
         return;
       }
+      trackStep(RECEIPT_UPLOADED, locale, { value: selectedPlan?.price_tnd });
       router.refresh();
     });
   }
@@ -501,6 +548,9 @@ export function CheckoutClient({
     return (
       <Shell direction={direction}>
         <div className="flex w-full max-w-sm flex-col gap-4">
+          {/* Still the same four steps. Somebody waiting on a human is at the
+              end of a process, not in an unnumbered limbo after it. */}
+          <JourneyBar locale={locale} current={4} />
           <Card>
             <CardContent className="flex flex-col gap-4 p-6 text-center">
               <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent/15">
@@ -553,7 +603,10 @@ export function CheckoutClient({
   return (
     <Shell direction={direction}>
       <div className="flex w-full max-w-md flex-col gap-4">
-        <StepBar locale={locale} step={step} />
+        {/* Four steps, not two: the account form between these screens and the
+            wait for activation after them are part of the journey whether or
+            not this page counts them. See components/funnel/journey.tsx. */}
+        <JourneyBar locale={locale} current={step === 1 ? 1 : 3} />
 
         {step === 1 && (
           <>
@@ -649,7 +702,10 @@ export function CheckoutClient({
                       <button
                         key={plan.id}
                         type="button"
-                        onClick={() => setMonths(plan.months)}
+                        onClick={() => {
+                          setMonths(plan.months);
+                          trackStep(PLAN_SELECTED, locale, { value: plan.price_tnd });
+                        }}
                         aria-pressed={selected}
                         className={cn(
                           "flex items-center justify-between gap-3 rounded-2xl border px-4 py-4 text-start transition-colors",
@@ -763,6 +819,23 @@ export function CheckoutClient({
                   {direction === "rtl" ? <ArrowLeft /> : <ArrowRight />}
                 </Button>
 
+                {/* Names the form before it arrives, directly under the button
+                    it describes rather than four blocks below it. Somebody who
+                    taps a button that says "continue" and gets an account form
+                    instead reads that as a bait; the button says what happens,
+                    and this says why it is needed at all. */}
+                {!signedIn && (
+                  <p className="-mt-1 text-center text-xs leading-relaxed text-muted">
+                    {t(locale, "co.next_signup_why")}
+                  </p>
+                )}
+
+                {/* And then the rest of it, in order, before they commit to the
+                    first step. The transfer and the wait for a human are not
+                    going away this quarter; being met by surprise is what costs
+                    the sale, not the steps themselves. */}
+                <ActivationSteps locale={locale} />
+
                 {/* The two objections that stop a first-time buyer on a manual
                     transfer page, answered where the decision is made. */}
                 <div className="flex items-stretch justify-center gap-4 text-xs">
@@ -788,16 +861,6 @@ export function CheckoutClient({
                     this turns out not to fit me. Left unanswered it is the
                     last thought a hesitant reader has before closing the tab. */}
                 <Guarantee locale={locale} />
-
-                {/* Names the form before it arrives. Somebody who taps a button
-                    that says "continue" and gets an account form instead reads
-                    that as a bait; the button says what happens, and this says
-                    why it is needed at all. */}
-                {!signedIn && (
-                  <p className="-mt-1 text-center text-xs leading-relaxed text-muted">
-                    {t(locale, "co.next_signup_why")}
-                  </p>
-                )}
 
                 {/* With the trial off this is a trapdoor: /dashboard is gated,
                     so "keep using the free plan" would bounce straight back
@@ -865,7 +928,10 @@ export function CheckoutClient({
                   locale={locale}
                   methods={methods}
                   selectedKey={methodKey}
-                  onSelect={setMethodKey}
+                  onSelect={(key) => {
+                    setMethodKey(key);
+                    trackStep(METHOD_SELECTED, locale);
+                  }}
                 />
               </CardContent>
             </Card>
@@ -1045,29 +1111,6 @@ function PaymentThreadPanel({
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-/** Two dots and a label — enough to say "this ends", which one screen never did. */
-function StepBar({ locale, step }: { locale: Locale; step: number }) {
-  const labels: StringKey[] = ["co.s1", "co.s2"];
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-center text-xs font-bold uppercase tracking-wide text-muted">
-        {t(locale, "co.step")} {step} {t(locale, "co.of")} 2 · {t(locale, labels[step - 1])}
-      </p>
-      <div className="flex gap-1.5">
-        {[1, 2].map((n) => (
-          <span
-            key={n}
-            className={cn(
-              "h-1 flex-1 rounded-full transition-colors",
-              n <= step ? "bg-accent" : "bg-white/10",
-            )}
-          />
-        ))}
-      </div>
-    </div>
   );
 }
 

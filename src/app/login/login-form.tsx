@@ -7,6 +7,7 @@ import {
   signUpWithPassword,
   signInWithGoogle,
 } from "@/app/actions/auth";
+import { JourneyBar } from "@/components/funnel/journey";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ import { type Locale, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
 import { REVERSE_TRIAL } from "@/lib/access";
+import { SIGNUP_DONE, trackStep } from "@/lib/funnel/track";
 
 type Mode = "signin" | "signup";
 
@@ -139,6 +141,11 @@ export function LoginForm({
         // a bare /checkout would land them back on the grid having apparently
         // forgotten the decision they just made.
         if (res.data.signedIn) {
+          // The step the funnel could never see: everything before this was
+          // measured on /start and everything after it on /checkout, with the
+          // account form — the single biggest ask in the flow — a gap between
+          // two reports.
+          trackStep(SIGNUP_DONE, locale);
           const backToCheckout = next.startsWith("/checkout");
           router.push(REVERSE_TRIAL || backToCheckout ? next : "/checkout");
           router.refresh();
@@ -203,6 +210,17 @@ export function LoginForm({
       <div className="mb-8">
         <Logo />
       </div>
+
+      {/* Only for somebody mid-purchase — a plan came with them from checkout.
+          Without it this screen is a form that appeared out of nowhere in the
+          middle of buying something; with it, it is step two of four and the
+          two steps after it are named. Anyone who navigated to /login to sign
+          in is not in a funnel and gets none of this. */}
+      {plan && mode === "signup" && (
+        <div className="mb-5 w-full max-w-sm">
+          <JourneyBar locale={locale} current={2} />
+        </div>
+      )}
 
       <Card className="w-full max-w-sm">
         {/* The purchase, restated above the form, so this reads as the next
@@ -343,6 +361,12 @@ export function LoginForm({
           >
             {t(locale, "login.google")}
           </Button>
+
+          {plan && mode === "signup" && (
+            <p className="text-center text-xs leading-relaxed text-muted">
+              {t(locale, "jn.after_account")}
+            </p>
+          )}
 
           <p className="text-center text-sm text-muted">
             {mode === "signin" ? (

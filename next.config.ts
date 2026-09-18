@@ -20,6 +20,21 @@ const supabaseOrigin = (() => {
 })();
 
 /**
+ * Meta's pixel, when one is configured.
+ *
+ * The policy stays exactly as tight as it is today for every deployment that
+ * has not set NEXT_PUBLIC_META_PIXEL_ID: no facebook.net script, no
+ * facebook.com beacon, no tracking pixel image. Turning the pixel on is one
+ * environment variable, and it opens precisely the three origins it needs.
+ */
+const metaPixelOn = /^\d{5,20}$/.test(process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "");
+const metaScript = metaPixelOn ? " https://connect.facebook.net" : "";
+const metaConnect = metaPixelOn
+  ? " https://connect.facebook.net https://www.facebook.com"
+  : "";
+const metaImg = metaPixelOn ? " https://www.facebook.com" : "";
+
+/**
  * Content Security Policy.
  *
  * `script-src` carries 'unsafe-inline', which is the honest state of this
@@ -46,17 +61,17 @@ const supabaseOrigin = (() => {
 const csp = [
   "default-src 'self'",
   // 'unsafe-eval' in dev only: React uses eval to rebuild server error stacks.
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${metaScript}`,
   // Inline style attributes are how framer-motion animates. A nonce here would
   // be ignored by the browser anyway once 'unsafe-inline' is present.
   "style-src 'self' 'unsafe-inline'",
   // data: — camera captures are canvas data URLs; i.ytimg.com — video
   // thumbnails; Supabase — admin-uploaded exercise and food images.
-  `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin}`,
+  `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin}${metaImg}`,
   "media-src 'self' blob:",
   // next/font self-hosts Cairo and Tajawal, so no Google Fonts origin here.
   "font-src 'self'",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace("https://", "wss://")}${
+  `connect-src 'self' ${supabaseOrigin} ${supabaseOrigin.replace("https://", "wss://")}${metaConnect}${
     isDev ? " ws://localhost:* http://localhost:*" : ""
   }`,
   // The exercise demo modal embeds YouTube's no-cookie player.

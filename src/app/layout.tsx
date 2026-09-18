@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { getCopyOverrides } from "@/lib/copy";
 import { applyCopyOverrides, dir } from "@/lib/i18n";
 import { CopyBootstrap } from "@/components/shared/copy-bootstrap";
+import { MetaPixel } from "@/components/funnel/meta-pixel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -52,6 +53,12 @@ export default async function RootLayout({
             sibling renders. See the component for why. */}
         <CopyBootstrap overrides={overrides} />
         {children}
+        {/* Renders nothing unless NEXT_PUBLIC_META_PIXEL_ID is set. Here rather
+            than on /start alone because the funnel spans four routes — the
+            questionnaire, the offer, sign-up and the payment screen — and a
+            pixel that only exists on the first one can report arrivals and
+            nothing else. */}
+        <MetaPixel />
       </body>
     </html>
   );

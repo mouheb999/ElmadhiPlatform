@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BuildingScreen } from "@/components/funnel/building";
@@ -19,14 +19,9 @@ import {
 } from "@/components/funnel/interstitial";
 import { PlanReveal } from "@/components/funnel/plan-reveal";
 import { Logo } from "@/components/layout/logo";
-import { recordFunnelStep } from "@/app/actions/funnel";
+import { trackStep } from "@/lib/funnel/track";
 import { inRange, isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
-import {
-  captureAttribution,
-  rawAttribution,
-  saveAnswers,
-  visitId,
-} from "@/lib/funnel/client-store";
+import { captureAttribution, saveAnswers } from "@/lib/funnel/client-store";
 import { dir, t, type Locale, type StringKey } from "@/lib/i18n";
 
 /**
@@ -273,22 +268,20 @@ export function StartClient({
    */
   useEffect(() => {
     captureAttribution();
-    void recordFunnelStep(visitId(), "landed", rawAttribution(), locale);
+    trackStep("landed", locale);
   }, [locale]);
 
   /**
    * Record each screen as it is reached.
    *
    * Fire-and-forget, deduplicated per visit by a unique index in the database
-   * (migration 054), so back-and-forth does not inflate the funnel. The ref
-   * keeps a tab from re-sending the same step on every re-render.
+   * (migration 054), so back-and-forth does not inflate the funnel. `trackStep`
+   * holds the same set in the browser, so a re-render does not re-send a step —
+   * and, unlike the ref this used to keep, that set survives the navigation to
+   * /checkout, which is now measured too.
    */
-  const sent = useRef(new Set<string>());
   useEffect(() => {
-    const step = screen.step;
-    if (sent.current.has(step)) return;
-    sent.current.add(step);
-    void recordFunnelStep(visitId(), step, rawAttribution(), locale);
+    trackStep(screen.step, locale);
   }, [screen, locale]);
 
   /** Every answer is written through, so a closed tab does not lose the lot. */
@@ -343,7 +336,7 @@ export function StartClient({
    * what lets checkout restate the plan they just watched get built.
    */
   function toCheckout() {
-    void recordFunnelStep(visitId(), "to_checkout", rawAttribution(), locale);
+    trackStep("to_checkout", locale);
     router.push("/checkout?from=funnel");
   }
 
