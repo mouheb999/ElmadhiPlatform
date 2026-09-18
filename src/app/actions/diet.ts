@@ -268,6 +268,10 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
     weightKg: answers.weightKg,
     activityLevel: answers.activityLevel,
     goal: answers.goal,
+    // Already asked (Q5) and, until now, never read by the calculator. It is a
+    // separate increment on top of daily activity — see lib/algorithms/energy.ts
+    // — so a desk job plus six sessions a week no longer scores as sedentary.
+    trainingDays: answers.trainingDays,
     bodyFatPercent: answers.bodyFatPercent,
   });
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { CalendarDays, Check, Dumbbell, Flame, Lock } from "lucide-react";
+import { CalendarDays, Check, Dumbbell, Flame, Info, Lock, TrendingDown, TrendingUp } from "lucide-react";
 import { MilestoneTrack } from "@/components/funnel/milestone-track";
 import { ProofPoints, Testimonials } from "@/components/funnel/proof";
 import { t, weeksLabel, type Locale, type StringKey } from "@/lib/i18n";
 import type { FunnelAnswers } from "@/lib/funnel/answers";
-import { projectWeight } from "@/lib/funnel/projection";
+import { calculateFitnessPlan } from "@/lib/funnel/fitness-plan";
 
 /**
  * The payoff.
@@ -41,8 +41,10 @@ export function PlanReveal({
   answers: FunnelAnswers;
   onContinue: () => void;
 }) {
-  const projection = projectWeight(answers);
+  const projection = calculateFitnessPlan(answers);
   const { targets } = projection;
+  const rateKg = Math.abs(projection.weeklyRateKg);
+  const last = projection.timeline[projection.timeline.length - 1];
 
   /**
    * Month and year, not a day.
@@ -53,16 +55,12 @@ export function PlanReveal({
    * Arabic-Indic digits by default, and this product pins Western numerals
    * everywhere (see globals.css) so 2026 does not become ٢٠٢٦ on one screen.
    */
-  const dateLabel = projection.date
-    ? projection.date.toLocaleDateString(locale === "tn" ? "ar-TN-u-nu-latn" : "en-GB", {
+  const dateLabel = projection.targetDate
+    ? projection.targetDate.toLocaleDateString(locale === "tn" ? "ar-TN-u-nu-latn" : "en-GB", {
         month: "long",
         year: "numeric",
       })
     : null;
-
-  /** The nearest stop that is not today — what the headline above the track says. */
-  const firstStop = projection.milestones.find((stop) => stop.kind !== "today") ?? null;
-  const firstStopDelta = firstStop ? firstStop.kg - projection.milestones[0].kg : 0;
 
   return (
     <div className="flex flex-col gap-5 py-6">
@@ -106,56 +104,110 @@ export function PlanReveal({
         </p>
       </section>
 
+      {/* ---- Your goal, and the pace it implies ---- */}
+      <section className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface px-4 py-3.5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+            {t(locale, "fn.r_goal_label")}
+          </span>
+          <span className="font-display text-[15px] font-extrabold leading-tight">
+            {locale === "tn" ? targets.goalLabel.ar : targets.goalLabel.en}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface px-4 py-3.5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+            {t(locale, "fn.r_pace_label")}
+          </span>
+          <span className="flex items-center gap-1.5 font-display text-[15px] font-extrabold leading-tight">
+            {projection.direction === "down" ? (
+              <TrendingDown className="h-4 w-4 shrink-0 text-accent" />
+            ) : projection.direction === "up" ? (
+              <TrendingUp className="h-4 w-4 shrink-0 text-accent" />
+            ) : null}
+            {/* The rate and the calories above are the same decision read two
+                ways — see lib/algorithms/energy.ts. They cannot disagree. */}
+            <bdi>
+              {projection.direction === "hold"
+                ? t(locale, "fn.r_pace_hold")
+                : `~${rateKg.toFixed(2)} ${t(locale, "fn.unit_kg")}${t(locale, "fn.r_per_week")}`}
+            </bdi>
+          </span>
+        </div>
+      </section>
+
       {/* ---- Where it goes ---- */}
       {projection.kind === "scale" ? (
         <section className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface px-4 py-5">
           <div className="flex flex-col gap-1">
             <h2 className="font-display text-base font-extrabold">{t(locale, "fn.r_chart_title")}</h2>
-            {/* The first stop, said in words above the track.
-
-                This is the headline now. The endpoint used to be, and it is
-                the wrong number to lead with: correct, far away, and easy to
-                disbelieve. What decides whether somebody starts is what
-                changes by the end of next month. */}
-            {firstStop && (
-              <p className="text-[13px] leading-relaxed text-muted">
-                {t(locale, "fn.r_first_line")}{" "}
-                <bdi className="font-bold text-accent">
-                  {firstStopDelta < 0 ? "−" : "+"}
-                  {Math.abs(firstStopDelta).toFixed(1)} {t(locale, "fn.unit_kg")}
-                </bdi>{" "}
-                {t(locale, "fn.r_first_line_tail")}{" "}
-                <bdi className="font-bold text-ink">
-                  {firstStop.week} {weeksLabel(locale, firstStop.week)}
-                </bdi>
-                .
-              </p>
-            )}
+            {/* The twelve-week headline, as a range. Leading with a single
+                figure would be precision the arithmetic has not got; the band
+                is what it actually knows, and it is still a number worth
+                reading. */}
+            <p className="text-[13px] leading-relaxed text-muted">
+              {t(locale, "fn.r_twelve_line")}{" "}
+              <bdi className="font-bold text-ink">
+                {answers.weightKg.toFixed(1)} {t(locale, "fn.unit_kg")}
+              </bdi>{" "}
+              →{" "}
+              <bdi className="font-bold text-accent">
+                {Math.round(last.lowKg) === Math.round(last.highKg)
+                  ? `~${Math.round(last.lowKg)}`
+                  : `~${Math.round(last.lowKg)}–${Math.round(last.highKg)}`}{" "}
+                {t(locale, "fn.unit_kg")}
+              </bdi>
+            </p>
           </div>
 
           <MilestoneTrack
             locale={locale}
-            milestones={projection.milestones}
+            milestones={projection.timeline}
             unitLabel={t(locale, "fn.unit_kg")}
+            targetWeek={projection.targetWithinTimeline ? projection.targetWeeks : null}
           />
 
-          {projection.weeks !== null && dateLabel && (
+          {/* Their typed target, when it lands past the twelve weeks on screen.
+              Kept as a destination rather than the headline: it is the number
+              furthest away and the easiest to disbelieve. */}
+          {projection.targetWeeks !== null && !projection.targetWithinTimeline && dateLabel && (
             <p className="flex items-center justify-center gap-1.5 rounded-full bg-accent/10 px-3 py-2 text-xs font-bold text-accent">
               <CalendarDays className="h-3.5 w-3.5 shrink-0" />
               <bdi>
-                {t(locale, "fn.r_by")} {dateLabel} · {projection.weeks} {weeksLabel(locale, projection.weeks)}
+                {t(locale, "fn.r_by")} {dateLabel} · {projection.targetWeeks}{" "}
+                {weeksLabel(locale, projection.targetWeeks)}
               </bdi>
             </p>
           )}
 
+          {/* The goal and the target weight point opposite ways — "build
+              muscle" with a lower target, say. The plan follows the goal, and
+              says so, rather than drawing the flat line the old code drew. */}
+          {projection.targetContradictsGoal && (
+            <p className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-[12px] leading-relaxed">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+              <span>{t(locale, "fn.r_goal_conflict")}</span>
+            </p>
+          )}
+
           <p className="text-center text-[12px] leading-relaxed text-muted">
-            {t(locale, projection.weeks === null ? "fn.r_no_date" : "fn.r_estimate")}
+            {t(locale, "fn.r_estimate")}
           </p>
         </section>
       ) : (
         <section className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface px-4 py-5 text-center">
-          <h2 className="font-display text-base font-extrabold">{t(locale, "fn.r_recomp_title")}</h2>
-          <p className="text-[13px] leading-relaxed text-muted">{t(locale, "fn.r_recomp_body")}</p>
+          <h2 className="font-display text-base font-extrabold">
+            {t(locale, projection.guidance ? "fn.r_care_title" : "fn.r_recomp_title")}
+          </h2>
+          <p className="text-[13px] leading-relaxed text-muted">
+            {t(
+              locale,
+              projection.guidance === "minor"
+                ? "fn.r_care_minor"
+                : projection.guidance === "underweight"
+                  ? "fn.r_care_underweight"
+                  : "fn.r_recomp_body",
+            )}
+          </p>
         </section>
       )}
 

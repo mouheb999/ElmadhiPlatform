@@ -22,35 +22,72 @@ const maleProfile = {
 };
 
 // Mifflin for this profile: 10*80 + 6.25*180 - 5*25 + 5 = 1805.
-// Activity "moderate" is 1.40 under the simplified calculator, so 1805 * 1.4
-// = 2527 kcal maintenance.
+//
+// TDEE is now activity PLUS training frequency — see lib/algorithms/energy.ts.
+// "moderate" is 1.55 and no `trainingDays` is passed here, so the bump is zero:
+// 1805 * 1.55 = 2798 kcal maintenance. Training is added separately precisely
+// so that it is not counted twice, once inside the activity band and again on
+// top of it.
 const BMR = 1805;
-const TDEE = 2527;
+const TDEE = Math.round(1805 * 1.55);
 
 describe("calculateMacros", () => {
-  it("uses Mifflin BMR and the occupational activity factor for TDEE", () => {
+  it("uses Mifflin BMR and the activity factor for TDEE", () => {
     const m = calculateMacros({ ...maleProfile, goal: "maintain" });
     expect(m.bmr).toBe(BMR);
     expect(m.tdee).toBe(TDEE);
     expect(m.usedLeanMass).toBe(false);
   });
 
-  it("walks the five activity bands from 1.20 to 1.60", () => {
+  it("walks the five activity bands from 1.20 to 1.725", () => {
     const at = (activityLevel: MacroProfileInput["activityLevel"]) =>
       calculateMacros({ ...maleProfile, activityLevel, goal: "maintain" }).tdee;
     expect(at("sedentary")).toBe(Math.round(BMR * 1.2));
-    expect(at("light")).toBe(Math.round(BMR * 1.3));
-    expect(at("moderate")).toBe(Math.round(BMR * 1.4));
-    expect(at("active")).toBe(Math.round(BMR * 1.5));
-    expect(at("very_active")).toBe(Math.round(BMR * 1.6));
+    expect(at("light")).toBe(Math.round(BMR * 1.375));
+    expect(at("moderate")).toBe(Math.round(BMR * 1.55));
+    expect(at("active")).toBe(Math.round(BMR * 1.65));
+    expect(at("very_active")).toBe(Math.round(BMR * 1.725));
   });
 
-  it("applies the four flat goal multipliers, rounded to the nearest ten", () => {
+  it("adds training frequency on top of the activity band", () => {
+    const at = (trainingDays: string) =>
+      calculateMacros({ ...maleProfile, trainingDays, goal: "maintain" }).tdee;
+    expect(at("0")).toBe(TDEE);
+    expect(at("3_4")).toBe(Math.round(BMR * 1.6));
+    expect(at("7")).toBe(Math.round(BMR * 1.65));
+  });
+
+  /**
+   * Calories are no longer a flat multiple of TDEE. They are TDEE minus (or
+   * plus) the energy an intended weekly rate of change costs, which is what
+   * makes the rate the screen prints and the calories the screen prints the
+   * same decision rather than two guesses. See lib/algorithms/energy.ts.
+   */
+  it("sizes the deficit and surplus from an intended rate of change", () => {
     const cal = (goal: MacroProfileInput["goal"]) => calculateMacros({ ...maleProfile, goal }).calories;
-    expect(cal("build_muscle")).toBe(Math.round((TDEE * 1.07) / 10) * 10);
-    expect(cal("lose_fat")).toBe(Math.round((TDEE * 0.85) / 10) * 10);
-    expect(cal("recomp")).toBe(Math.round(TDEE / 10) * 10);
-    expect(cal("maintain")).toBe(Math.round(TDEE / 10) * 10);
+    expect(cal("lose_fat")).toBeLessThan(TDEE);
+    expect(cal("build_muscle")).toBeGreaterThan(TDEE);
+    expect(cal("recomp")).toBeLessThan(TDEE);
+    expect(cal("maintain")).toBe(TDEE);
+
+    // 80 kg at 180 cm is a BMI of 24.7, so the intended loss is 0.55% of
+    // bodyweight a week: 0.44 kg, or a 484 kcal daily deficit.
+    const lose = calculateMacros({ ...maleProfile, goal: "lose_fat" });
+    expect(lose.energy.weeklyRateKg).toBeCloseTo(-0.44, 1);
+    expect(TDEE - lose.calories).toBeGreaterThan(400);
+    expect(TDEE - lose.calories).toBeLessThan(560);
+
+    // And the surplus stays inside the conventional 5-10% of TDEE.
+    const gain = calculateMacros({ ...maleProfile, goal: "build_muscle" });
+    expect(gain.calories / TDEE).toBeGreaterThanOrEqual(1.04);
+    expect(gain.calories / TDEE).toBeLessThanOrEqual(1.11);
+  });
+
+  it("reports a weekly rate that the calorie target actually implies", () => {
+    for (const goal of ["lose_fat", "build_muscle", "recomp", "maintain"] as const) {
+      const m = calculateMacros({ ...maleProfile, goal });
+      expect(m.energy.weeklyRateKg).toBeCloseTo(((m.calories - m.tdee) * 7) / 7700, 6);
+    }
   });
 
   it("gives 2.0 g/kg of protein to every goal but plain maintenance, which gets 1.6", () => {
@@ -82,10 +119,16 @@ describe("calculateMacros", () => {
     expect(tiny.calories).toBeGreaterThanOrEqual(1200);
   });
 
-  // The sheet's `fat >= poids × 0.7` minimum exists for exactly this case:
-  // 200 g protein + 90 g fat is 1610 of a 1620 kcal budget, and carbs would be
-  // left with nothing. Fat has 0.2 g/kg of give and we spend it here.
-  it("spends fat down to its 0.7 g/kg floor rather than starving carbs", () => {
+  /**
+   * The corner the grams-per-kilo rules break in.
+   *
+   * 100 kg at 160 cm is a BMI of 39. Prescribed against the scale weight she
+   * would get 200 g of protein and 70 g of fat — 1,430 kcal against a 1,430
+   * kcal budget, leaving exactly zero for carbohydrate. Protein and fat are
+   * prescribed per kilo of the REFERENCE weight (BMI 27.5) instead, so the
+   * split fits inside the target with room to spare. See referenceWeightKg.
+   */
+  it("prescribes protein and fat against a reference weight for a high BMI", () => {
     const heavyCut = calculateMacros({
       gender: "female",
       birthDate: new Date(new Date().getFullYear() - 50, 0, 1),
@@ -94,9 +137,15 @@ describe("calculateMacros", () => {
       activityLevel: "sedentary",
       goal: "lose_fat",
     });
+    // Her reference weight is 27.5 × 1.6² = 70.4 kg, not 100 kg.
+    const refKg = 27.5 * 1.6 * 1.6;
+    expect(heavyCut.proteinG).toBe(Math.round(refKg * 2.0));
     expect(heavyCut.fatG).toBeLessThan(Math.round(0.9 * 100));
-    expect(heavyCut.fatG).toBeGreaterThanOrEqual(Math.round(0.7 * 100));
-    expect(heavyCut.carbsG).toBeGreaterThan(0);
+    expect(heavyCut.fatG).toBeGreaterThanOrEqual(Math.round(0.7 * refKg));
+    // The point of the whole exercise: carbohydrate gets a real share.
+    expect(heavyCut.carbsG).toBeGreaterThan(40);
+    const fromMacros = heavyCut.proteinG * 4 + heavyCut.carbsG * 4 + heavyCut.fatG * 9;
+    expect(Math.abs(fromMacros - heavyCut.calories)).toBeLessThanOrEqual(15);
   });
 
   it("body fat is not an input to calories or macros — only to resting energy", () => {
@@ -121,10 +170,12 @@ describe("calculateMacros", () => {
 
 describe("resolveGoalStrategy", () => {
   it("matches the sheet's four multipliers exactly", () => {
-    expect(resolveGoalStrategy("build_muscle").calorieFactor).toBe(1.07);
-    expect(resolveGoalStrategy("lose_fat").calorieFactor).toBe(0.85);
-    expect(resolveGoalStrategy("recomp").calorieFactor).toBe(1);
-    expect(resolveGoalStrategy("maintain").calorieFactor).toBe(1);
+    // Calories left this function — see energy.ts. What a goal still decides
+    // here is protein, and that is what is asserted.
+    expect(resolveGoalStrategy("build_muscle").proteinPerKg).toBe(2.0);
+    expect(resolveGoalStrategy("lose_fat").proteinPerKg).toBe(2.0);
+    expect(resolveGoalStrategy("recomp").proteinPerKg).toBe(2.0);
+    expect(resolveGoalStrategy("maintain").proteinPerKg).toBe(1.6);
   });
 });
 

@@ -3,9 +3,11 @@
  *
  * REWRITTEN to the "calculateur calories simplifié" sheet. What changed and why:
  *
- *   Calories   were a body-fat-interpolated band (cut −15…−25 %, bulk +10…+15 %,
- *              recomp −0…−10 %). They are now four flat multipliers of TDEE:
- *              ×1.07 gain, ×0.85 loss, ×1.00 recomp and maintain.
+ *   Calories   were a body-fat-interpolated band, then four flat multipliers of
+ *              TDEE (×1.07 / ×0.85 / ×1.00). They have since moved out of this
+ *              file entirely: see energy.ts, which derives them from an intended
+ *              weekly rate of change so that the rate shown to the user and the
+ *              calories shown to the user are the same decision.
  *   Protein    was 1.4–2.4 g/kg interpolated the same way. It is now 2.0 g/kg
  *              for every goal that is trying to change body composition, and
  *              1.6 g/kg for plain health maintenance.
@@ -33,12 +35,26 @@
 
 export type Goal = "lose_fat" | "maintain" | "build_muscle" | "recomp";
 
+const GOALS: Goal[] = ["lose_fat", "maintain", "build_muscle", "recomp"];
+
+/**
+ * A goal we will act on, whatever arrived.
+ *
+ * The switch below is exhaustive over `Goal`, which makes TypeScript happy and
+ * did nothing for a value that reached it at runtime from a cookie, a stale
+ * database row or an unanswered question — it fell through every case and
+ * returned undefined, and the first property read off it threw. Maintenance is
+ * the safe fallback: it prescribes no deficit and no surplus to somebody whose
+ * goal we do not actually know.
+ */
+export function normalizeGoal(goal: unknown): Goal {
+  return GOALS.includes(goal as Goal) ? (goal as Goal) : "maintain";
+}
+
 export type Bilingual = { en: string; ar: string };
 
 export type GoalStrategy = {
   goal: Goal;
-  /** Multiplier applied to TDEE. 1.07 = TDEE +7 %. */
-  calorieFactor: number;
   /** Grams of protein per kg bodyweight. */
   proteinPerKg: number;
   label: Bilingual;
@@ -49,13 +65,24 @@ export type GoalStrategy = {
 export const FAT_PER_KG = 0.9;
 export const FAT_PER_KG_FLOOR = 0.7;
 
-/** Resolve the concrete numbers for a goal. Flat, per the sheet. */
-export function resolveGoalStrategy(goal: Goal): GoalStrategy {
+/**
+ * Protein and the wording for a goal. The calorie budget is NOT here.
+ *
+ * It used to be: a flat `calorieFactor` per goal, ×0.85 to cut and ×1.00 for
+ * recomp and maintain. That flat factor is what broke the result page — ×1.00
+ * rounds to within a few kcal of maintenance, so the weekly rate inferred from
+ * it came out at −0.001 kg and the reveal printed a flat twelve-week line with
+ * "0.0 kg/week" on it. Calories are now derived from an intended rate of change
+ * in `energy.ts`, and the rate is read back off the result, so the two cannot
+ * disagree. Protein per kg and the labels stayed here because neither depends
+ * on the size of the budget.
+ */
+export function resolveGoalStrategy(input: Goal): GoalStrategy {
+  const goal = normalizeGoal(input);
   switch (goal) {
     case "lose_fat":
       return {
         goal,
-        calorieFactor: 0.85,
         proteinPerKg: 2.0,
         label: { en: "Fat loss", ar: "إنقاص الدهون" },
         rationale: {
@@ -66,7 +93,6 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
     case "build_muscle":
       return {
         goal,
-        calorieFactor: 1.07,
         proteinPerKg: 2.0,
         label: { en: "Lean muscle gain", ar: "زيادة عضلية نظيفة" },
         rationale: {
@@ -77,7 +103,6 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
     case "maintain":
       return {
         goal,
-        calorieFactor: 1.0,
         proteinPerKg: 1.6,
         label: { en: "Health and maintenance", ar: "صحة وثبات" },
         rationale: {
@@ -88,12 +113,11 @@ export function resolveGoalStrategy(goal: Goal): GoalStrategy {
     case "recomp":
       return {
         goal,
-        calorieFactor: 1.0,
         proteinPerKg: 2.0,
         label: { en: "Body recomposition", ar: "إعادة تشكيل الجسم" },
         rationale: {
-          en: "Calories stay at maintenance with high protein, so you can lose fat and build muscle at the same time.",
-          ar: "السعرات تبقى عند الثبات مع بروتين عالٍ، لتنقص الدهون وتبني العضل في الوقت نفسه.",
+          en: "Calories sit just under maintenance with high protein, so you can lose fat and build muscle at the same time.",
+          ar: "السعرات تبقى أقلّ قليلاً من الثبات مع بروتين عالٍ، لتنقص الدهون وتبني العضل في الوقت نفسه.",
         },
       };
   }

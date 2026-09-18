@@ -2047,6 +2047,37 @@ const STRINGS = {
     en: "Your answers are saved. You will not be asked any of this a second time.",
     tn: "إجاباتك محفوظة. لن نسألك عنها مرة ثانية.",
   },
+  // ---- the result, as the reveal now orders it ----
+  //
+  // Calories first, then the goal, then the pace, then where twelve weeks of it
+  // lands. The pace and the calories are two readings of one decision (see
+  // lib/algorithms/energy.ts), so nothing here can contradict the number above
+  // it — which is what the old screen managed to do when it printed "0.0
+  // kg/week" under a real calorie target.
+  "fn.r_goal_label": { en: "Your goal", tn: "هدفك" },
+  "fn.r_pace_label": { en: "Expected pace", tn: "الوتيرة المتوقّعة" },
+  "fn.r_pace_hold": { en: "Hold your weight", tn: "ثبات على وزنك" },
+  "fn.r_per_week": { en: "/week", tn: "/أسبوع" },
+  "fn.r_twelve_line": { en: "Over 12 weeks:", tn: "على مدى 12 أسبوعاً:" },
+  // Said when the goal and the target weight point opposite ways — "build
+  // muscle" with a target below today's weight. The plan follows the goal; the
+  // old code drew a flat line and three identical dates instead.
+  "fn.r_goal_conflict": {
+    en: "Your goal and your target weight point in opposite directions, so this follows your goal. You can change either one — your answers are saved.",
+    tn: "هدفك ووزنك المستهدف يسيران في اتجاهين متعاكسين، لذلك نتبع هدفك. يمكنك تغيير أيّهما — إجاباتك محفوظة.",
+  },
+  // Not a diagnosis and not a refusal: the plan is built at maintenance instead
+  // of at a deficit, and says why.
+  "fn.r_care_title": { en: "We've kept this at maintenance", tn: "أبقينا هذا عند الثبات" },
+  "fn.r_care_minor": {
+    en: "You're still growing, and a calculator should not be writing you a calorie deficit. Your numbers here are what it takes to maintain — talk to a doctor or a dietitian before cutting.",
+    tn: "أنت ما زلت في مرحلة نموّ، ولا ينبغي لحاسبة أن تكتب لك عجزاً في السعرات. أرقامك هنا هي ما يلزم للثبات — استشر طبيباً أو أخصائي تغذية قبل أيّ حمية.",
+  },
+  "fn.r_care_underweight": {
+    en: "Your weight is already below the healthy range for your height, so we have not built a deficit. Your numbers here are what it takes to maintain — please talk to a doctor or a dietitian first.",
+    tn: "وزنك أصلاً تحت النطاق الصحي لطولك، لذلك لم نبنِ أيّ عجز. أرقامك هنا هي ما يلزم للثبات — يُرجى استشارة طبيب أو أخصائي تغذية أولاً.",
+  },
+
   "fn.r_cta": { en: "Unlock my plan", tn: "افتح برنامجي" },
   "fn.r_cta_sub": { en: "Next: choose how long you want to train with us.", tn: "الخطوة التالية: اختر كم تريد أن تتمرّن معنا." },
   "fn.r_inside": { en: "What you get", tn: "ما الذي تحصل عليه" },

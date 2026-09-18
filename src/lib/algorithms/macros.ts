@@ -6,45 +6,48 @@ import {
   type Bilingual,
   type Goal,
 } from "./diet-strategy";
-
-/** kcal per gram. */
-export const KCAL_PER_G_PROTEIN = 4;
-export const KCAL_PER_G_CARBS = 4;
-export const KCAL_PER_G_FAT = 9;
+import {
+  KCAL_PER_G_CARBS,
+  KCAL_PER_G_FAT,
+  KCAL_PER_G_PROTEIN,
+  isUsableBodyFatPercent,
+  restingEnergy,
+  type ActivityLevel,
+} from "./macros-core";
+import {
+  CALORIE_FLOOR,
+  referenceWeightKg,
+  resolveEnergyPlan,
+  type EnergyPlan,
+  type Pace,
+} from "./energy";
 
 /**
- * Q6 — how the user's DAY looks, not how they train.
+ * Macros for a goal — the split, not the size of the budget.
  *
- * These used to be the textbook Harris-Benedict exercise multipliers
- * (1.2 / 1.375 / 1.55 / 1.725 / 1.9), which fold training frequency into the
- * activity factor and then get a separate step bonus on top. The simplified
- * calculator narrows them to occupational activity alone — 1.20 to 1.60 — and
- * deliberately leaves training, cardio and step count OUT of the estimate.
+ * The calorie target, the TDEE behind it and the weekly rate it implies are all
+ * decided in `energy.ts` now, and this file asks for them rather than computing
+ * a parallel set. That is the point of the split: the reveal on /start, the
+ * checkout recap and the plan a customer gets after paying all run through
+ * `calculateMacros`, so there is exactly one number and no screen can contradict
+ * another. What stayed here is everything downstream of the budget — protein,
+ * fat, carbs, fiber and the sentences that explain them.
  *
- * That is not an oversight in the sheet; it is the point. "Sans nombre de pas,
- * fréquence exacte d'entraînement et cardio, ce TDEE est volontairement une
- * estimation simple." A narrower, honest starting range calibrates faster than
- * a wide one built out of three guesses stacked on each other.
- *
- * The five keys are unchanged so every stored `diet_profiles.activity_level`
- * still reads back; only what they mean and what they are worth changed.
+ * Formula order: calories (energy.ts) → protein → fat → carbs (remainder) → fiber.
  */
-export type ActivityLevel = "sedentary" | "light" | "moderate" | "active" | "very_active";
 
-const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, number> = {
-  sedentary: 1.2, // sits almost all day
-  light: 1.3, // mix of sitting and standing
-  moderate: 1.4, // on their feet, walks a lot
-  active: 1.5, // physical job
-  very_active: 1.6, // very physical job
+// Re-exported so every existing import of these from "@/lib/algorithms/macros"
+// keeps resolving. They live in macros-core.ts to keep energy.ts from importing
+// this file while this file imports it.
+export {
+  KCAL_PER_G_PROTEIN,
+  KCAL_PER_G_CARBS,
+  KCAL_PER_G_FAT,
+  isUsableBodyFatPercent,
+  restingEnergy,
+  CALORIE_FLOOR,
 };
-
-/**
- * The lowest daily total we will ever prescribe. The sheet has no floor — it
- * assumes an adult of ordinary size — but ×0.85 of a small, sedentary person's
- * TDEE lands under 1200 kcal, which is not a plan, it is a problem.
- */
-export const CALORIE_FLOOR = 1200;
+export type { ActivityLevel };
 
 /**
  * The least carbohydrate a training plan should be built on. Reached only in
@@ -60,6 +63,15 @@ export type MacroProfileInput = {
   weightKg: number;
   activityLevel: ActivityLevel;
   goal: Goal;
+  /**
+   * Q5 — "0" | "1_2" | "3_4" | "5_6" | "7". Already collected by both the funnel
+   * and the paid questionnaire; it feeds the TDEE as a training increment on
+   * top of daily activity. Optional so a caller that has not got it still gets
+   * the activity-only estimate rather than a crash.
+   */
+  trainingDays?: string | null;
+  /** Desired speed, if it is ever asked for. Absent means the standard pace. */
+  pace?: Pace | null;
   /**
    * Q9, optional. A MEASURED percentage (caliper, scan, scale) — not the
    * self-reported body-type category, which no longer feeds any number. When
@@ -80,6 +92,13 @@ export type MacroTargets = {
   fiberG: number;
   /** True when `bmr` above came from lean mass rather than Mifflin-St Jeor. */
   usedLeanMass: boolean;
+  /**
+   * The energy decision these macros were split out of: the balance, the weekly
+   * rate it implies, and any safety flag. Carried here so the projection reads
+   * the same numbers the plan was built from instead of inferring them back out
+   * of the calorie total — which is the inference that produced "0.0 kg/week".
+   */
+  energy: EnergyPlan;
   goalLabel: Bilingual;
   rationale: {
     bmr: Bilingual;
@@ -90,36 +109,6 @@ export type MacroTargets = {
     carbs: Bilingual;
   };
 };
-
-/** A body-fat percentage we will actually believe. Anything else is ignored. */
-export function isUsableBodyFatPercent(value: number | null | undefined): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 3 && value <= 60;
-}
-
-/**
- * Resting energy expenditure.
- *
- * Mifflin-St Jeor uses height and age as stand-ins for how much lean tissue a
- * person is carrying. When the actual body-fat percentage is known those
- * stand-ins are not needed: lean mass is the thing that burns, so
- * `500 + 22 × LBM` reads it directly. Two people of the same height, age and
- * weight get the same Mifflin number and can have very different requirements;
- * this is the input that tells them apart.
- */
-export function restingEnergy(input: {
-  gender: "male" | "female";
-  age: number;
-  heightCm: number;
-  weightKg: number;
-  bodyFatPercent?: number | null;
-}): { value: number; usedLeanMass: boolean } {
-  if (isUsableBodyFatPercent(input.bodyFatPercent)) {
-    const leanMassKg = input.weightKg * (1 - input.bodyFatPercent / 100);
-    return { value: 500 + 22 * leanMassKg, usedLeanMass: true };
-  }
-  const base = 10 * input.weightKg + 6.25 * input.heightCm - 5 * input.age;
-  return { value: input.gender === "male" ? base + 5 : base - 161, usedLeanMass: false };
-}
 
 /**
  * Fat and carbs, given the calorie budget protein has already been taken out of.
@@ -158,34 +147,39 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
   const age = differenceInYears(new Date(), input.birthDate);
   const w = input.weightKg;
 
-  // 1-3. Resting energy — from lean mass when body fat is known, else Mifflin.
-  const { value: bmr, usedLeanMass } = restingEnergy({
+  // 1-6. Resting energy, activity and training, and the calorie target the goal
+  // implies — one decision, taken in energy.ts. This function no longer has its
+  // own opinion about any of them, which is what stops the reveal and the paid
+  // plan from drifting apart.
+  const energy = resolveEnergyPlan({
     gender: input.gender,
     age,
     heightCm: input.heightCm,
     weightKg: w,
+    activityLevel: input.activityLevel,
+    goal: input.goal,
+    trainingDays: input.trainingDays,
     bodyFatPercent: input.bodyFatPercent,
+    pace: input.pace,
   });
-
-  // 4-5. Daily activity → TDEE.
-  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[input.activityLevel]);
+  const { bmr, tdee, calories, usedLeanMass } = energy;
 
   const strategy = resolveGoalStrategy(input.goal);
 
-  // 6. Calories for the goal, rounded to the nearest ten as the sheet asks.
-  const calories = Math.max(CALORIE_FLOOR, Math.round((tdee * strategy.calorieFactor) / 10) * 10);
-
-  // 7. Protein.
-  const proteinG = Math.round(w * strategy.proteinPerKg);
-
-  // 8-9. Fat, then carbs from what is left.
-  const { fatG, carbsG } = solveFatAndCarbs(calories, proteinG, w);
+  // 7-9. Protein, fat, then carbs from what is left — all three per kilo of the
+  // reference weight rather than the scale weight, which only differs above a
+  // BMI of 27.5. See referenceWeightKg: fat mass has no protein requirement,
+  // and prescribing as though it did can consume a whole calorie budget before
+  // carbohydrate gets any of it.
+  const refKg = referenceWeightKg(w, input.heightCm);
+  const proteinG = Math.round(refKg * strategy.proteinPerKg);
+  const { fatG, carbsG } = solveFatAndCarbs(calories, proteinG, refKg);
 
   // Fiber from final calories.
   const fiberG = Math.round((calories / 1000) * 14);
 
-  const delta = calories - tdee;
-  const roundedBmr = Math.round(bmr);
+  const delta = energy.energyBalanceKcal;
+  const roundedBmr = bmr;
 
   return {
     bmr: roundedBmr,
@@ -196,6 +190,7 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
     fatG,
     fiberG,
     usedLeanMass,
+    energy,
     goalLabel: strategy.label,
     rationale: {
       bmr: usedLeanMass

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Flame, Sparkles, Target } from "lucide-react";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
-import { projectWeight } from "@/lib/funnel/projection";
+import { calculateFitnessPlan } from "@/lib/funnel/fitness-plan";
 
 /**
  * The plan they built on /start, restated at the top of checkout.
@@ -36,7 +36,7 @@ export function PlanRecap({
   answers: Partial<FunnelAnswers>;
 }) {
   if (!isComplete(answers)) return null;
-  const { targets } = projectWeight(answers);
+  const { targets } = calculateFitnessPlan(answers);
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-4">

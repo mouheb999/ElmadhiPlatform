@@ -3,7 +3,7 @@
 import { Check, Flag, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t, weeksLabel, type Locale } from "@/lib/i18n";
-import type { Milestone } from "@/lib/funnel/projection";
+import type { TimelinePoint } from "@/lib/funnel/fitness-plan";
 
 /**
  * The journey as dated stops, not a line chart.
@@ -21,39 +21,67 @@ import type { Milestone } from "@/lib/funnel/projection";
  * Nothing here is a different claim from the curve it replaced — same
  * simulation, same weeks, same numbers. It is the same truth told in the order
  * that makes somebody start.
+ *
+ * Every weight past today is printed as a range, not a figure. The arithmetic
+ * behind it is an estimate and it loosens the further out it runs, so "~69–71
+ * kg in twelve weeks" is what it actually knows; "69.8 kg" was precision the
+ * inputs never had. Today is the one exact number on the track, because it is
+ * the only one the reader typed in themselves.
  */
 export function MilestoneTrack({
   locale,
   milestones,
   unitLabel,
+  /** The stop where the weight they typed is reached, if it is on the track. */
+  targetWeek,
 }: {
   locale: Locale;
-  milestones: Milestone[];
+  milestones: TimelinePoint[];
   /** "kg", localised — passed in so this file holds no unit vocabulary. */
   unitLabel: string;
+  targetWeek?: number | null;
 }) {
   if (milestones.length < 2) return null;
 
   const start = milestones[0].kg;
 
   /**
-   * Month and year, never a day.
-   *
-   * The arithmetic does not know which Tuesday. `-u-nu-latn` keeps the year in
-   * Western digits, which is what this product does everywhere (globals.css).
+   * One decimal reads as a measurement; none reads as an estimate, which is
+   * what this is. A range whose ends round to the same whole number collapses
+   * to "~70 kg" rather than printing "~70–70 kg".
    */
-  const monthOf = (date: Date) =>
+  const range = (stop: TimelinePoint): string => {
+    const low = Math.round(stop.lowKg);
+    const high = Math.round(stop.highKg);
+    return low === high ? `~${low}` : `~${low}–${high}`;
+  };
+
+  /**
+   * The day and the month — an exact date, because that is what this is.
+   *
+   * Month-only was right when these stops were wherever a simulation happened
+   * to land. They are fixed horizons now, 28 days apart, and a date 28 days out
+   * is not an estimate: the WEIGHT is the estimate, which is why it is the
+   * weight that prints as a range. Month-only also had a failure mode that looks
+   * exactly like the bug this rewrite is fixing — two stops 28 days apart can
+   * fall in the same calendar month (1 March and 29 March), so two different
+   * dates rendered as one repeated label.
+   *
+   * `-u-nu-latn` keeps the digits Western, which is what this product does
+   * everywhere (globals.css).
+   */
+  const dayOf = (date: Date) =>
     date.toLocaleDateString(locale === "tn" ? "ar-TN-u-nu-latn" : "en-GB", {
+      day: "numeric",
       month: "long",
-      year: "numeric",
     });
 
   return (
     <ol className="flex flex-col">
       {milestones.map((stop, index) => {
         const isLast = index === milestones.length - 1;
-        const isTarget = stop.kind === "target";
-        const isToday = stop.kind === "today";
+        const isToday = stop.week === 0;
+        const isTarget = targetWeek != null && stop.week === targetWeek;
         const delta = stop.kg - start;
         const Icon = isToday ? MapPin : isTarget ? Flag : Check;
 
@@ -92,12 +120,10 @@ export function MilestoneTrack({
                 >
                   {isToday
                     ? t(locale, "fn.r_today")
-                    : isTarget
-                      ? t(locale, "fn.r_target")
-                      : `${stop.week} ${weeksLabel(locale, stop.week)}`}
+                    : `${stop.week} ${weeksLabel(locale, stop.week)}`}
                 </span>
                 <span className="text-[12px] text-muted">
-                  {isToday ? t(locale, "fn.r_start_here") : monthOf(stop.date)}
+                  {isToday ? t(locale, "fn.r_start_here") : dayOf(stop.date)}
                 </span>
               </span>
 
@@ -109,7 +135,7 @@ export function MilestoneTrack({
                   )}
                 >
                   <bdi>
-                    {stop.kg.toFixed(1)} {unitLabel}
+                    {isToday ? stop.kg.toFixed(1) : range(stop)} {unitLabel}
                   </bdi>
                 </span>
                 {/* The running difference, which is the number the reader is
@@ -120,6 +146,14 @@ export function MilestoneTrack({
                       {delta < 0 ? "−" : "+"}
                       {Math.abs(delta).toFixed(1)} {unitLabel}
                     </bdi>
+                  </span>
+                )}
+                {/* Said on the stop that reaches it, rather than by relabelling
+                    the row — the horizons are fixed at 4/8/12 weeks now, so the
+                    target is something a stop passes, not a stop of its own. */}
+                {isTarget && (
+                  <span className="text-[11px] font-bold text-accent">
+                    {t(locale, "fn.r_target")}
                   </span>
                 )}
               </span>
