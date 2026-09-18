@@ -1,12 +1,6 @@
 import { differenceInYears } from "date-fns";
-import {
-  resolveGoalStrategy,
-  FAT_KCAL_SHARE,
-  FAT_PER_KG_MAX,
-  FAT_PER_KG_MIN,
-  type Bilingual,
-  type Goal,
-} from "./diet-strategy";
+import { resolveGoalStrategy, type Bilingual, type Goal } from "./diet-strategy";
+import { allocateMacros, type Allocation } from "./macro-allocation";
 import {
   KCAL_PER_G_CARBS,
   KCAL_PER_G_FAT,
@@ -15,6 +9,7 @@ import {
   restingEnergy,
   type ActivityLevel,
 } from "./macros-core";
+export { POLICY as MACRO_POLICY } from "./macro-allocation";
 import {
   CALORIE_FLOOR,
   referenceWeightKg,
@@ -49,13 +44,6 @@ export {
   CALORIE_FLOOR,
 };
 export type { ActivityLevel };
-
-/**
- * The least carbohydrate a training plan should be built on. Reached only in
- * the corner where a heavy, short, older person on a cut has their whole
- * calorie budget consumed by protein and fat; see `solveFatAndCarbs`.
- */
-const MIN_CARBS_G = 50;
 
 export type MacroProfileInput = {
   gender: "male" | "female";
@@ -100,6 +88,12 @@ export type MacroTargets = {
    * of the calorie total — which is the inference that produced "0.0 kg/week".
    */
   energy: EnergyPlan;
+  /**
+   * How the split went: whether the policy could be satisfied, and which
+   * constraints gave way. `feasible: false` means this budget cannot hold a
+   * normal plan and the caller must say so rather than present it as one.
+   */
+  allocation: Allocation;
   goalLabel: Bilingual;
   rationale: {
     bmr: Bilingual;
@@ -110,84 +104,6 @@ export type MacroTargets = {
     carbs: Bilingual;
   };
 };
-
-/**
- * The most protein this calorie budget can actually hold.
- *
- * `solveFatAndCarbs` below gives fat 0.2 g/kg of give before carbohydrate is
- * allowed to fall to the floor. Protein had none: it was prescribed at a flat
- * g/kg and everything else had to fit around it. In the corner where protein at
- * 2.0 g/kg plus fat at its 0.7 g/kg floor already exceeds the target — a very
- * tall, very heavy person on a deep cut — carbohydrate was clamped to zero and
- * the three macros then summed to MORE than the calories they were shown
- * beside. One combination in 99,840 swept, but it is a plan with no
- * carbohydrate in it and a total that does not match its own header.
- *
- * So protein yields too, after fat and after the carbohydrate minimum, and not
- * below 1.2 g/kg — still comfortably above what muscle retention on a cut
- * needs. For every ordinary body this ceiling sits far above the prescription
- * and nothing changes.
- */
-function proteinCeilingG(calories: number, refKg: number): number {
-  const reserved = MIN_CARBS_G * KCAL_PER_G_CARBS + FAT_PER_KG_MIN * refKg * KCAL_PER_G_FAT;
-  const affordable = (calories - reserved) / KCAL_PER_G_PROTEIN;
-  // The ceiling never drops below 1.2 g/kg: if a budget cannot even hold that,
-  // the calorie floor is what is binding and protein is not the thing to cut.
-  return Math.max(affordable, 1.2 * refKg);
-}
-
-/**
- * Fat and carbs, given the calorie budget protein has already been taken out of.
- *
- * The order of priority, which is the whole design:
- *
- *   1. Hit the calorie target.
- *   2. Protein is already settled by the caller and is not touched here.
- *   3. Fat takes a SHARE of calories, clamped into [0.6, 0.9] g/kg — it is not
- *      handed 0.9 g/kg by default.
- *   4. Carbohydrate takes the remainder.
- *   5. If that remainder is still under the floor, fat gives way down to its
- *      0.6 g/kg minimum. (Past that, protein gives way — see proteinCeilingG.)
- *
- * Step 3 is the change. Aiming fat at a share of the budget rather than at a
- * fixed g/kg means a small budget produces a small fat number on its own,
- * instead of a large one that carbohydrate then has to be rescued from. On a
- * generous budget the 0.9 g/kg ceiling binds and the result is identical to
- * before, so ordinary plans do not move.
- */
-function solveFatAndCarbs(
-  calories: number,
-  proteinG: number,
-  weightKg: number,
-): { fatG: number; carbsG: number } {
-  const afterProtein = calories - proteinG * KCAL_PER_G_PROTEIN;
-
-  const minFatG = FAT_PER_KG_MIN * weightKg;
-  const maxFatG = FAT_PER_KG_MAX * weightKg;
-
-  // A share of the whole budget, not of what protein left behind: fat is a
-  // property of the diet, not of the leftovers.
-  let fatG = Math.min(Math.max((calories * FAT_KCAL_SHARE) / KCAL_PER_G_FAT, minFatG), maxFatG);
-
-  // Carbohydrate is still short — spend fat's remaining give, down to the
-  // hard floor and no further.
-  const carbsKcal = afterProtein - fatG * KCAL_PER_G_FAT;
-  if (carbsKcal < MIN_CARBS_G * KCAL_PER_G_CARBS) {
-    const wanted = (afterProtein - MIN_CARBS_G * KCAL_PER_G_CARBS) / KCAL_PER_G_FAT;
-    fatG = Math.max(minFatG, Math.min(fatG, wanted));
-  }
-
-  const roundedFat = Math.max(1, Math.round(fatG));
-  return {
-    fatG: roundedFat,
-    // Computed from the same fat figure the caller is shown, so the three
-    // macros the user reads back add up to the calories they are given.
-    carbsG: Math.max(
-      0,
-      Math.round((afterProtein - roundedFat * KCAL_PER_G_FAT) / KCAL_PER_G_CARBS),
-    ),
-  };
-}
 
 export function calculateMacros(input: MacroProfileInput): MacroTargets {
   const age = differenceInYears(new Date(), input.birthDate);
@@ -212,16 +128,16 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
 
   const strategy = resolveGoalStrategy(input.goal);
 
-  // 7-9. Protein, fat, then carbs from what is left — all three per kilo of the
-  // reference weight rather than the scale weight, which only differs above a
-  // BMI of 27.5. See referenceWeightKg: fat mass has no protein requirement,
-  // and prescribing as though it did can consume a whole calorie budget before
-  // carbohydrate gets any of it.
+  // 7. The split. The calorie target above is handed over unchanged and comes
+  // back divided — see macro-allocation.ts, which owns every bound and the
+  // order they give way in. This function has no opinion about any of them.
   const refKg = referenceWeightKg(w, input.heightCm);
-  const proteinG = Math.round(
-    Math.min(refKg * strategy.proteinPerKg, proteinCeilingG(calories, refKg)),
-  );
-  const { fatG, carbsG } = solveFatAndCarbs(calories, proteinG, refKg);
+  const allocation = allocateMacros({
+    calories,
+    referenceWeightKg: refKg,
+    proteinPerKgTarget: strategy.proteinPerKg,
+  });
+  const { proteinG, fatG, carbsG } = allocation;
 
   // Fiber from final calories.
   const fiberG = Math.round((calories / 1000) * 14);
@@ -239,6 +155,7 @@ export function calculateMacros(input: MacroProfileInput): MacroTargets {
     fiberG,
     usedLeanMass,
     energy,
+    allocation,
     goalLabel: strategy.label,
     rationale: {
       bmr: usedLeanMass

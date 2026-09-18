@@ -2069,6 +2069,14 @@ const STRINGS = {
   },
   "fn.r_finish_answers": { en: "Finish my answers", tn: "أكمل إجاباتي" },
 
+  // Shown when the calorie budget cannot hold a macro split that satisfies the
+  // nutrition policy. Honest rather than alarming: the numbers are real, they
+  // are just an unusual shape, and a person should look before anyone eats to
+  // them.
+  "fn.r_needs_coach": {
+    en: "Your numbers sit outside the range our calculator handles on its own. A coach reviews this one by hand before your plan is built — nothing below changes what you pay.",
+    tn: "أرقامك خارج النطاق الذي تتعامل معه حاسبتنا وحدها. سيراجعها مدرّب يدوياً قبل بناء برنامجك — ولا شيء ممّا تحت يغيّر ما تدفعه.",
+  },
   "fn.r_goal_label": { en: "Your goal", tn: "هدفك" },
   "fn.r_pace_label": { en: "Expected pace", tn: "الوتيرة المتوقّعة" },
   "fn.r_pace_hold": { en: "Hold your weight", tn: "ثبات على وزنك" },

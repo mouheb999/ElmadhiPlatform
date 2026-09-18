@@ -146,6 +146,18 @@ export function PlanReveal({
         </p>
       </section>
 
+      {/* The budget could not hold a split that satisfies the nutrition
+          policy. The numbers below are the closest it gets and they are
+          internally consistent, but a coach should look at them before anybody
+          eats to them — so this says that, rather than letting an unusual plan
+          pass for an ordinary one. See lib/algorithms/macro-allocation.ts. */}
+      {projection.needsAdjustment && (
+        <p className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-relaxed">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>{t(locale, "fn.r_needs_coach")}</span>
+        </p>
+      )}
+
       {/* ---- Your goal, and the pace it implies ---- */}
       <section className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface px-4 py-3.5">

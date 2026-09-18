@@ -160,9 +160,13 @@ describe("calculateMacros", () => {
       activityLevel: "sedentary",
       goal: "lose_fat",
     });
-    // Her reference weight is 27.5 × 1.6² = 70.4 kg, not 100 kg.
+    // Her reference weight is 27.5 × 1.6² = 70.4 kg, not 100 kg. Protein is
+    // prescribed against that, and rounded WITHOUT crossing the 2.0 g/kg
+    // ceiling — 2.0 × 70.4 is 140.8 g, and 141 g would be 2.003 g/kg, so the
+    // allocator rounds down. A bound the output can exceed is not a bound.
     const refKg = 27.5 * 1.6 * 1.6;
-    expect(heavyCut.proteinG).toBe(Math.round(refKg * 2.0));
+    expect(heavyCut.proteinG).toBe(Math.floor(refKg * 2.0));
+    expect(heavyCut.proteinG / refKg).toBeLessThanOrEqual(2.0);
     expect(heavyCut.fatG).toBeLessThan(Math.round(0.9 * 100));
     expect(heavyCut.fatG / refKg).toBeGreaterThanOrEqual(0.59);
     // The point of the whole exercise: carbohydrate gets a real share.

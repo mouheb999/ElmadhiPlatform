@@ -222,6 +222,14 @@ export type FitnessPlan = {
   /** Set when the target was softened for safety. See GuidanceFlag. */
   guidance: GuidanceFlag | null;
   /**
+   * True when the calorie budget could not hold a macro split that satisfies
+   * the nutrition policy, even after every permitted relaxation. The numbers
+   * are the best available and are internally consistent, but this is not an
+   * ordinary plan and the screen says so instead of pretending otherwise. See
+   * macro-allocation.ts.
+   */
+  needsAdjustment: boolean;
+  /**
    * True when the goal and the typed target weight point in opposite
    * directions — "build muscle" with a lower target, say. The plan follows the
    * goal, and the screen says so rather than drawing a flat line.
@@ -315,6 +323,7 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
       targetDate: null,
       targetWithinTimeline: false,
       guidance: energy.guidance,
+      needsAdjustment: !targets.allocation.feasible,
       targetContradictsGoal,
     };
   }
@@ -405,6 +414,7 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
     targetDate: targetWeeks !== null ? dateInWeeks(now, targetWeeks) : null,
     targetWithinTimeline: targetWeeks !== null && targetWeeks <= 12,
     guidance: energy.guidance,
+    needsAdjustment: !targets.allocation.feasible,
     targetContradictsGoal,
   };
 }
