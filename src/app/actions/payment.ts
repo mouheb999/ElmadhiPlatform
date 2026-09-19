@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/lib/current-user";
 import { notifyTelegram } from "@/lib/notify/telegram";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { isSubscriptionActive } from "@/lib/subscription";
+import { getPostHogClient } from "@/lib/posthog-server";
+import { readClientContext } from "@/lib/meta/capi";
 
 const MAX_PROOF_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -86,6 +88,18 @@ export async function startPaymentRequest(
     .maybeSingle();
   if (!plan) return fail("Plan not found.");
 
+  // Meta's click cookies, IP and user agent, saved with the request. The
+  // Purchase is sent when an admin activates the account — maybe hours later,
+  // from the admin's browser — and by then these are the only thread back to
+  // the ad that brought this customer. Migration 056.
+  const client = await readClientContext();
+  const attribution = {
+    meta_fbp: client.fbp,
+    meta_fbc: client.fbc,
+    client_ip: client.ip,
+    client_user_agent: client.userAgent,
+  };
+
   const { data: existing } = await supabase
     .from("payment_requests")
     .select("id")
@@ -116,6 +130,7 @@ export async function startPaymentRequest(
         amount_tnd: plan.price_tnd,
         plan_tier: plan.tier,
         plan_months: plan.months,
+        ...attribution,
       })
       .eq("id", existing.id)
       .eq("user_id", user.id)
@@ -140,6 +155,7 @@ export async function startPaymentRequest(
       amount_tnd: plan.price_tnd,
       plan_tier: plan.tier,
       plan_months: plan.months,
+      ...attribution,
     })
     .select("id")
     .single();
@@ -158,6 +174,22 @@ export async function startPaymentRequest(
     planMonths: plan.months,
     methodKey,
   });
+
+  // Track the payment request in PostHog.
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.capture({
+      distinctId: user.id,
+      event: "payment_request_started",
+      properties: {
+        plan_tier: plan.tier,
+        plan_months: plan.months,
+        method_key: methodKey,
+        amount_tnd: plan.price_tnd,
+      },
+    });
+    await posthog.flush();
+  }
 
   revalidatePath("/checkout");
   revalidatePath("/admin");
@@ -258,6 +290,17 @@ export async function attachPaymentProof(
     amountTnd: request.amount_tnd,
     note,
   });
+
+  // Track the proof submission in PostHog.
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.capture({
+      distinctId: user.id,
+      event: "payment_proof_submitted",
+      properties: { amount_tnd: request.amount_tnd },
+    });
+    await posthog.flush();
+  }
 
   revalidatePath("/checkout");
   revalidatePath("/admin");

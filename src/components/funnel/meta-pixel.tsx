@@ -1,4 +1,7 @@
+import { Suspense } from "react";
 import Script from "next/script";
+import { META_PIXEL_ID } from "@/lib/meta/pixel";
+import { MetaPixelEvents } from "./meta-pixel-events";
 
 /**
  * The Meta pixel, off by default.
@@ -16,16 +19,30 @@ import Script from "next/script";
  * broken one. next.config.ts widens the CSP for the same environment variable.
  */
 
-const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
-
 export function MetaPixel() {
-  if (!/^\d{5,20}$/.test(PIXEL_ID)) return null;
+  if (!META_PIXEL_ID) return null;
   return (
-    <Script
-      id="meta-pixel"
-      src="/meta-pixel.js"
-      data-pixel-id={PIXEL_ID}
-      strategy="afterInteractive"
-    />
+    <>
+      <Script
+        id="meta-pixel"
+        src="/meta-pixel.js"
+        data-pixel-id={META_PIXEL_ID}
+        strategy="afterInteractive"
+      />
+      {/* useSearchParams inside needs a boundary so static routes still prerender. */}
+      <Suspense fallback={null}>
+        <MetaPixelEvents />
+      </Suspense>
+      <noscript>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          alt=""
+          src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+        />
+      </noscript>
+    </>
   );
 }

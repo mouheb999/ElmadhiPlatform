@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import posthog from "posthog-js";
 import {
   signInWithPassword,
   signUpWithPassword,
@@ -22,6 +23,7 @@ import {
 import { type Locale, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
+import { trackMeta } from "@/lib/meta/pixel";
 import { REVERSE_TRIAL } from "@/lib/access";
 import { SIGNUP_DONE, trackStep } from "@/lib/funnel/track";
 
@@ -105,6 +107,11 @@ export function LoginForm({
           setError(authMessage(res.error));
           return;
         }
+        // Identify the user in PostHog and capture sign-in event.
+        if (res.data.userId) {
+          posthog.identify(res.data.userId, { email });
+          posthog.capture("user_signed_in", { method: "email" });
+        }
         // Admins pick a destination; regular users go straight in.
         if (res.data.isAdmin) {
           setShowAdminChoice(true);
@@ -140,12 +147,21 @@ export function LoginForm({
         // make an account, and it carries the plan they chose. Dropping it for
         // a bare /checkout would land them back on the grid having apparently
         // forgotten the decision they just made.
+        // Browser half of CompleteRegistration; same id as the server's.
+        if (res.data.registrationEventId) {
+          trackMeta("CompleteRegistration", undefined, res.data.registrationEventId);
+        }
         if (res.data.signedIn) {
           // The step the funnel could never see: everything before this was
           // measured on /start and everything after it on /checkout, with the
           // account form — the single biggest ask in the flow — a gap between
           // two reports.
           trackStep(SIGNUP_DONE, locale);
+          // Identify the new user in PostHog and capture sign-up event.
+          if (res.data.userId) {
+            posthog.identify(res.data.userId, { email });
+            posthog.capture("user_signed_up", { method: "email" });
+          }
           const backToCheckout = next.startsWith("/checkout");
           router.push(REVERSE_TRIAL || backToCheckout ? next : "/checkout");
           router.refresh();

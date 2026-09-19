@@ -206,6 +206,11 @@ export type Database = {
           proof_uploaded_at: string | null;
           // migration 044 — drives the admin nav's unread payments badge
           admin_seen_at: string | null;
+          // migration 056 — Meta attribution, captured at checkout
+          meta_fbp: string | null;
+          meta_fbc: string | null;
+          client_ip: string | null;
+          client_user_agent: string | null;
         };
         Insert: {
           id?: string;
@@ -222,6 +227,10 @@ export type Database = {
           proof_note?: string | null;
           proof_uploaded_at?: string | null;
           admin_seen_at?: string | null;
+          meta_fbp?: string | null;
+          meta_fbc?: string | null;
+          client_ip?: string | null;
+          client_user_agent?: string | null;
         };
         Update: {
           id?: string;
@@ -238,6 +247,10 @@ export type Database = {
           proof_note?: string | null;
           proof_uploaded_at?: string | null;
           admin_seen_at?: string | null;
+          meta_fbp?: string | null;
+          meta_fbc?: string | null;
+          client_ip?: string | null;
+          client_user_agent?: string | null;
         };
         Relationships: [];
       };

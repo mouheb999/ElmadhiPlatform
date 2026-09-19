@@ -55,17 +55,20 @@ export const ACTIVATED = "activated";
  * Standard event names where one honestly fits, because those are the ones the
  * ad platform can optimise and report against; a custom name where it does not.
  *
- * Two of these are worth being precise about, since they are what a campaign
- * would be optimised on:
+ * Three steps are deliberately absent, because the browser is the wrong place
+ * to report them:
  *
- *   - `Subscribe` fires when the receipt is attached. That is the customer's
- *     side of the transaction finished — the money has left their bank — and it
- *     is the last thing that happens while they are still on the page.
- *   - `Purchase` fires on activation, which is a human confirming the transfer
- *     hours later. It is the true conversion and it is the one to report value
- *     on, but it only reaches the pixel if the customer's browser is on the page
- *     when it flips. Both are sent so the two numbers can be compared rather
- *     than one standing in for the other.
+ *   - `signup_done` — CompleteRegistration is sent from the server as well,
+ *     and the two halves must share an event id for Meta to count one. That
+ *     needs the id the sign-up action returns, so login-form fires it through
+ *     `trackMeta` in lib/meta/pixel.ts instead.
+ *   - `activated` — Purchase is server-only (lib/meta/capi.ts, from
+ *     `activateRequest`). Activation is an admin's click hours later; a browser
+ *     copy would fire only if the customer happened to be on the page, and
+ *     would be a second, unmatched Purchase when they were.
+ *
+ * InitiateCheckout is the tap that commits to a plan and a price, and
+ * AddPaymentInfo is the receipt landing — the customer's side of paying done.
  */
 const META_EVENTS: Record<string, { name: string; standard: boolean }> = {
   q_goal: { name: "QuestionnaireStarted", standard: false },
@@ -73,11 +76,9 @@ const META_EVENTS: Record<string, { name: string; standard: boolean }> = {
   [CHECKOUT_VIEWED]: { name: "ViewContent", standard: true },
   [PLAN_SELECTED]: { name: "PlanSelected", standard: false },
   [SIGNUP_STARTED]: { name: "InitiateCheckout", standard: true },
-  [SIGNUP_DONE]: { name: "CompleteRegistration", standard: true },
-  [PAY_STEP]: { name: "AddPaymentInfo", standard: true },
+  [PAY_STEP]: { name: "PaymentStepViewed", standard: false },
   [METHOD_SELECTED]: { name: "PaymentMethodSelected", standard: false },
-  [RECEIPT_UPLOADED]: { name: "Subscribe", standard: true },
-  [ACTIVATED]: { name: "Purchase", standard: true },
+  [RECEIPT_UPLOADED]: { name: "AddPaymentInfo", standard: true },
 };
 
 declare global {

@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nextExpiry } from "@/lib/subscription";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
+import { sendMetaEvent } from "@/lib/meta/capi";
 
 /**
  * Admin mutations. Every action verifies the caller is an admin via the
@@ -192,7 +194,9 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
 
   const { data: req, error: reqError } = await admin
     .from("payment_requests")
-    .select("id, user_id, status, plan_tier, plan_months")
+    .select(
+      "id, user_id, status, plan_tier, plan_months, amount_tnd, meta_fbp, meta_fbc, client_ip, client_user_agent",
+    )
     .eq("id", requestId)
     .maybeSingle();
   if (reqError) return fail(reqError.message);
@@ -260,7 +264,7 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
   // first-time subscription starts from now.
   const { data: profile } = await admin
     .from("profiles")
-    .select("plan_expires_at")
+    .select("plan_expires_at, email, phone")
     .eq("id", req.user_id)
     .maybeSingle();
 
@@ -279,6 +283,30 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
     })
     .eq("id", req.user_id);
   if (updateProfileError) return fail(updateProfileError.message);
+
+  // The sale, reported to Meta server-side only — there is no browser on the
+  // customer's side of this moment to fire it from. The click cookies, IP and
+  // user agent are the customer's, saved at checkout (migration 056); the
+  // admin's own request carries none of it. The event id is the request's, so
+  // a retry is recognised by Meta as the same sale rather than a second one.
+  // The value is what this request was priced at, which is what they paid.
+  after(() =>
+    sendMetaEvent({
+      name: "Purchase",
+      eventId: `purchase_${req.id}`,
+      path: "/checkout",
+      value: Number(req.amount_tnd),
+      user: {
+        id: req.user_id,
+        email: profile?.email,
+        phone: profile?.phone,
+        fbp: req.meta_fbp,
+        fbc: req.meta_fbc,
+        ip: req.client_ip,
+        userAgent: req.client_user_agent,
+      },
+    }),
+  );
 
   revalidatePath("/admin");
   return ok(undefined);

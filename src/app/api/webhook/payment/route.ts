@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nextExpiry } from "@/lib/subscription";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * Payment webhook.
@@ -90,6 +91,17 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Track subscription activation in PostHog.
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.capture({
+      distinctId: body.userId,
+      event: "subscription_activated",
+      properties: { plan_tier: tier, plan_months: months, source: "webhook" },
+    });
+    await posthog.flush();
   }
 
   return NextResponse.json({ ok: true });

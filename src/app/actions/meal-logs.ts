@@ -7,6 +7,7 @@ import { tunisDateKey } from "@/lib/dates";
 import { resolveFood, macrosForPortion } from "@/lib/food-lookup";
 import { isUserFoodRef } from "@/lib/food-ref";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 /**
  * An eating occasion. Normally a template meal_key so the diary lines up 1:1
@@ -107,6 +108,16 @@ export async function logFood(input: {
     payload: { slot: input.slot, entry_method: input.entryMethod },
   });
 
+  const posthogLogFood = getPostHogClient();
+  if (posthogLogFood) {
+    posthogLogFood.capture({
+      distinctId: user.id,
+      event: "meal_logged",
+      properties: { slot: input.slot, entry_method: input.entryMethod },
+    });
+    await posthogLogFood.flush();
+  }
+
   revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok(undefined);
@@ -203,6 +214,16 @@ export async function logPlanMeal(
     payload: { slot, entry_method: "template", count: items.length },
   });
 
+  const posthogLogPlan = getPostHogClient();
+  if (posthogLogPlan) {
+    posthogLogPlan.capture({
+      distinctId: user.id,
+      event: "meal_logged",
+      properties: { slot, entry_method: "template", item_count: items.length },
+    });
+    await posthogLogPlan.flush();
+  }
+
   revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok({ logged: items.length });
@@ -265,6 +286,16 @@ export async function logQuick(input: {
     payload: { slot: input.slot, entry_method: "quick" },
   });
 
+  const posthogLogQuick = getPostHogClient();
+  if (posthogLogQuick) {
+    posthogLogQuick.capture({
+      distinctId: user.id,
+      event: "meal_logged",
+      properties: { slot: input.slot, entry_method: "quick" },
+    });
+    await posthogLogQuick.flush();
+  }
+
   revalidatePath("/diet");
   revalidatePath("/dashboard");
   return ok(undefined);
@@ -319,6 +350,16 @@ export async function copyPreviousDay(): Promise<ActionResult<{ copied: number }
     event_type: "meal_logged",
     payload: { entry_method: "copy_yesterday", count: entries.length },
   });
+
+  const posthogCopyDay = getPostHogClient();
+  if (posthogCopyDay) {
+    posthogCopyDay.capture({
+      distinctId: user.id,
+      event: "meal_logged",
+      properties: { entry_method: "copy_yesterday", item_count: entries.length },
+    });
+    await posthogCopyDay.flush();
+  }
 
   revalidatePath("/diet");
   revalidatePath("/dashboard");

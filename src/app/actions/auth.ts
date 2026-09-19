@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { GATE_COOKIE } from "@/lib/paywall-gate";
@@ -9,6 +10,8 @@ import { normalizePhone } from "@/lib/phone";
 import { siteOrigin } from "@/lib/site-url";
 import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/funnel/attribution";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
+import { getPostHogClient } from "@/lib/posthog-server";
+import { readClientContext, sendMetaEvent } from "@/lib/meta/capi";
 
 /**
  * The origin confirmation and OAuth links come back to.
@@ -127,7 +130,7 @@ function authFailure(error: { code?: string; message?: string }): string {
 export async function signInWithPassword(
   email: string,
   password: string,
-): Promise<ActionResult<{ isAdmin: boolean }>> {
+): Promise<ActionResult<{ isAdmin: boolean; userId: string }>> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -141,7 +144,22 @@ export async function signInWithPassword(
     .eq("id", data.user.id)
     .maybeSingle();
 
-  return ok({ isAdmin: !!profile?.is_admin });
+  // Track sign-in server-side so both client and server streams share the event.
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.identify({
+      distinctId: data.user.id,
+      properties: { is_admin: !!profile?.is_admin },
+    });
+    posthog.capture({
+      distinctId: data.user.id,
+      event: "user_signed_in",
+      properties: { method: "email" },
+    });
+    await posthog.flush();
+  }
+
+  return ok({ isAdmin: !!profile?.is_admin, userId: data.user.id });
 }
 
 /**
@@ -160,7 +178,7 @@ export async function signUpWithPassword(
   password: string,
   fullName?: string,
   phone?: string,
-): Promise<ActionResult<{ signedIn: boolean }>> {
+): Promise<ActionResult<{ signedIn: boolean; userId: string; registrationEventId: string | null }>> {
   // Normalised here rather than taken as typed: the trigger in migration 039
   // copies this metadata straight into `profiles.phone`, which carries a CHECK
   // on the E.164 shape. A raw "26 341 616" would fail that at INSERT time and
@@ -186,7 +204,45 @@ export async function signUpWithPassword(
     },
   });
   if (error) return fail(authFailure(error));
-  return ok({ signedIn: !!data.session });
+
+  // Track new sign-up server-side when a session is created immediately.
+  if (data.user) {
+    const posthog = getPostHogClient();
+    if (posthog) {
+      posthog.identify({
+        distinctId: data.user.id,
+        properties: { has_full_name: !!fullName, has_phone: !!normalized },
+      });
+      posthog.capture({
+        distinctId: data.user.id,
+        event: "user_signed_up",
+        properties: { method: "email", confirmed_immediately: !!data.session },
+      });
+      await posthog.flush();
+    }
+  }
+
+  // CompleteRegistration, server half. The browser fires the same event with
+  // this id, and Meta keeps whichever arrives first. An empty `identities` is
+  // Supabase's disguise for "that email already has an account" when
+  // confirmation is on — not a registration, so nothing is sent.
+  let registrationEventId: string | null = null;
+  if (data.user && (data.user.identities?.length ?? 0) > 0) {
+    const eventId = `reg_${data.user.id}`;
+    registrationEventId = eventId;
+    const client = await readClientContext();
+    const userId = data.user.id;
+    after(() =>
+      sendMetaEvent({
+        name: "CompleteRegistration",
+        eventId,
+        path: "/login",
+        user: { id: userId, email, phone: normalized, ...client },
+      }),
+    );
+  }
+
+  return ok({ signedIn: !!data.session, userId: data.user?.id ?? "", registrationEventId });
 }
 
 export async function signInWithGoogle(): Promise<ActionResult<string>> {

@@ -6,6 +6,7 @@ import { requirePaidUser } from "@/lib/subscription-server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { tunisWeekStartUtc } from "@/lib/dates";
 import { SESSION_ERR } from "@/lib/session-codes";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 const PG_UNIQUE_VIOLATION = "23505";
 
@@ -103,6 +104,18 @@ export async function startSession(
       }
     }
     return fail(insertError.message);
+  }
+
+  // Track the new session start in PostHog (resumed sessions are not captured
+  // as new starts — only the original start matters for funnel analysis).
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.capture({
+      distinctId: user.id,
+      event: "workout_session_started",
+      properties: { user_program_day_id: userProgramDayId },
+    });
+    await posthog.flush();
   }
 
   return ok({
@@ -304,6 +317,28 @@ export async function finishSession(input: {
       pr_exercise_ids: input.prExerciseIds,
     },
   });
+
+  // Track workout completion in PostHog alongside the internal analytics event.
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.capture({
+      distinctId: user.id,
+      event: "workout_session_completed",
+      properties: {
+        set_count: setCount,
+        volume_kg: volumeKg,
+        minutes: Math.max(
+          1,
+          Math.round(
+            (Date.parse(completedAt) - Date.parse(session.started_at ?? completedAt)) / 60000,
+          ),
+        ),
+        pr_count: input.prExerciseIds.length,
+        skipped_count: (session.skipped_exercise_ids ?? []).length,
+      },
+    });
+    await posthog.flush();
+  }
 
   revalidatePath("/dashboard");
   revalidatePath("/workout");

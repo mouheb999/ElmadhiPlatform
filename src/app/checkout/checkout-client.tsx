@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import posthog from "posthog-js";
 import { ArrowLeft, ArrowRight, Check, Clock, ImageUp, Lock, RefreshCw, Send } from "lucide-react";
 import {
   attachPaymentProof,
@@ -238,6 +239,11 @@ export function CheckoutClient({
     // a report that only counted the signed-out half would make the drop-off
     // at the account form look smaller than it is.
     trackStep(SIGNUP_STARTED, locale, { value: selectedPlan.price_tnd });
+    posthog.capture("checkout_plan_selected", {
+      plan_tier: selectedPlan.tier,
+      plan_months: selectedPlan.months,
+      plan_price_tnd: selectedPlan.price_tnd,
+    });
     if (signedIn) {
       setStep(2);
       return;
@@ -437,6 +443,10 @@ export function CheckoutClient({
       // a person's decision hours later, so for an ad platform this is the
       // conversion that can actually be optimised towards.
       trackStep(RECEIPT_UPLOADED, locale, { value: selectedPlan.price_tnd });
+      posthog.capture("payment_proof_uploaded", {
+        plan_tier: selectedPlan.tier,
+        plan_months: selectedPlan.months,
+      });
       router.refresh();
     });
   }
@@ -475,6 +485,10 @@ export function CheckoutClient({
         return;
       }
       trackStep(RECEIPT_UPLOADED, locale, { value: selectedPlan?.price_tnd });
+      posthog.capture("payment_proof_uploaded", {
+        plan_tier: selectedPlan?.tier,
+        plan_months: selectedPlan?.months ?? 0,
+      });
       router.refresh();
     });
   }

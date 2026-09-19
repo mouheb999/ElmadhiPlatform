@@ -3,9 +3,10 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === "development";
 
 /**
- * Supabase is the only third-party origin the browser would talk to directly
- * — and today it doesn't: `src/lib/supabase/client.ts` is imported by nothing,
- * every read and write goes through a Server Function. It is listed anyway so
+ * Besides the Meta Pixel (see the CSP below), Supabase is the only third-party
+ * origin the browser would talk to directly — and today it doesn't:
+ * `src/lib/supabase/client.ts` is imported by nothing, every read and write
+ * goes through a Server Function. It is listed anyway so
  * that the first browser-side query doesn't fail in production with a CSP
  * error nobody expects.
  */
@@ -20,19 +21,21 @@ const supabaseOrigin = (() => {
 })();
 
 /**
- * Meta's pixel, when one is configured.
+ * Meta's pixel. Always allowed, not gated on NEXT_PUBLIC_META_PIXEL_ID: this
+ * file's headers are fixed at `next build`, and a gate here meant a deployment
+ * built before the variable existed kept a policy that refused the pixel even
+ * after the variable was set. With no pixel id the loader requests nothing, so
+ * the open origins cost nothing.
  *
- * The policy stays exactly as tight as it is today for every deployment that
- * has not set NEXT_PUBLIC_META_PIXEL_ID: no facebook.net script, no
- * facebook.com beacon, no tracking pixel image. Turning the pixel on is one
- * environment variable, and it opens precisely the three origins it needs.
+ * connect.facebook.net serves fbevents.js; www.facebook.com receives events
+ * as image beacons, fetches, and — for some browsers and consent modes — a
+ * hidden iframe and a form POST, hence frame-src and form-action as well.
  */
-const metaPixelOn = /^\d{5,20}$/.test(process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "");
-const metaScript = metaPixelOn ? " https://connect.facebook.net" : "";
-const metaConnect = metaPixelOn
-  ? " https://connect.facebook.net https://www.facebook.com"
-  : "";
-const metaImg = metaPixelOn ? " https://www.facebook.com" : "";
+const metaScript = " https://connect.facebook.net";
+const metaConnect = " https://connect.facebook.net https://www.facebook.com";
+const metaImg = " https://www.facebook.com";
+const metaFrame = " https://www.facebook.com";
+const metaForm = " https://www.facebook.com";
 
 /**
  * Content Security Policy.
@@ -75,10 +78,10 @@ const csp = [
     isDev ? " ws://localhost:* http://localhost:*" : ""
   }`,
   // The exercise demo modal embeds YouTube's no-cookie player.
-  "frame-src https://www.youtube-nocookie.com",
+  `frame-src https://www.youtube-nocookie.com${metaFrame}`,
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  `form-action 'self'${metaForm}`,
   "frame-ancestors 'none'",
   // Omitted in dev: it would rewrite http://localhost subresources to https.
   ...(isDev ? [] : ["upgrade-insecure-requests"]),
@@ -105,9 +108,38 @@ const securityHeaders = [
   },
 ];
 
+// Derive the PostHog assets host from the ingestion host env var so the
+// reverse proxy destinations stay in sync without duplicating the origin.
+const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "";
+const posthogAssetsHost = posthogHost
+  .replace("//us.i.", "//us-assets.i.")
+  .replace("//eu.i.", "//eu-assets.i.");
+
 const nextConfig: NextConfig = {
   // Nothing is gained by announcing the framework and version to a scanner.
   poweredByHeader: false,
+
+  // PostHog reverse proxy — routes /ingest/* through the server so the
+  // browser never connects to PostHog directly (avoids ad-blocker drops).
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: `${posthogAssetsHost}/static/:path*`,
+      },
+      {
+        source: "/ingest/array/:path*",
+        destination: `${posthogAssetsHost}/array/:path*`,
+      },
+      {
+        source: "/ingest/:path*",
+        destination: `${posthogHost}/:path*`,
+      },
+    ];
+  },
+
+  // Required to support PostHog trailing-slash API requests through the proxy.
+  skipTrailingSlashRedirect: true,
 
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
