@@ -12,6 +12,7 @@ import { MEAL_LABELS } from "@/components/diet/meal-card";
 import { MacroRing } from "@/components/diet/macro-ring";
 import { createCustomMealPlan, type DietEssentials } from "@/app/actions/custom-diet";
 import { calculateMacros } from "@/lib/algorithms/macros";
+import { birthDateForAge } from "@/lib/algorithms/age";
 import { MAX_ITEMS_PER_MEAL, MAX_QUANTITY_G } from "@/lib/program-limits";
 import { formatServing } from "@/lib/servings";
 import { cn } from "@/lib/utils";
@@ -128,7 +129,7 @@ export function PlanBuilder({
     if (!numbersValid) return null;
     return calculateMacros({
       gender: essentials.gender,
-      birthDate: new Date(`${new Date().getFullYear() - Math.round(essentials.age)}-01-01`),
+      birthDate: birthDateForAge(essentials.age),
       heightCm: essentials.heightCm,
       weightKg: essentials.weightKg,
       activityLevel: essentials.activityLevel,

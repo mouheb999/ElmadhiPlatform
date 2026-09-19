@@ -65,17 +65,24 @@ export function PlanReveal({
           <Info className="h-6 w-6 text-amber-500" />
         </span>
         <h1 className="text-balance font-display text-2xl font-extrabold leading-tight">
-          {t(locale, "fn.r_need_answers")}
+          {t(
+            locale,
+            projection.invalidReason === "adult_nutrition_not_supported"
+              ? "fn.r_under_18"
+              : "fn.r_need_answers",
+          )}
         </h1>
         <p className="max-w-[32ch] text-balance text-sm leading-relaxed text-muted">
           {t(
             locale,
-            projection.invalidReason === "impossible_values"
-              ? "fn.r_bad_values"
-              : "fn.r_need_answers_body",
+            projection.invalidReason === "adult_nutrition_not_supported"
+              ? "fn.r_under_18_body"
+              : projection.invalidReason === "impossible_values"
+                ? "fn.r_bad_values"
+                : "fn.r_need_answers_body",
           )}
         </p>
-        {onFix && (
+        {onFix && projection.invalidReason !== "adult_nutrition_not_supported" && (
           <button
             type="button"
             onClick={onFix}
@@ -151,6 +158,26 @@ export function PlanReveal({
           internally consistent, but a coach should look at them before anybody
           eats to them — so this says that, rather than letting an unusual plan
           pass for an ordinary one. See lib/algorithms/macro-allocation.ts. */}
+      {/* A CONSTRAINED plan: real and usable, but the calorie floor lifted the
+          target above what the goal asked for, so the pace below is slower than
+          the goal implies. Said plainly rather than letting the reader assume
+          the deficit they chose is the deficit they got. */}
+      {projection.constrainedByCalorieFloor && (
+        <p className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-relaxed">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <span>{t(locale, "fn.r_calorie_floor")}</span>
+        </p>
+      )}
+
+      {/* Valid but unusual. Not a warning — an explanation, so a very large
+          number is identifiable rather than just surprising. */}
+      {projection.plausibilityFlags.length > 0 && (
+        <p className="flex items-start gap-2 rounded-2xl border border-hairline bg-surface px-4 py-3 text-[12.5px] leading-relaxed text-muted">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+          <span>{t(locale, "fn.r_unusual_numbers")}</span>
+        </p>
+      )}
+
       {projection.needsAdjustment && (
         <p className="flex items-start gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-[12.5px] leading-relaxed">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
@@ -255,11 +282,9 @@ export function PlanReveal({
           <p className="text-[13px] leading-relaxed text-muted">
             {t(
               locale,
-              projection.guidance === "minor"
-                ? "fn.r_care_minor"
-                : projection.guidance === "underweight"
-                  ? "fn.r_care_underweight"
-                  : "fn.r_recomp_body",
+              projection.guidance === "underweight"
+                ? "fn.r_care_underweight"
+                : "fn.r_recomp_body",
             )}
           </p>
         </section>

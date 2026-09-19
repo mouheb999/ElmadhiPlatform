@@ -109,7 +109,70 @@ export const POLICY = {
   },
   /** Rounding slack: three macros each rounded to a whole gram. */
   driftToleranceKcal: 10,
+  /**
+   * Thresholds for the plausibility audit — NOT caps.
+   *
+   * A 130 kg athlete training seven times a week genuinely needs 800 g of
+   * carbohydrate, and truncating that to a rounder-looking number would be
+   * inventing a worse plan for the sake of a nicer figure. But a number that
+   * large should be identifiable and explainable rather than silently shipped,
+   * so it is flagged and the screen can say why it is so high.
+   */
+  plausibility: {
+    /** Grams of carbohydrate past which a plan is unusual, not wrong. */
+    carbsG: 500,
+    /**
+     * Fat past this is unusual in absolute terms — reached only by the largest
+     * frames, where 0.9 g/kg is already a big number.
+     */
+    fatG: 120,
+    /** A daily target this large belongs to a large, very active body. */
+    caloriesKcal: 4000,
+    /** Carbohydrate this far past the usual share of the day. */
+    carbKcalShare: 0.65,
+  },
 } as const;
+
+/**
+ * Why a plan is unusual. None of these make it wrong — they make it worth a
+ * sentence on screen and a second look from a coach.
+ */
+export type PlausibilityFlag =
+  | "very_high_carbs"
+  /**
+   * The absolute protein cap bound — this frame wanted more than the policy
+   * allows. Informative rather than alarming, and NOT the same as "too much
+   * protein", which the cap makes impossible.
+   */
+  | "protein_capped"
+  | "very_high_fat"
+  | "very_high_calories";
+
+/**
+ * The audit. Deliberately separate from the solver: the solver's job is to
+ * produce the best split inside the policy, and this one's is to notice when
+ * the RESULT, though valid, is far enough from ordinary that somebody should
+ * look. Every threshold is in POLICY.plausibility.
+ */
+export function auditPlausibility(a: {
+  calories: number;
+  proteinG: number;
+  fatG: number;
+  carbsG: number;
+}): PlausibilityFlag[] {
+  const t = POLICY.plausibility;
+  const flags: PlausibilityFlag[] = [];
+  if (a.calories > t.caloriesKcal) flags.push("very_high_calories");
+  if (a.carbsG > t.carbsG || (a.carbsG * KCAL_PER_G_CARBS) / Math.max(1, a.calories) > t.carbKcalShare) {
+    flags.push("very_high_carbs");
+  }
+  // Reported when the cap is what decided the number, not when protein is
+  // "high": an earlier threshold of 190 g sat BELOW the 200 g cap, so every
+  // capped plan was flagged as unusual and the flag meant nothing.
+  if (a.proteinG >= POLICY.protein.maxG) flags.push("protein_capped");
+  if (a.fatG > t.fatG) flags.push("very_high_fat");
+  return flags;
+}
 
 /**
  * The order constraints give way in, when a budget cannot hold them all.

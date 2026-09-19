@@ -36,7 +36,13 @@ export function PlanRecap({
   answers: Partial<FunnelAnswers>;
 }) {
   if (!isComplete(answers)) return null;
-  const { targets } = calculateFitnessPlan(answers);
+  const plan = calculateFitnessPlan(answers);
+  // The second lock, matching PlanReveal: checkout must not restate a
+  // prescription the engine refused to make. `isComplete` above only knows the
+  // questions were answered; `valid` knows whether the answers can support a
+  // plan at all.
+  if (!plan.valid) return null;
+  const { targets } = plan;
 
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-accent/30 bg-accent/5 px-4 py-4">

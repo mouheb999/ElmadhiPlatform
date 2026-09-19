@@ -10,6 +10,7 @@ import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-r
 import { MAX_ITEMS_PER_MEAL, MAX_QUANTITY_G } from "@/lib/program-limits";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { calculateMacros, isUsableBodyFatPercent, type ActivityLevel } from "@/lib/algorithms/macros";
+import { birthDateForAge } from "@/lib/algorithms/age";
 import type { Goal } from "@/lib/algorithms/diet-strategy";
 
 /**
@@ -249,7 +250,7 @@ export async function createCustomMealPlan(
 
   const macros = calculateMacros({
     gender: e.gender,
-    birthDate: new Date(approximateBirthDate(e.age)),
+    birthDate: birthDateForAge(e.age),
     heightCm: e.heightCm,
     weightKg: e.weightKg,
     activityLevel: e.activityLevel,

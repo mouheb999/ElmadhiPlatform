@@ -170,24 +170,31 @@ describe("calculateFitnessPlan — the user's test cases", () => {
     expect(p.targets.proteinG / 75).toBeLessThanOrEqual(2.2);
   });
 
-  it("6. invalid and missing input produces a usable plan, never NaN", () => {
-    const broken = calculateFitnessPlan({
-      ...MALE, age: 0, heightCm: 0, weightKg: -5, targetWeightKg: Number.NaN,
-    });
-    for (const n of finiteNumbers(broken)) expect(Number.isFinite(n)).toBe(true);
-    expect(broken.targets.calories).toBeGreaterThan(0);
-
-    const empty = calculateFitnessPlan({} as FitnessPlanInput);
-    for (const n of finiteNumbers(empty)) expect(Number.isFinite(n)).toBe(true);
-    expect(empty.targets.calories).toBeGreaterThan(0);
-    expect(empty.timeline).toHaveLength(4);
+  it("6. invalid and missing input is refused and carries NO prescription", () => {
+    // Changed deliberately from "produces a usable plan": a refused plan that
+    // still holds a plausible calorie target has invented a person, and a screen
+    // that forgets to check `valid` would show them that number.
+    for (const input of [
+      { ...MALE, age: 0, heightCm: 0, weightKg: -5, targetWeightKg: Number.NaN },
+      {} as FitnessPlanInput,
+    ]) {
+      const p = calculateFitnessPlan(input);
+      expect(p.valid).toBe(false);
+      for (const n of finiteNumbers(p)) expect(Number.isFinite(n)).toBe(true);
+      expect(p.targets.calories).toBe(0);
+      expect(p.targets.proteinG).toBe(0);
+      expect(p.targets.carbsG).toBe(0);
+      expect(p.targets.fatG).toBe(0);
+      expect(p.timeline).toHaveLength(4);
+    }
   });
 });
 
 describe("calculateFitnessPlan — edges and safety", () => {
   it("produces no NaN, no negative and no impossible weight across a wide sweep", () => {
     for (const gender of ["male", "female"] as const) {
-      for (const age of [14, 25, 60, 90]) {
+      // 18 is the youngest this engine will act on at all — see MIN_ADULT_AGE.
+      for (const age of [18, 25, 60, 90]) {
         for (const heightCm of [140, 165, 200]) {
           for (const weightKg of [38, 70, 140, 250]) {
             for (const goal of ["lose_fat", "build_muscle", "recomp", "maintain"] as const) {
@@ -198,11 +205,12 @@ describe("calculateFitnessPlan — edges and safety", () => {
                 trainingDays: "3_4",
               });
               for (const n of finiteNumbers(p)) expect(Number.isFinite(n)).toBe(true);
+              expect(new Set(p.timeline.map((x) => x.date.getTime())).size).toBe(4);
+              if (!p.valid) continue; // refused plans carry no prescription
               expect(p.targets.calories).toBeGreaterThan(0);
-              expect(p.targets.carbsG).toBeGreaterThanOrEqual(0);
+              expect(p.targets.carbsG).toBeGreaterThan(0);
               expect(p.targets.fatG).toBeGreaterThan(0);
               expect(p.timeline.every((x) => x.kg > 0 && x.lowKg > 0)).toBe(true);
-              expect(new Set(p.timeline.map((x) => x.date.getTime())).size).toBe(4);
             }
           }
         }
@@ -218,13 +226,24 @@ describe("calculateFitnessPlan — edges and safety", () => {
     expect(p.timeline.every((x) => x.lowKg >= floor - 0.001)).toBe(true);
   });
 
-  it("holds a minor at maintenance instead of writing them a deficit", () => {
-    const p = calculateFitnessPlan({
-      ...MALE, age: 15, gender: "female", heightCm: 165, weightKg: 60, targetWeightKg: 50,
-    });
-    expect(p.guidance).toBe("minor");
-    expect(p.targets.calories).toBe(p.targets.tdee);
-    expect(p.kind).toBe("recomposition");
+  /**
+   * Replaces "holds a minor at maintenance". Holding them at maintenance still
+   * meant running the adult model on a growing body and printing the result.
+   * There is no pediatric model here, so the engine refuses outright.
+   */
+  it("refuses under-18s outright rather than softening the adult plan", () => {
+    for (const age of [10, 14, 16, 17]) {
+      const p = calculateFitnessPlan({
+        ...MALE, age, gender: "female", heightCm: 165, weightKg: 60, targetWeightKg: 50,
+      });
+      expect(p.valid, `age ${age}`).toBe(false);
+      expect(p.invalidReason, `age ${age}`).toBe("adult_nutrition_not_supported");
+      expect(p.state, `age ${age}`).toBe("professional_assessment");
+      // No adult arithmetic was run, so there is nothing to leak.
+      expect(p.targets.bmr, `age ${age}`).toBe(0);
+      expect(p.targets.calories, `age ${age}`).toBe(0);
+    }
+    expect(calculateFitnessPlan({ ...MALE, age: 18 }).valid).toBe(true);
   });
 
   it("holds an underweight body at maintenance too", () => {
@@ -365,11 +384,12 @@ describe("calculateFitnessPlan — incomplete data cannot look like a plan", () 
   });
 
   it("accepts the questionnaire's own extremes, so the gate is not over-eager", () => {
-    // LIMITS in answers.ts: 14-90 years, 120-230 cm, 35-250 kg. Every corner of
-    // that box which describes a real body must produce a plan.
-    for (const age of [14, 90])
+    // LIMITS in answers.ts: 14-90 years, 120-230 cm, 35-250 kg — narrowed to
+    // 18+ by MIN_ADULT_AGE. Every corner of that box which describes a real
+    // adult body whose maintenance clears the safety floor must produce a plan.
+    for (const age of [18, 90])
       for (const heightCm of [150, 190])
-        for (const weightKg of [45, 120]) {
+        for (const weightKg of [55, 120]) {
           const p = calculateFitnessPlan({ ...COMPLETE, age, heightCm, weightKg, targetWeightKg: weightKg - 5 });
           expect(p.valid, `${age}/${heightCm}/${weightKg}`).toBe(true);
         }

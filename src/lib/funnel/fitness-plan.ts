@@ -43,6 +43,7 @@ import { calculateMacros, type MacroTargets } from "@/lib/algorithms/macros";
 import { restingEnergy, type ActivityLevel } from "@/lib/algorithms/macros-core";
 import {
   KCAL_PER_KG,
+  MIN_ADULT_AGE,
   activityFactorFor,
   bmiOf,
   clampNumber,
@@ -50,7 +51,9 @@ import {
   type GuidanceFlag,
   type Pace,
 } from "@/lib/algorithms/energy";
+import { auditPlausibility, type PlausibilityFlag } from "@/lib/algorithms/macro-allocation";
 import { normalizeGoal, type Goal } from "@/lib/algorithms/diet-strategy";
+import { birthDateForAge } from "@/lib/algorithms/age";
 
 /** The horizons the result page shows. Today plus three, all of them real. */
 export const HORIZON_WEEKS = [0, 4, 8, 12] as const;
@@ -83,7 +86,36 @@ function bandKgForWeek(week: number): number {
  * The distinction matters to the screen, not to the arithmetic. One says "we
  * need a couple more answers", the other says "that number cannot be right".
  */
-export type InvalidReason = "missing_required_inputs" | "impossible_values";
+export type InvalidReason =
+  | "missing_required_inputs"
+  | "impossible_values"
+  /**
+   * Under 18. Every formula in this engine — Mifflin-St Jeor, the activity
+   * factors, the protein and fat bounds — is derived from and validated on
+   * adults, and there is no pediatric model in this product. So the engine does
+   * not approximate one: it stops before any of that arithmetic runs and the
+   * screen points at a professional instead. See MIN_ADULT_AGE.
+   */
+  | "adult_nutrition_not_supported"
+  /**
+   * Maintenance is below the least we will safely prescribe, so no automated
+   * plan can honour the goal: every number available is either under the safety
+   * floor or above maintenance. See `floorBreaksGoal`.
+   */
+  | "maintenance_below_safe_floor";
+
+/**
+ * How much of a plan this is.
+ *
+ *   normal      — the policy was satisfied; an ordinary personalised plan.
+ *   constrained — real, usable, but something had to give: the calorie floor
+ *                 lifted the target above what the goal asked for, or the macro
+ *                 split could not satisfy every bound at once. The pace is
+ *                 slower than the goal implies and the screen says so.
+ *   professional_assessment — not a plan. Under 18, or a body that should be
+ *                 talking to a clinician before anybody writes it a deficit.
+ */
+export type PlanState = "normal" | "constrained" | "professional_assessment";
 
 /**
  * The bounds outside which a value is not a body, as opposed to merely unusual.
@@ -109,6 +141,12 @@ const POSSIBLE = {
  */
 function validate(input: FitnessPlanInput): InvalidReason | null {
   if (!input || typeof input !== "object") return "missing_required_inputs";
+
+  // Age first, and before plausibility: a 15-year-old has not given us an
+  // impossible value, they have given us one this calculator must not act on.
+  if (typeof input.age === "number" && Number.isFinite(input.age) && input.age < MIN_ADULT_AGE) {
+    return input.age >= POSSIBLE.age.min ? "adult_nutrition_not_supported" : "impossible_values";
+  }
 
   if (input.gender !== "male" && input.gender !== "female") return "missing_required_inputs";
   if (!ACTIVITY_LEVELS.includes(input.activityLevel)) return "missing_required_inputs";
@@ -221,6 +259,19 @@ export type FitnessPlan = {
   targetWithinTimeline: boolean;
   /** Set when the target was softened for safety. See GuidanceFlag. */
   guidance: GuidanceFlag | null;
+  /** How much of a plan this is. The screen branches on this. */
+  state: PlanState;
+  /**
+   * True when the calorie floor lifted the target above what the goal's rate
+   * asked for. The plan is real; the pace is slower than the goal implies.
+   */
+  constrainedByCalorieFloor: boolean;
+  /**
+   * Valid but unusual — a very large carbohydrate load, a very high calorie
+   * target. Not errors: things the screen should be able to explain rather than
+   * present without comment. See auditPlausibility.
+   */
+  plausibilityFlags: PlausibilityFlag[];
   /**
    * True when the calorie budget could not hold a macro split that satisfies
    * the nutrition policy, even after every permitted relaxation. The numbers
@@ -237,12 +288,6 @@ export type FitnessPlan = {
   targetContradictsGoal: boolean;
 };
 
-/** An age in years as the date of birth `calculateMacros` asks for. */
-function birthDateFromAge(age: number): Date {
-  const now = new Date();
-  return new Date(now.getFullYear() - age, now.getMonth(), now.getDate());
-}
-
 /**
  * A date this many weeks out, from one shared "now".
  *
@@ -255,6 +300,78 @@ function dateInWeeks(now: number, weeks: number): Date {
   return new Date(now + weeks * 7 * 86_400_000);
 }
 
+/**
+ * A complete, NaN-free FitnessPlan carrying NO prescription.
+ *
+ * Every number is zero on purpose. A screen that ignores `valid` cannot show a
+ * plausible calorie target for somebody the engine refused, because there is no
+ * plausible number in here to show.
+ */
+function noPrescription(reason: InvalidReason): FitnessPlan {
+  const now = Date.now();
+  const zeroBilingual = { en: "", ar: "" };
+  return {
+    valid: false,
+    invalidReason: reason,
+    state: "professional_assessment",
+    constrainedByCalorieFloor: false,
+    plausibilityFlags: [],
+    targets: {
+      bmr: 0,
+      tdee: 0,
+      calories: 0,
+      proteinG: 0,
+      carbsG: 0,
+      fatG: 0,
+      fiberG: 0,
+      usedLeanMass: false,
+      energy: {
+        bmr: 0,
+        tdee: 0,
+        calories: 0,
+        energyBalanceKcal: 0,
+        weeklyRateKg: 0,
+        weeklyRateFraction: 0,
+        direction: "hold",
+        activityFactor: 0,
+        usedLeanMass: false,
+        guidance: null,
+        constrainedByFloor: false,
+        floorBreaksGoal: false,
+      },
+      allocation: { proteinG: 0, fatG: 0, carbsG: 0, feasible: false, relaxations: [] },
+      goalLabel: zeroBilingual,
+      rationale: {
+        bmr: zeroBilingual,
+        tdee: zeroBilingual,
+        target: zeroBilingual,
+        protein: zeroBilingual,
+        fat: zeroBilingual,
+        carbs: zeroBilingual,
+      },
+    },
+    goal: "maintain",
+    kind: "recomposition",
+    weeklyRateKg: 0,
+    weeklyRatePercent: 0,
+    direction: "hold",
+    timeline: HORIZON_WEEKS.map((week) => ({
+      week,
+      date: dateInWeeks(now, week),
+      kg: 0,
+      lowKg: 0,
+      highKg: 0,
+      deltaKg: 0,
+    })),
+    targetWeeks: null,
+    targetDate: null,
+    targetWithinTimeline: false,
+    guidance: null,
+    needsAdjustment: false,
+    targetContradictsGoal: false,
+  };
+}
+
 export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
   // Asked BEFORE anything is clamped. Clamping is what lets the arithmetic
   // survive nonsense without throwing; it is not permission to present the
@@ -263,13 +380,21 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
   // number is fiction.
   const invalidReason = validate(input ?? ({} as FitnessPlanInput));
 
+  // Any refusal stops here. Not "compute it and hide it": an object that
+  // carries 2,225 kcal for a visitor who answered nothing has invented a person,
+  // and a bug downstream that forgets to check `valid` would show that number to
+  // them. There is no plausible figure in a refused plan to leak.
+  if (invalidReason !== null) {
+    return noPrescription(invalidReason);
+  }
+
   // Everything is clamped before it reaches arithmetic, so no combination of
   // answers — missing, zero, negative, absurd — can produce NaN or Infinity.
   const age = clampNumber(input.age, 10, 100, 30);
   const heightCm = clampNumber(input.heightCm, 120, 230, 170);
   const startKg = clampNumber(input.weightKg, 30, 300, 70);
   const targetKg = clampNumber(input.targetWeightKg, 30, 300, startKg);
-  const birthDate = birthDateFromAge(age);
+  const birthDate = birthDateForAge(age);
 
   const macrosAt = (weightKg: number): MacroTargets =>
     calculateMacros({
@@ -287,6 +412,28 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
   const goal = normalizeGoal(input.goal);
   const targets = macrosAt(startKg);
   const energy = targets.energy;
+
+  // The floor turned this goal's deficit into a surplus. No honest automated
+  // plan exists for this body; say so rather than printing "fat loss" over a
+  // gaining projection.
+  if (energy.floorBreaksGoal) {
+    return noPrescription("maintenance_below_safe_floor");
+  }
+
+  const plausibilityFlags = auditPlausibility(targets);
+  /**
+   * Which of the three states this is.
+   *
+   * `underweight` guidance is the only remaining reason the engine routes an
+   * adult to a professional; everything else that "gave way" is a constrained
+   * plan, which is real and usable and simply says what it cost.
+   */
+  const planState: PlanState =
+    invalidReason !== null || energy.guidance !== null
+      ? "professional_assessment"
+      : energy.constrainedByFloor || !targets.allocation.feasible
+        ? "constrained"
+        : "normal";
 
   const gap = targetKg - startKg;
   // Which way the plan itself pushes, which is not always the way the typed
@@ -323,6 +470,9 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
       targetDate: null,
       targetWithinTimeline: false,
       guidance: energy.guidance,
+      state: planState,
+      constrainedByCalorieFloor: energy.constrainedByFloor,
+      plausibilityFlags,
       needsAdjustment: !targets.allocation.feasible,
       targetContradictsGoal,
     };
@@ -414,6 +564,9 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
     targetDate: targetWeeks !== null ? dateInWeeks(now, targetWeeks) : null,
     targetWithinTimeline: targetWeeks !== null && targetWeeks <= 12,
     guidance: energy.guidance,
+    state: planState,
+    constrainedByCalorieFloor: energy.constrainedByFloor,
+    plausibilityFlags,
     needsAdjustment: !targets.allocation.feasible,
     targetContradictsGoal,
   };

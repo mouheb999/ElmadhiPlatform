@@ -53,6 +53,19 @@ export const KCAL_PER_KG = 7700;
 export const CALORIE_FLOOR = 1200;
 
 /**
+ * The age below which this calculator does not apply at all.
+ *
+ * Mifflin-St Jeor, the activity factors and every bound in the macro policy are
+ * derived from and validated on ADULTS. A growing body has a different resting
+ * rate, a different protein requirement and — most importantly — no business
+ * being handed an automated calorie deficit by a marketing funnel. There is no
+ * pediatric model in this product, so rather than approximate one, the engine
+ * refuses: see `adult_nutrition_not_supported` in fitness-plan.ts, which stops
+ * before any adult arithmetic runs.
+ */
+export const MIN_ADULT_AGE = 18;
+
+/**
  * The absolute daily minimums, by sex. The conventional clinical floors, and
  * the only hard floor this file applies.
  *
@@ -66,9 +79,20 @@ export const CALORIE_FLOOR = 1200;
  * right way, and these floors catch the small-and-sedentary corner where a
  * percentage still lands somewhere silly.
  */
+/**
+ * Raised from 1500/1200 to these. A target under them is not something this
+ * product should produce automatically for anybody: it is a supervised
+ * intervention, not a plan somebody buys from an Instagram ad.
+ *
+ * The floor is applied AND reported. `constrainedByFloor` below is true whenever
+ * the rate-derived target was under it, because quietly lifting the number
+ * until the warning goes away is how a safety floor becomes decoration — the
+ * calorie figure would look ordinary while the deficit it was meant to deliver
+ * silently no longer exists.
+ */
 const ABSOLUTE_FLOOR: Record<"male" | "female", number> = {
-  male: 1500,
-  female: 1200,
+  male: 1600,
+  female: 1400,
 };
 
 /**
@@ -166,12 +190,9 @@ const PACE_SCALE: Record<Pace, number> = {
  * maintenance and tells the screen to say why, rather than handing an
  * aggressive deficit to somebody who should be talking to a person first.
  */
-export type GuidanceFlag = "minor" | "underweight";
+export type GuidanceFlag = "underweight";
 
-/** Under this age, no calculator should be writing a deficit. */
-const MINOR_AGE = 16;
-
-/** And under this BMI, nobody should be cutting. */
+/** Under this BMI, nobody should be cutting. */
 const UNDERWEIGHT_BMI = 18.5;
 
 export type EnergyInput = {
@@ -203,6 +224,25 @@ export type EnergyPlan = {
   usedLeanMass: boolean;
   /** Set when the target was softened for safety. See GuidanceFlag. */
   guidance: GuidanceFlag | null;
+  /**
+   * True when the safety floor forced a target that CONTRADICTS the goal — a
+   * deficit or maintenance plan whose calories end up above maintenance.
+   *
+   * This happens when somebody's whole maintenance is below the least we will
+   * ever prescribe: a 42 kg, 70-year-old woman burns about 1,000 kcal a day, and
+   * the floor is 1,400. Every available number is then either unsafe (under the
+   * floor) or a surplus (over maintenance), so "fat loss" would be printed over
+   * a plan that makes her gain 0.36 kg a week. There is no honest automated
+   * answer; fitness-plan.ts refuses and points at a professional.
+   */
+  floorBreaksGoal: boolean;
+  /**
+   * True when the rate-derived target fell under ABSOLUTE_FLOOR and was lifted
+   * to it. The plan is still usable, but it is a CONSTRAINED plan: the deficit
+   * the goal asked for did not fit above the floor, so the pace below is slower
+   * than the goal implies. The screen must say so.
+   */
+  constrainedByFloor: boolean;
 };
 
 /** Clamp that also refuses NaN/Infinity, so nothing downstream can see one. */
@@ -297,9 +337,9 @@ export function resolveEnergyPlan(input: EnergyInput): EnergyPlan {
   // Screening, before any deficit is computed. A minor or an underweight body
   // asking to cut gets maintenance and a pointer to a person, not a softer
   // deficit — a smaller wrong answer is still the wrong answer.
+  // Minors never reach here — fitness-plan.ts refuses before any of this runs.
   let guidance: GuidanceFlag | null = null;
-  if (age < MINOR_AGE) guidance = "minor";
-  else if (bmi < UNDERWEIGHT_BMI) guidance = "underweight";
+  if (bmi < UNDERWEIGHT_BMI) guidance = "underweight";
 
   const wantsCut = goal === "lose_fat" || goal === "recomp";
   const screened = guidance !== null && wantsCut;
@@ -339,9 +379,16 @@ export function resolveEnergyPlan(input: EnergyInput): EnergyPlan {
   // The floor, then a round to the nearest ten so the number reads like a
   // target rather than a readout. Maintenance skips the rounding, per above.
   const floor = Math.max(CALORIE_FLOOR, ABSOLUTE_FLOOR[gender]);
+  const constrainedByFloor = !holdAtMaintenance && calories < floor;
   calories = Math.max(floor, calories);
   if (!holdAtMaintenance) calories = Math.round(calories / 10) * 10;
   calories = Math.round(calories);
+
+  // Did the floor just turn a deficit into a surplus? Only a gaining goal is
+  // allowed to sit above maintenance; for every other goal that is a plan
+  // pointing the opposite way to the words printed over it.
+  const wantsNonSurplus = goal !== "build_muscle";
+  const floorBreaksGoal = wantsNonSurplus && calories > tdee;
 
   // Re-derived, never assumed. If the floor above lifted the target, the rate
   // below is the smaller rate that lift implies — which is the honest number,
@@ -360,5 +407,7 @@ export function resolveEnergyPlan(input: EnergyInput): EnergyPlan {
     activityFactor,
     usedLeanMass,
     guidance,
+    constrainedByFloor,
+    floorBreaksGoal,
   };
 }

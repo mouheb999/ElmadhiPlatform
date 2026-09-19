@@ -2068,11 +2068,32 @@ const STRINGS = {
     tn: "إحدى إجاباتك غير ممكنة — طول أو وزن خارج ما نستطيع الحساب منه. راجعها ونبني لك برنامجك.",
   },
   "fn.r_finish_answers": { en: "Finish my answers", tn: "أكمل إجاباتي" },
+  // Under 18. Not a soft version of the adult plan — no adult numbers are
+  // computed at all. See MIN_ADULT_AGE.
+  "fn.r_under_18": { en: "We build plans for adults", tn: "نبني برامج للبالغين" },
+  "fn.r_under_18_body": {
+    en: "Our calculations are built for bodies that have finished growing, so we do not generate a calorie target under 18. Talk to a doctor or a sports dietitian — and come back to us when you are ready.",
+    tn: "حساباتنا مبنيّة لأجسام أنهت نموّها، لذلك لا ننشئ هدفاً للسعرات لمن هم دون 18 سنة. استشر طبيباً أو أخصائي تغذية رياضية — وعُد إلينا حين تكون جاهزاً.",
+  },
+  // A constrained plan: real, usable, and slower than the goal asked for.
+  "fn.r_calorie_floor": {
+    en: "Your goal asked for a bigger deficit than we will put anybody on automatically, so this plan sits at our safe minimum instead. That means steady progress rather than the fastest version — and a coach can review it with you.",
+    tn: "هدفك يتطلّب عجزاً أكبر ممّا نضع فيه أي شخص تلقائياً، لذلك يقف هذا البرنامج عند حدّنا الأدنى الآمن. أي تقدّم ثابت بدل الأسرع نسخة — ويمكن لمدرّب مراجعته معك.",
+  },
+  "fn.r_unusual_numbers": {
+    en: "These numbers are larger than most, because your body size and training load are. They are correct for you — a coach checks them before your plan is built.",
+    tn: "هذه الأرقام أكبر من المعتاد، لأن حجم جسمك وحمل تدريبك كذلك. وهي صحيحة بالنسبة إليك — يراجعها مدرّب قبل بناء برنامجك.",
+  },
 
   // Shown when the calorie budget cannot hold a macro split that satisfies the
   // nutrition policy. Honest rather than alarming: the numbers are real, they
   // are just an unusual shape, and a person should look before anyone eats to
   // them.
+  // Refused at the write path as well as in the funnel — see actions/diet.ts.
+  "diet.age_not_supported": {
+    en: "Hype Fitness plans are built for adults (18+). We cannot generate one automatically for a younger body — message us and a coach will talk you through the right next step.",
+    tn: "برامج Hype Fitness مبنيّة للبالغين (18 سنة فما فوق). لا يمكننا إنشاء برنامج تلقائياً لجسم أصغر سناً — راسلنا وسيرشدك مدرّب إلى الخطوة الصحيحة.",
+  },
   "fn.r_needs_coach": {
     en: "Your numbers sit outside the range our calculator handles on its own. A coach reviews this one by hand before your plan is built — nothing below changes what you pay.",
     tn: "أرقامك خارج النطاق الذي تتعامل معه حاسبتنا وحدها. سيراجعها مدرّب يدوياً قبل بناء برنامجك — ولا شيء ممّا تحت يغيّر ما تدفعه.",

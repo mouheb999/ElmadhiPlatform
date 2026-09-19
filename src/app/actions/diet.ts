@@ -8,6 +8,8 @@ import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { calculateMacros, isUsableBodyFatPercent, type ActivityLevel } from "@/lib/algorithms/macros";
+import { MIN_ADULT_AGE } from "@/lib/algorithms/energy";
+import { birthDateForAge } from "@/lib/algorithms/age";
 import type { Goal } from "@/lib/algorithms/diet-strategy";
 import {
   fillTemplate,
@@ -200,6 +202,22 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
   const { user, denied } = await requirePlanUser();
   if (!user) return fail(denied);
 
+  /**
+   * The age gate, enforced here and not only in the funnel.
+   *
+   * This is the action that WRITES a real plan: it inserts the profile, the
+   * macro targets and the meal plan a paying customer then eats from. The
+   * reveal on /start refusing to render an adult prescription for a minor is
+   * good UX; it is not enforcement, because this action is reachable by a
+   * direct POST and by anybody who edits their age after signing up. Every
+   * formula behind these targets is validated on adults and there is no
+   * pediatric model in this product, so the write is refused outright.
+   */
+  if (!Number.isFinite(answers.age) || answers.age < MIN_ADULT_AGE) {
+    const locale = await getLocale();
+    return fail(t(locale, "diet.age_not_supported"));
+  }
+
   // Archive any existing active profile + plan (versioned, never deleted).
   const { data: previous } = await supabase
     .from("diet_profiles")
@@ -263,7 +281,7 @@ export async function submitDietQuestions(answers: DietAnswers): Promise<ActionR
 
   const macros = calculateMacros({
     gender: answers.gender,
-    birthDate: new Date(approximateBirthDate(answers.age)),
+    birthDate: birthDateForAge(answers.age),
     heightCm: answers.heightCm,
     weightKg: answers.weightKg,
     activityLevel: answers.activityLevel,
