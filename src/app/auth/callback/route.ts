@@ -1,9 +1,19 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/funnel/attribution";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
+import { readClientContext, sendMetaEvent } from "@/lib/meta/capi";
+import { REGISTRATION_EVENT_COOKIE } from "@/lib/meta/pixel";
+
+/**
+ * An account this young, arriving through the callback, was just created by
+ * this sign-in. Generous on purpose: the event id is derived from the user id,
+ * so a returning sign-in inside the window is deduplicated by Meta rather than
+ * counted twice.
+ */
+const NEW_ACCOUNT_WINDOW_MS = 5 * 60 * 1000;
 
 /**
  * OAuth callback. Supabase redirects here with a `code` we exchange for a
@@ -24,7 +34,33 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       await carryFunnelToProfile(request, data.user?.id);
-      return NextResponse.redirect(`${origin}${next}`);
+      const response = NextResponse.redirect(`${origin}${next}`);
+
+      // A Google sign-up: CompleteRegistration from here, and the same event
+      // id handed to the browser in a short-lived cookie so the pixel on the
+      // next page can send its half. See `MetaPixel`.
+      const user = data.user;
+      const createdAt = user?.created_at ? Date.parse(user.created_at) : NaN;
+      if (user && Date.now() - createdAt < NEW_ACCOUNT_WINDOW_MS) {
+        const eventId = `reg_${user.id}`;
+        const client = await readClientContext();
+        after(() =>
+          sendMetaEvent({
+            name: "CompleteRegistration",
+            eventId,
+            path: "/login",
+            user: { id: user.id, email: user.email, ...client },
+          }),
+        );
+        response.cookies.set(REGISTRATION_EVENT_COOKIE, eventId, {
+          path: "/",
+          maxAge: 60,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+        });
+      }
+
+      return response;
     }
   }
 

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePaidUser } from "@/lib/subscription-server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { tunisDateKey } from "@/lib/dates";
+import { getPostHogClient } from "@/lib/posthog-server";
 
 export type CheckinInput = {
   weightKg: number | null;
@@ -43,6 +44,20 @@ export async function submitCheckin(input: CheckinInput): Promise<ActionResult> 
     event_type: "checkin_submitted",
     payload: { has_weight: input.weightKg !== null },
   });
+
+  const posthog = getPostHogClient();
+  if (posthog) {
+    posthog.capture({
+      distinctId: user.id,
+      event: "checkin_submitted",
+      properties: {
+        has_weight: input.weightKg !== null,
+        has_energy: input.energy !== null,
+        has_sleep: input.sleepHours !== null,
+      },
+    });
+    await posthog.flush();
+  }
 
   revalidatePath("/dashboard");
   return ok(undefined);

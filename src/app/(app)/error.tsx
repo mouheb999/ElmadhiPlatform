@@ -3,6 +3,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
+import posthog from "posthog-js";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_LOCALE,
@@ -54,6 +55,7 @@ export default function AppError({
 
   useEffect(() => {
     console.error("[app] render failed:", error);
+    posthog.captureException(error);
   }, [error]);
 
   return (

@@ -3,8 +3,8 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV === "development";
 
 /**
- * Supabase is the only third-party origin the browser would talk to directly
- * — and today it doesn't: `src/lib/supabase/client.ts` is imported by nothing,
+ * Besides the Meta Pixel (see the CSP below), Supabase is the only third-party
+ * origin the browser would talk to directly — and today it doesn't: `src/lib/supabase/client.ts` is imported by nothing,
  * every read and write goes through a Server Function. It is listed anyway so
  * that the first browser-side query doesn't fail in production with a CSP
  * error nobody expects.
@@ -105,9 +105,38 @@ const securityHeaders = [
   },
 ];
 
+// Derive the PostHog assets host from the ingestion host env var so the
+// reverse proxy destinations stay in sync without duplicating the origin.
+const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "";
+const posthogAssetsHost = posthogHost
+  .replace("//us.i.", "//us-assets.i.")
+  .replace("//eu.i.", "//eu-assets.i.");
+
 const nextConfig: NextConfig = {
   // Nothing is gained by announcing the framework and version to a scanner.
   poweredByHeader: false,
+
+  // PostHog reverse proxy — routes /ingest/* through the server so the
+  // browser never connects to PostHog directly (avoids ad-blocker drops).
+  async rewrites() {
+    return [
+      {
+        source: "/ingest/static/:path*",
+        destination: `${posthogAssetsHost}/static/:path*`,
+      },
+      {
+        source: "/ingest/array/:path*",
+        destination: `${posthogAssetsHost}/array/:path*`,
+      },
+      {
+        source: "/ingest/:path*",
+        destination: `${posthogHost}/:path*`,
+      },
+    ];
+  },
+
+  // Required to support PostHog trailing-slash API requests through the proxy.
+  skipTrailingSlashRedirect: true,
 
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
