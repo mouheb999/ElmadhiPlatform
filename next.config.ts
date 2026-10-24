@@ -110,8 +110,8 @@ const securityHeaders = [
 
 // Derive the PostHog assets host from the ingestion host env var so the
 // reverse proxy destinations stay in sync without duplicating the origin.
-// Unset falls back to the US cloud host: an empty host made /ingest/:path*
-// rewrite back onto the app itself, so every event POST failed.
+// Unset falls back to the US cloud host: an empty host would rewrite
+// /ingest/:path* back onto the app itself, and every event POST would fail.
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 const posthogAssetsHost = posthogHost
   .replace("//us.i.", "//us-assets.i.")
