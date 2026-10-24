@@ -3,14 +3,14 @@ import posthog from "posthog-js";
 const token = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN;
 
 if (!token) {
-  if (process.env.NODE_ENV !== "production") {
-    // eslint-disable-next-line no-console
-    console.error(
-      "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN variable required by PostHog is missing or un-configured, " +
-        "this causes events to be silently missed. This error stops appearing once " +
-        "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is configured",
-    );
-  }
+  // Logged in production too: a production build without the token is the
+  // case where events go missing, so it must not stay silent.
+  // eslint-disable-next-line no-console
+  console.error(
+    "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN variable required by PostHog is missing or un-configured, " +
+      "this causes events to be silently missed. This error stops appearing once " +
+      "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is configured",
+  );
 } else {
   posthog.init(token, {
     api_host: "/ingest",

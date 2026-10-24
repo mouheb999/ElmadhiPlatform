@@ -1,6 +1,7 @@
 import { PostHog } from "posthog-node";
 
 let posthogClient: PostHog | null = null;
+let warnedMissingToken = false;
 
 /**
  * Returns the singleton PostHog Node.js client, or null when the token is not
@@ -19,7 +20,10 @@ export function getPostHogClient(): PostHog | null {
   const host = process.env.NEXT_PUBLIC_POSTHOG_HOST;
 
   if (!token) {
-    if (process.env.NODE_ENV !== "production") {
+    // Logged in production too, once per server instance, so a deployment
+    // without the token shows up in the function logs instead of going quiet.
+    if (!warnedMissingToken) {
+      warnedMissingToken = true;
       // eslint-disable-next-line no-console
       console.error(
         "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN variable required by PostHog is missing or un-configured, " +
