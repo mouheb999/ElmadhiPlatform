@@ -110,10 +110,20 @@ const securityHeaders = [
 
 // Derive the PostHog assets host from the ingestion host env var so the
 // reverse proxy destinations stay in sync without duplicating the origin.
-const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "";
+// Unset falls back to the US cloud host: an empty host would rewrite
+// /ingest/:path* back onto the app itself, and every event POST would fail.
+const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
 const posthogAssetsHost = posthogHost
   .replace("//us.i.", "//us-assets.i.")
   .replace("//eu.i.", "//eu-assets.i.");
+
+// The token is inlined at `next build`, so a build without it ships a client
+// that never starts PostHog. Say so in the build log, where a deploy is checked.
+if (!process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN) {
+  console.warn(
+    "NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN is not set: this build sends no analytics or error tracking to PostHog.",
+  );
+}
 
 const nextConfig: NextConfig = {
   // Nothing is gained by announcing the framework and version to a scanner.
