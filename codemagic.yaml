@@ -4,15 +4,18 @@
 # simulator app that Codemagic's App Preview runs in the browser. Use it to
 # check the shell before paying for signing and TestFlight.
 #
-# Set CAP_SERVER_URL in Codemagic (Environment variables) to the site the app
-# should load — a Vercel preview of this branch while testing. Unset, it loads
-# https://hypefitness.club.
+# Set CAP_SERVER_URL in Codemagic (app → Environment variables), in a group
+# named app_config, to the site the app should load — a Vercel preview of this
+# branch while testing. Unset, it loads https://hypefitness.club. Codemagic
+# only passes UI variables to groups the workflow lists below.
 workflows:
   ios-simulator:
     name: iOS simulator (no signing)
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
+      groups:
+        - app_config
       node: 20
       xcode: latest
     scripts:
