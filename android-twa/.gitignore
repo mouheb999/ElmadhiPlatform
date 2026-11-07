@@ -24,6 +24,10 @@ twa-manifest.json
 manifest-checksum.txt
 store_icon.png
 
+# JVM crash dumps, which Gradle leaves behind when the daemon dies.
+hs_err_pid*.log
+replay_pid*.log
+
 # Build output. `bubblewrap build` regenerates all of it.
 app/
 gradle/
