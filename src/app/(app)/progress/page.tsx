@@ -239,7 +239,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card bg-surface p-5">
+    <section className="card-surface p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-extrabold tracking-normalr">{title}</h2>

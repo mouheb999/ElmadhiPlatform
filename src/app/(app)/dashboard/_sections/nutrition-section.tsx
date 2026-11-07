@@ -19,9 +19,6 @@ export async function NutritionSection({ locale, userId }: { locale: Locale; use
 /** Same footprint as the card, so nothing jumps when the real one lands. */
 export function NutritionSectionSkeleton() {
   return (
-    <div aria-hidden>
-      <div className="mb-3 h-7 w-24 animate-pulse rounded-lg bg-surface" />
-      <div className="h-52 w-full animate-pulse rounded-card bg-surface" />
-    </div>
+    <div className="h-64 w-full animate-pulse rounded-card bg-surface" aria-hidden />
   );
 }

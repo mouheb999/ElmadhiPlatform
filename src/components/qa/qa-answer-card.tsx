@@ -68,7 +68,7 @@ export function QaAnswerCard({ locale, card }: { locale: Locale; card: QaAnswerC
 
   return (
     <article
-      className="overflow-hidden rounded-3xl bg-surface shadow-card"
+      className="card-surface overflow-hidden"
       style={{ borderTopColor: accent, borderTopWidth: 3 }}
     >
       <div className="flex flex-col gap-5 p-5 sm:p-6">

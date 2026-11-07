@@ -4,6 +4,7 @@ import { CheckCircle2, Dumbbell, Eye, Moon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { illustrationFor } from "@/lib/exercise-illustrations";
+import { CardTitleRow } from "@/components/shared/card-title-row";
 
 export type TodayWorkoutState = "none" | "ready" | "in_progress" | "done" | "rest";
 
@@ -53,15 +54,21 @@ export function TodayWorkout({
   day: TodayWorkoutDay | null;
   locked?: boolean;
 }) {
+  // The title sits inside the card, native-style, with the chevron disc
+  // leading to the full program.
   const heading = (
-    <div className="mb-3 flex items-baseline justify-between">
-      <h2 className="text-[22px] font-bold tracking-[-0.015em]">{t(locale, "today.workout_title")}</h2>
-      {day && (state === "ready" || state === "in_progress") && (
-        <span className="text-[15px] text-subtle">
-          {day.exerciseCount} {t(locale, "today.exercises")}
-        </span>
-      )}
-    </div>
+    <CardTitleRow
+      title={t(locale, "today.workout_title")}
+      href="/workout"
+      linkLabel={t(locale, "today.open_plan")}
+      trailing={
+        day && (state === "ready" || state === "in_progress") ? (
+          <span className="text-[15px] text-subtle">
+            {day.exerciseCount} {t(locale, "today.exercises")}
+          </span>
+        ) : null
+      }
+    />
   );
 
   if ((state === "ready" || state === "in_progress") && day) {
@@ -72,8 +79,8 @@ export function TodayWorkout({
 
     return (
       <section aria-label={t(locale, "today.workout_title")}>
-        {heading}
-        <div className="overflow-hidden rounded-card bg-surface">
+        <div className="card-surface overflow-hidden">
+          <div className="px-5 pb-4 pt-5">{heading}</div>
           {leadImage ? (
             // The illustrations are drawn on a #181818-ish ground; the frame
             // matches it so the image has no visible edge inside the card.
@@ -94,7 +101,7 @@ export function TodayWorkout({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-3 px-5 pt-5">
+            <div className="flex items-center gap-3 px-5">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-train/15 text-train">
                 <Dumbbell className="h-5 w-5" />
               </span>
@@ -162,9 +169,9 @@ export function TodayWorkout({
   if (state === "done" || state === "rest") {
     const done = state === "done";
     return (
-      <section aria-label={t(locale, "today.workout_title")}>
+      <section aria-label={t(locale, "today.workout_title")} className="card-surface flex flex-col gap-4 p-5">
         {heading}
-        <div className="flex items-center gap-4 rounded-card bg-surface p-5">
+        <div className="flex items-center gap-4">
           <span
             className={`grid h-12 w-12 shrink-0 place-items-center rounded-full ${done ? "bg-train/15 text-train" : "bg-sleep/15 text-sleep"}`}
           >
@@ -185,8 +192,8 @@ export function TodayWorkout({
 
   return (
     <section aria-label={t(locale, "today.workout_title")}>
-      {heading}
-      <div className="flex flex-col gap-4 rounded-card bg-surface p-5">
+      <div className="card-surface flex flex-col gap-4 p-5">
+        {heading}
         <p className="text-balance text-[17px] font-bold leading-snug">{t(locale, "today.no_program")}</p>
         <Button asChild className="w-full">
           <Link href="/workout/questions" transitionTypes={["nav-forward"]}>

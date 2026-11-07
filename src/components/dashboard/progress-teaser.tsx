@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { t, type Locale } from "@/lib/i18n";
+import { CardTitleRow } from "@/components/shared/card-title-row";
 
 const W = 300;
 const H = 64;
@@ -11,12 +10,11 @@ const H = 64;
  * fetched, so it costs no queries.
  *
  * Drawn in the "body" pink, the colour the app uses for weight and
- * measurements, so the trend reads as a different kind of number from the
- * rings above it.
+ * measurements: the figure, its unit and the line all take it, so the card
+ * reads as a different kind of number from the rings above.
  *
  * `weekDone`/`weekTarget` are still accepted (the checkout preview passes
- * them) but no longer shown here: the week now lives in the training ring at
- * the top of the screen, and showing it twice was noise.
+ * them) but no longer shown here: the week lives in the training ring now.
  */
 export function ProgressTeaser({
   locale,
@@ -28,21 +26,13 @@ export function ProgressTeaser({
   weekDone?: number;
   weekTarget?: number;
 }) {
-  const header = (
-    <div className="mb-3 flex items-baseline justify-between">
-      <h2 className="text-[22px] font-bold tracking-[-0.015em]">{t(locale, "home.weight")}</h2>
-      <Link href="/progress" transitionTypes={["tab"]} className="press flex items-center text-[15px] text-[#D4D4D8]">
-        {t(locale, "home.see_progress")}
-        <ChevronRight className="h-[18px] w-[18px] rtl:rotate-180" />
-      </Link>
-    </div>
-  );
+  const title = <CardTitleRow title={t(locale, "home.weight")} href="/progress" linkLabel={t(locale, "home.see_progress")} />;
 
   if (points.length < 2) {
     return (
-      <section aria-label={t(locale, "home.weight")}>
-        {header}
-        <p className="rounded-card bg-surface p-5 text-[15px] leading-relaxed text-muted">{t(locale, "home.weight_empty")}</p>
+      <section aria-label={t(locale, "home.weight")} className="card-surface flex flex-col gap-3 p-5">
+        {title}
+        <p className="text-[15px] leading-relaxed text-muted">{t(locale, "home.weight_empty")}</p>
       </section>
     );
   }
@@ -57,35 +47,38 @@ export function ProgressTeaser({
 
   const latest = points[points.length - 1];
   const delta = latest - points[0];
-  const deltaText = `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta).toFixed(1)} ${t(locale, "session.kg")}`;
+  // Only the signed figure is isolated left-to-right. Isolating the unit with
+  // it put "kg" on the wrong side of the number in Arabic, where the unit
+  // follows the number in reading order — to its left.
+  const deltaNumber = `${delta > 0 ? "+" : delta < 0 ? "−" : ""}${Math.abs(delta).toFixed(1)}`;
 
   return (
-    <section aria-label={t(locale, "home.weight")}>
-      {header}
-      <div className="rounded-card bg-surface px-5 pb-[18px] pt-4">
-        <div className="flex items-baseline gap-1.5">
+    <section aria-label={t(locale, "home.weight")} className="card-surface flex flex-col gap-3 p-5">
+      {title}
+      <div>
+        <div className="flex items-baseline gap-1 text-body">
           <span className="font-num text-[34px] font-bold leading-none">{latest.toFixed(1)}</span>
-          <span className="text-[15px] text-muted">{t(locale, "session.kg")}</span>
-          <span className="ms-auto text-[13px] text-muted">
-            <bdi dir="ltr">{deltaText}</bdi>{" "}
-            {t(locale, "home.weight_change").replace("{n}", String(points.length))}
-          </span>
+          <span className="text-[15px] font-bold uppercase">{t(locale, "session.kg")}</span>
         </div>
-        {/* A time axis reads left to right in both languages, like a chart in
-            print; mirroring it would make "down" look like "up". */}
-        <div dir="ltr" className="mt-3.5">
-          <svg viewBox={`-4 0 ${W + 8} ${H}`} className="block h-auto w-full" aria-hidden="true">
-            <polyline
-              points={line}
-              fill="none"
-              stroke="var(--body)"
-              strokeWidth="2"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            <circle cx={endX} cy={endY} r="4" fill="var(--surface)" stroke="var(--body)" strokeWidth="2" />
-          </svg>
-        </div>
+        <p className="mt-1.5 text-[13px] text-muted">
+          <bdi dir="ltr">{deltaNumber}</bdi> {t(locale, "session.kg")}{" "}
+          {t(locale, "home.weight_change").replace("{n}", String(points.length))}
+        </p>
+      </div>
+      {/* A time axis reads left to right in both languages, like a chart in
+          print; mirroring it would make "down" look like "up". */}
+      <div dir="ltr" className="mt-1">
+        <svg viewBox={`-4 0 ${W + 8} ${H}`} className="block h-auto w-full" aria-hidden="true">
+          <polyline
+            points={line}
+            fill="none"
+            stroke="var(--body)"
+            strokeWidth="2.25"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          <circle cx={endX} cy={endY} r="4.5" fill="#1c1c1e" stroke="var(--body)" strokeWidth="2.25" />
+        </svg>
       </div>
     </section>
   );

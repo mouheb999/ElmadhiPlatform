@@ -7,10 +7,10 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    // No border, no shadow: a card is a lighter surface on the page, the way
-    // grouped content is drawn in native dark mode. The old 28px radius and
-    // drop shadow made every block a floating tile of equal weight.
-    className={cn("rounded-card bg-surface text-ink", className)}
+    // The shared card material (globals.css `.card-surface`): a lit gradient,
+    // a highlight on the top rim and a soft lift — depth, without the borders
+    // and lime glows the old cards used to stand out.
+    className={cn("card-surface text-ink", className)}
     {...props}
   />
 ));

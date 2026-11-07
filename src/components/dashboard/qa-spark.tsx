@@ -35,13 +35,13 @@ export function QaSpark({ locale, cards }: { locale: Locale; cards: QaSparkCard[
   // The library's colour is blue, the same as its icon in the header, so a
   // card from it is recognisable as "from the library" before it is read.
   return (
-    <div className="rounded-card bg-surface p-5">
+    <div className="card-surface p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[9px] bg-learn/15 text-learn">
             <HelpCircle className="h-[18px] w-[18px]" />
           </span>
-          <span className="text-[13px] font-semibold text-muted">{t(locale, "qa.spark_eyebrow")}</span>
+          <h2 className="text-[20px] font-semibold leading-tight tracking-[-0.01em]">{t(locale, "qa.spark_eyebrow")}</h2>
         </div>
         <button
           type="button"

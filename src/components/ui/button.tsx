@@ -4,7 +4,8 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 /**
- * Rounded rectangles, not pills, and no glow or hover lift.
+ * Full pills, 56px tall — the shape native fitness apps give their primary
+ * actions — with no glow and no hover lift.
  *
  * The old primary carried a lime drop-glow and every button rose on hover.
  * On a phone there is no hover, and a glow on every call to action is how a
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils";
  * dark-mode apps mark the second choice.
  */
 const buttonVariants = cva(
-  "press inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[14px] font-display text-[17px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  "press inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-display text-[17px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -26,8 +27,8 @@ const buttonVariants = cva(
         ghost: "bg-transparent text-ink hover:bg-white/5",
       },
       size: {
-        default: "h-[52px] px-6",
-        sm: "h-10 rounded-xl px-4 text-[15px]",
+        default: "h-14 px-7",
+        sm: "h-10 px-4 text-[15px]",
         lg: "h-14 px-8",
         icon: "h-11 w-11 rounded-full",
       },

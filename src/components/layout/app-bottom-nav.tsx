@@ -7,53 +7,70 @@ import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import { type Locale, type StringKey, t } from "@/lib/i18n";
 
-type Tab = { href: string; label: StringKey; icon: ComponentType<{ className?: string; strokeWidth?: number }> };
+type Tab = {
+  href: string;
+  label: StringKey;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  /** Drawn inside a filled white disc — the one action in a bar of places. */
+  disc?: boolean;
+};
 
-/** Two either side of the scan button. Order mirrors automatically in RTL. */
-const LEFT: Tab[] = [
+/** Order mirrors automatically in RTL. */
+const TABS: Tab[] = [
   { href: "/dashboard", label: "nav.today", icon: Home },
   { href: "/workout", label: "nav.workouts", icon: Dumbbell },
-];
-const RIGHT: Tab[] = [
+  { href: "/ai", label: "nav.scan_short", icon: Camera, disc: true },
   { href: "/diet", label: "nav.food", icon: Utensils },
   { href: "/progress", label: "nav.progress", icon: TrendingUp },
 ];
 
 /**
- * One tab's body. A descendant of <Link> so it can read `useLinkStatus()`:
- * the tapped tab tints the instant it is pressed, before the next screen's
- * server render returns, so the bar never feels like it ignored the tap.
+ * One tab. A descendant of <Link> so it can read `useLinkStatus()`: the tapped
+ * tab lights up the instant it is pressed, before the next screen's server
+ * render returns, so the bar never feels like it ignored the tap.
  */
 function TabBody({ tab, active, locale }: { tab: Tab; active: boolean; locale: Locale }) {
   const { pending } = useLinkStatus();
-  const Icon = tab.icon;
   const lit = active || pending;
+  const Icon = tab.icon;
   return (
     <span
       className={cn(
-        "flex h-[52px] flex-col items-center justify-center gap-[3px] text-[10.5px] font-semibold transition-colors duration-200",
-        lit ? "text-accent" : "text-subtle",
+        "flex h-14 flex-col items-center justify-center gap-[3px] rounded-[26px] text-[11px] font-semibold transition-colors duration-300",
+        // The selected tab sits on its own soft pill inside the capsule.
+        active ? "bg-white/[0.09]" : "bg-transparent",
+        lit ? "text-accent" : "text-[#C7C7CC]",
       )}
     >
-      <Icon className={cn("h-6 w-6", pending && !active && "animate-pulse")} strokeWidth={active ? 2.1 : 1.8} />
+      {tab.disc ? (
+        <span
+          className={cn(
+            "grid h-[26px] w-[26px] place-items-center rounded-full transition-colors duration-300",
+            lit ? "bg-accent text-bg" : "bg-[#F2F2F7] text-bg",
+          )}
+        >
+          <Icon className="h-[15px] w-[15px]" strokeWidth={2.4} />
+        </span>
+      ) : (
+        <Icon className={cn("h-[25px] w-[25px]", pending && !active && "animate-pulse")} strokeWidth={active ? 2.2 : 1.9} />
+      )}
       {t(locale, tab.label)}
     </span>
   );
 }
 
 /**
- * The tab bar, drawn the way native apps draw it: full width, labelled, and
- * translucent, so content scrolling underneath shows through a blur instead
- * of disappearing behind a slab.
+ * The tab bar: a floating glass capsule.
  *
- * It replaces a floating glass pill. The pill looked good in a screenshot and
- * wrong in the hand — no labels, so the icons had to be learned; inset from
- * the edges, so it read as a web widget floating over a page rather than part
- * of the app's frame.
+ * Drawn the way current native apps draw it — inset from the screen edges,
+ * fully rounded, translucent over a strong blur so content scrolling beneath
+ * shows through as colour, with a hairline rim and a soft shadow lifting it
+ * off the page. Labels under every icon, so nothing has to be learned.
  *
- * Lime marks the current tab and nothing else here, so where you are is the
- * one bright thing in the bar. The scan button is white rather than lime: it
- * is an action, not a place, and a second bright thing would compete with it.
+ * The selected tab is marked twice and quietly: a soft pill behind it inside
+ * the capsule, and the brand lime on its icon and label. Scan keeps its place
+ * in the middle but is drawn like the other tabs, its camera set in a white
+ * disc, so it reads as the bar's one action without breaking the row.
  *
  * Every tab tags its navigation `tab`, which RouteTransition turns into a
  * crossfade — moving sideways between equals, no direction implied.
@@ -62,38 +79,26 @@ export function AppBottomNav({ locale }: { locale: Locale }) {
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
-  const renderTab = (tab: Tab) => (
-    <Link
-      key={tab.href}
-      href={tab.href}
-      transitionTypes={["tab"]}
-      aria-current={isActive(tab.href) ? "page" : undefined}
-      aria-label={t(locale, tab.label)}
-      className="press outline-none"
-    >
-      <TabBody tab={tab} active={isActive(tab.href)} locale={locale} />
-    </Link>
-  );
-
   return (
     <nav
       aria-label="Primary"
       // Pinned out of screen transitions so the bar stays still while the
       // content behind it changes; see ::view-transition-group(app-tabbar).
       style={{ viewTransitionName: "app-tabbar" }}
-      className="app-chrome fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 items-center border-t-[0.5px] border-white/[0.12] bg-[rgba(20,20,20,0.72)] px-1.5 pt-1.5 pb-[calc(env(safe-area-inset-bottom)+6px)] backdrop-blur-xl backdrop-saturate-[1.8]"
+      className="app-chrome fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+10px)] z-40 mx-auto grid max-w-md grid-cols-5 gap-0.5 rounded-[32px] border-[0.5px] border-white/[0.14] bg-[rgba(30,30,32,0.66)] p-1.5 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.8),inset_0_0.5px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl backdrop-saturate-[1.8]"
     >
-      {LEFT.map(renderTab)}
-      <Link
-        href="/ai"
-        transitionTypes={["tab"]}
-        aria-current={isActive("/ai") ? "page" : undefined}
-        aria-label={t(locale, "nav.scan")}
-        className="press grid h-[50px] w-[50px] place-items-center justify-self-center rounded-full bg-ink text-bg outline-none"
-      >
-        <Camera className="h-[23px] w-[23px]" strokeWidth={2} />
-      </Link>
-      {RIGHT.map(renderTab)}
+      {TABS.map((tab) => (
+        <Link
+          key={tab.href}
+          href={tab.href}
+          transitionTypes={["tab"]}
+          aria-current={isActive(tab.href) ? "page" : undefined}
+          aria-label={tab.disc ? t(locale, "nav.scan") : t(locale, tab.label)}
+          className="press rounded-[26px] outline-none"
+        >
+          <TabBody tab={tab} active={isActive(tab.href)} locale={locale} />
+        </Link>
+      ))}
     </nav>
   );
 }

@@ -93,17 +93,17 @@ export default async function AppLayout({
             href="/qa"
             transitionTypes={["nav-forward"]}
             aria-label={t(locale, "qa.title")}
-            className="press grid h-9 w-9 place-items-center rounded-full bg-surface"
+            className="press grid h-10 w-10 place-items-center rounded-full bg-surface2"
           >
-            <MessageCircleQuestion className="h-[19px] w-[19px]" strokeWidth={1.9} />
+            <MessageCircleQuestion className="h-5 w-5" strokeWidth={1.9} />
           </Link>
           <Link
             href="/settings"
             transitionTypes={["nav-forward"]}
             aria-label={`${t(locale, "settings.title")} · ${t(locale, "support.title")}`}
-            className="press relative grid h-9 w-9 place-items-center rounded-full bg-surface2"
+            className="press relative grid h-10 w-10 place-items-center rounded-full bg-surface2"
           >
-            <UserRound className="h-[19px] w-[19px]" strokeWidth={1.9} />
+            <UserRound className="h-5 w-5" strokeWidth={1.9} />
             <Suspense fallback={null}>
               <SupportUnreadDot userId={user.id} />
             </Suspense>
@@ -117,7 +117,7 @@ export default async function AppLayout({
 
       <OfflineBanner locale={locale} />
 
-      <main className="container-page flex-1 pt-2 pb-28">
+      <main className="container-page flex-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+7.5rem)]">
         <RouteTransition>{children}</RouteTransition>
       </main>
 

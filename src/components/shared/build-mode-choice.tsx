@@ -53,7 +53,7 @@ export function BuildModeChoice({
 
       <Link
         href={customHref}
-        className="flex flex-col gap-2 rounded-3xl bg-surface p-5 transition-colors hover:border-accent/50"
+        className="press card-surface flex flex-col gap-2 p-5"
       >
         <span className="flex items-center gap-2 font-display text-lg font-extrabold">
           <Wrench className="h-5 w-5 text-muted" />

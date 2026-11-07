@@ -57,7 +57,7 @@ const config: Config = {
         num: ["var(--font-num)", "Saira", "Cairo", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        card: "22px",
+        card: "24px",
       },
       boxShadow: {
         // Neutralised rather than deleted: a drop shadow is invisible on a near-

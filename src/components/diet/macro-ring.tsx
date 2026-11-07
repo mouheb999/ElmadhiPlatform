@@ -57,7 +57,7 @@ export function MacroRing({
   const offset = circumference * (1 - pct);
 
   return (
-    <div className="flex flex-col gap-6 rounded-card bg-surface p-6 sm:flex-row sm:items-center">
+    <div className="card-surface flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
       <div className="relative mx-auto h-44 w-44 shrink-0">
         <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90">
           <circle cx="80" cy="80" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="12" />

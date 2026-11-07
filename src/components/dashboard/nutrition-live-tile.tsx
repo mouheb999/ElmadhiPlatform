@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSyncExternalStore } from "react";
-import { Check, ChevronRight, Plus, Utensils } from "lucide-react";
+import { Check, Plus, Utensils } from "lucide-react";
+import { CardTitleRow } from "@/components/shared/card-title-row";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { mealSlotLabel } from "@/lib/meal-slots";
@@ -49,24 +50,14 @@ export function NutritionLiveTile({
   const mounted = useMounted();
 
   const header = (
-    <div className="mb-3 flex items-baseline justify-between">
-      <h2 className="text-[22px] font-bold tracking-[-0.015em]">{t(locale, "home.food")}</h2>
-      <Link
-        href="/diet?view=today"
-        transitionTypes={["tab"]}
-        className="press flex items-center text-[15px] text-[#D4D4D8]"
-      >
-        {t(locale, "home.diary")}
-        <ChevronRight className="h-[18px] w-[18px] rtl:rotate-180" />
-      </Link>
-    </div>
+    <CardTitleRow title={t(locale, "home.food")} href="/diet?view=today" linkLabel={t(locale, "home.diary")} />
   );
 
   if (!target) {
     return (
-      <section aria-label={t(locale, "home.food")}>
+      <section aria-label={t(locale, "home.food")} className="card-surface flex flex-col gap-4 p-5">
         {header}
-        <div className="flex items-center gap-4 rounded-card bg-surface p-5">
+        <div className="flex items-center gap-4">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-fuel/15 text-fuel">
             <Utensils className="h-5 w-5" />
           </span>
@@ -95,18 +86,22 @@ export function NutritionLiveTile({
 
   return (
     <section aria-label={t(locale, "home.food")}>
-      {header}
-      <div className="overflow-hidden rounded-card bg-surface">
-        <div className="px-5 pb-4 pt-[18px]">
-          <div className="flex items-baseline gap-2">
-            <span className={cn("font-num text-[40px] font-bold leading-none tracking-[-0.02em]", over && "text-body")}>
+      <div className="card-surface overflow-hidden">
+        <div className="px-5 pb-4 pt-5">
+          {header}
+          {/* The figure and its unit share the food orange (pink once over
+              target), the way native summaries colour the number itself. */}
+          <div className={cn("mt-3 flex items-baseline gap-1.5", over ? "text-body" : "text-fuel")}>
+            <span className="font-num text-[40px] font-bold leading-none tracking-[-0.02em]">
               {fmt.format(Math.round(Math.abs(left)))}
             </span>
-            <span className="text-[15px] text-muted">
-              {t(locale, over ? "home.kcal_over" : "home.kcal_left")}{" "}
-              {t(locale, "home.of_target").replace("{n}", fmt.format(Math.round(target.calories)))}
+            <span className="text-[15px] font-bold uppercase">
+              {t(locale, over ? "home.kcal_over" : "home.kcal_left")}
             </span>
           </div>
+          <p className="mt-1 text-[13px] text-muted">
+            {t(locale, "home.of_target").replace("{n}", fmt.format(Math.round(target.calories)))} {t(locale, "home.kcal")}
+          </p>
 
           <div className="mt-3.5 flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-surface2" aria-hidden>
             {segments.map((s) => (

@@ -67,7 +67,7 @@ export function LockedDialog({
         aria-labelledby="locked-dialog-title"
         // Clicks inside must not reach the backdrop's dismiss handler.
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-sm flex-col gap-3 rounded-3xl bg-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+        className="card-surface relative flex w-full max-w-sm flex-col gap-3 p-6"
       >
         <button
           ref={closeRef}

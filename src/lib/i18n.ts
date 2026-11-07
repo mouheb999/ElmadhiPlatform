@@ -812,6 +812,8 @@ const STRINGS = {
   "nav.food": { en: "Food", tn: "الأكل" },
   "nav.progress": { en: "Progress", tn: "التقدّم" },
   "nav.scan": { en: "Scan a meal", tn: "صوّر وجبة" },
+  "nav.scan_short": { en: "Scan", tn: "صوّر" },
+  "home.activity": { en: "Activity", tn: "النشاط" },
   // ---- the redesigned Today screen ----
   // Short, sentence-case labels: the redesign retired the ALL-CAPS kickers.
   "home.training": { en: "Training", tn: "التمرين" },

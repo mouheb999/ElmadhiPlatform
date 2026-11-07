@@ -172,7 +172,7 @@ export function CheckinCard({
 
   if (presentation === "inline" && (!done || open)) {
     return (
-      <div className="flex flex-col gap-4 rounded-card bg-surface p-5">
+      <div className="card-surface flex flex-col gap-4 p-5">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-fuel/15 text-fuel">
             <Sunrise className="h-5 w-5" />
@@ -201,7 +201,7 @@ export function CheckinCard({
     <>
       <section
         aria-label={t(locale, "checkin.title")}
-        className="flex items-center gap-3.5 rounded-card bg-surface py-4 pe-4 ps-5"
+        className="card-surface flex items-center gap-3.5 py-4 pe-4 ps-5"
       >
         <span
           className={cn(

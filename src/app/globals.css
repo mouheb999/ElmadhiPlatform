@@ -156,11 +156,29 @@
     );
   }
 
+  /*
+   * The card material. Three things give it depth, and all three are subtle
+   * on purpose — together they are why a native card looks like an object and
+   * a flat grey rectangle looks like a div:
+   *
+   *   - a faint vertical gradient, lighter at the top, as if lit from above;
+   *   - a half-pixel highlight along the top edge (the inset shadow), where
+   *     that light catches the rim;
+   *   - a soft drop shadow underneath, mostly felt rather than seen on a dark
+   *     page, that lifts the card off it.
+   *
+   * 24px corners, the radius native grouped cards use at this size.
+   */
+  .card-surface {
+    border-radius: 24px;
+    background: linear-gradient(180deg, #252527 0%, #1c1c1e 60%, #1a1a1c 100%);
+    box-shadow:
+      inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
+      0 10px 28px -14px rgba(0, 0, 0, 0.7);
+  }
+  /* The old name, kept so nothing that reaches for it falls back to flat. */
   .surface-card {
-    background-color: var(--surface);
-    border: 1px solid var(--hairline);
-    border-radius: 28px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    @apply card-surface;
   }
 }
 

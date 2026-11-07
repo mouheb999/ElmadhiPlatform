@@ -112,7 +112,7 @@ export function Locked({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-3xl bg-surface/60 p-5",
+        "card-surface flex flex-col gap-3 p-5",
         className,
       )}
     >
