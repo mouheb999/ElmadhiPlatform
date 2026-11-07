@@ -1,4 +1,6 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { LoginForm } from "./login-form";
@@ -10,6 +12,26 @@ export default async function LoginPage({
   searchParams: Promise<{ plan?: string }>;
 }) {
   const locale = await getLocale();
+
+  /**
+   * Inside the app, a signed-in visitor never sees this form.
+   *
+   * The proxy already points the shell's start URL at /dashboard when somebody
+   * is signed in, so in the ordinary cold start this never fires. It is here
+   * for the other ways in — a notification deep link, a stale entry in the
+   * WebView's history, a `?app=1` arriving on a path the matcher does not
+   * cover — where the result would otherwise be an app that boots to a sign-in
+   * screen for a user who is already signed in.
+   *
+   * Scoped to app mode on purpose. On the web a signed-in person reaching
+   * /login is usually doing it deliberately (a bookmark, switching accounts),
+   * and bouncing them is a behaviour change to a funnel that works; here there
+   * is no second account and no bookmark bar. `isAppShell` is a cached cookie
+   * read, so the web pays a cookie lookup and no more.
+   */
+  if (await isAppShell()) {
+    if (await getCurrentUser()) redirect("/dashboard");
+  }
 
   /**
    * What they are here to buy, when they came from the checkout screen.

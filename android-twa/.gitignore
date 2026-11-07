@@ -1,0 +1,34 @@
+# Nothing here that signs or unlocks a release may ever be committed.
+#
+# The upload keystore is the one file in this project that cannot be
+# regenerated. See README.md — losing it means you cannot update the app under
+# the same listing, and a leaked one means somebody else can.
+*.keystore
+*.jks
+*.p12
+*.pepk
+keystore.properties
+local.properties
+
+# Bubblewrap writes the keystore passwords here after `init`.
+.bubblewrap/
+bubblewrap.config.json
+
+# Build output. `bubblewrap build` regenerates all of it.
+app/
+gradle/
+gradlew
+gradlew.bat
+build.gradle
+settings.gradle
+gradle.properties
+/build/
+.gradle/
+*.apk
+*.aab
+*.idsig
+output.json
+assetlinks.json
+
+# The Play service account key, if you ever use `bubblewrap play`.
+*-service-account.json

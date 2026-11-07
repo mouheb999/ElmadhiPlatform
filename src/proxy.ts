@@ -45,34 +45,53 @@ import {
 
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {
+  const { response, supabase, user, indeterminate } =
+    await updateSession(request);
+  const { pathname } = request.nextUrl;
+
   /**
    * The shell announcing itself: `/login?app=1`, its start URL.
    *
-   * Answered with a redirect to the same path minus the flag, carrying the
-   * cookie. The redirect is the point, not a tidying-up: a cookie set on a
-   * response is not on the *request* that set it, so without the extra hop the
-   * very first render of the launch screen would still look like the web to
-   * `isAppShell()`. One 307 at cold start buys "every render sees the cookie",
-   * which is a much easier rule to hold in your head than "every render after
-   * the first". It also keeps the flag out of the address and out of history.
+   * Answered with a redirect carrying the cookie, and the redirect is the
+   * point rather than a tidying-up: a cookie set on a response is not on the
+   * *request* that set it, so without the extra hop the very first render
+   * after launch would still look like the web to `isAppShell()`. One 307 at
+   * cold start buys "every render sees the cookie", which is a far easier rule
+   * to hold than "every render after the first". It also keeps the flag out of
+   * the address bar and out of history.
    *
-   * Before `updateSession`, so the hop does not pay for a session refresh it is
-   * about to throw away. The next request does that.
+   * Where it lands depends on who is holding the phone, because the start URL
+   * cannot know. /login is the right destination exactly once — the first
+   * launch after install. Every launch after that is by somebody already
+   * signed in, and sending them to a sign-in form they have no business
+   * filling in is the single most confusing thing a cold start could do. So a
+   * signed-in launch goes to /dashboard, where the gate below then applies
+   * normally: active accounts get the app, unpaid ones get the free surface,
+   * since /dashboard is not a paid path in app mode.
    *
-   * No loop is possible: the flag is deleted on the way out, so the redirected
-   * request does not match this branch again.
+   * `indeterminate` — Supabase unreachable rather than signed out — goes to
+   * /dashboard too. The (app) layout redirects to /login itself if there is
+   * genuinely nobody there, so the worst case is one extra hop, whereas
+   * treating a network blip as a sign-out would show a signed-in user a login
+   * form on every cold start with bad reception.
+   *
+   * This now runs after `updateSession` rather than before it. It used to go
+   * first, to avoid paying for a session refresh the redirect would discard —
+   * but the verdict it discarded is precisely the one needed to choose a
+   * destination, so the refresh is no longer wasted.
+   *
+   * No loop is possible: the flag is deleted on the way out.
    */
   if (request.nextUrl.searchParams.get(APP_SHELL_QUERY) === "1") {
     const url = request.nextUrl.clone();
     url.searchParams.delete(APP_SHELL_QUERY);
+    if (url.pathname === "/login" && (user || indeterminate)) {
+      url.pathname = "/dashboard";
+    }
     const marked = NextResponse.redirect(url);
     marked.cookies.set(APP_SHELL_COOKIE, "1", APP_SHELL_COOKIE_OPTIONS);
     return marked;
   }
-
-  const { response, supabase, user, indeterminate } =
-    await updateSession(request);
-  const { pathname } = request.nextUrl;
 
   // Is this the Android app rather than a browser? The cookie above is the
   // real signal; the user agent is the Capacitor-era fallback. See lib/access
