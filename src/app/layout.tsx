@@ -6,6 +6,7 @@ import { getCopyOverrides } from "@/lib/copy";
 import { applyCopyOverrides, dir } from "@/lib/i18n";
 import { CopyBootstrap } from "@/components/shared/copy-bootstrap";
 import { MetaPixel } from "@/components/funnel/meta-pixel";
+import { SerwistProvider } from "@serwist/turbopack/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -52,7 +53,11 @@ export default async function RootLayout({
         {/* Must stay first: it primes the client's i18n module before any
             sibling renders. See the component for why. */}
         <CopyBootstrap overrides={overrides} />
-        {children}
+        {/* Registers /serwist/sw.js. Here rather than in the (app) layout
+            because installability is judged on whatever page the user happens
+            to be on, and because the precached /~offline page must be fetched
+            whether they arrived at the dashboard or the landing page. */}
+        <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>
         {/* Renders nothing unless NEXT_PUBLIC_META_PIXEL_ID is set. Here rather
             than on /start alone because the funnel spans four routes — the
             questionnaire, the offer, sign-up and the payment screen — and a

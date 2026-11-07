@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSerwist } from "@serwist/turbopack";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -79,6 +80,11 @@ const csp = [
   }`,
   // The exercise demo modal embeds YouTube's no-cookie player.
   `frame-src https://www.youtube-nocookie.com${metaFrame}`,
+  // The service worker. Workers fall back to script-src when worker-src is
+  // absent, so this was already permitted — stated explicitly because relying
+  // on a fallback to allow something load-bearing is how it gets broken by a
+  // later, stricter script-src.
+  "worker-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   `form-action 'self'${metaForm}`,
@@ -142,8 +148,32 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
 
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // The service worker must never be served from a cache.
+        //
+        // A stale worker is the one bug in this area that cannot fix itself:
+        // the browser re-fetches the script to decide whether a new version
+        // exists, so if that fetch is answered from a cache, the check can
+        // never notice the deploy and the user is pinned to an old build
+        // indefinitely. The byte-for-byte comparison that triggers an update
+        // only works on a response that actually came from the server.
+        source: "/serwist/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, no-cache, must-revalidate" },
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+        ],
+      },
+    ];
   },
 };
 
-export default nextConfig;
+/**
+ * `withSerwist` is the Turbopack-native integration (@serwist/turbopack), not
+ * the webpack one (@serwist/next). The webpack package injects a webpack
+ * config, which on Next 16 — where Turbopack is the default bundler — means
+ * building with `next build --webpack` and giving up Turbopack for the whole
+ * app. This one needs no bundler switch.
+ */
+export default withSerwist(nextConfig);
