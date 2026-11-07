@@ -4,6 +4,8 @@ import { getLocale } from "@/lib/i18n-server";
 import { getQaQuota } from "@/lib/qa";
 import { QaFeed } from "@/components/qa/qa-feed";
 import { AnsweredBanner, type AnsweredRequest } from "@/components/qa/answered-banner";
+import { isAppShell } from "@/lib/app-shell";
+import { hasPaidAccess } from "@/lib/subscription-server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,13 @@ export default async function QaPage() {
   const supabase = await createClient();
   const locale = await getLocale();
   const user = await getCurrentUser();
+
+  /**
+   * The library is readable unpaid in the app (see APP_PREVIEW_PREFIXES), so
+   * this page now has to answer a question it never had to before: may this
+   * reader ask? Both reads are request-cached — the layout already took them.
+   */
+  const [appShell, paid] = await Promise.all([isAppShell(), hasPaidAccess()]);
 
   const [{ data: categories }, { data: cards }, { data: answeredRaw }, quota] = await Promise.all([
     supabase
@@ -47,6 +56,8 @@ export default async function QaPage() {
       <QaFeed
         locale={locale}
         quota={quota}
+        locked={!paid}
+        appShell={appShell}
         categories={(categories ?? []).map((c) => ({
           slug: c.slug,
           nameEn: c.name_en,

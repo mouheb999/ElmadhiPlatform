@@ -7,7 +7,12 @@ import {
   verifyGateTicket,
 } from "@/lib/paywall-gate";
 import { isSubscriptionActive } from "@/lib/subscription";
-import { featureForPath, isPaidPath } from "@/lib/access";
+import {
+  featureForPath,
+  isAppShellUserAgent,
+  isBlockedInApp,
+  isPaidPath,
+} from "@/lib/access";
 
 // Which routes cost money lives in lib/access, because the client components
 // that grey out a locked control need the same answer.
@@ -23,6 +28,15 @@ import { featureForPath, isPaidPath } from "@/lib/access";
 // sign-out button, so gating it strands a locked-out account in its own
 // session). The (app) layout still requires a signed-in user, and RLS still
 // scopes every row to its owner.
+//
+// The Android app is the one caller that does not follow the paragraph above.
+// It cannot: /checkout is where an unpaid web user is sent, and /checkout is
+// the single screen Google Play will not let the app contain. So requests
+// carrying the shell's user agent are routed on the reverse-trial surface
+// instead — plan readable, recording and tracking behind a card that asks for
+// access rather than for money — and the marketing routes are closed to them
+// outright. Everything below is shared; `appShell` only ever changes which
+// destination a redirect picks, never who may read what.
 
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {
@@ -30,7 +44,30 @@ export async function proxy(request: NextRequest) {
     await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  const isPaid = isPaidPath(pathname);
+  // Is this the Android app rather than a browser? See lib/access for why this
+  // is a routing hint and not a security boundary.
+  const appShell = isAppShellUserAgent(request.headers.get("user-agent"));
+
+  // The app shows neither the marketing site nor the till.
+  //
+  // This runs before the subscription gate below, and it has to. /checkout sits
+  // in that gate's always-free list and is where it sends anybody unpaid — so
+  // left to fall through, an unpaid app user would be pushed to /checkout by
+  // the paywall and pulled back out of it by this block, forever. Ordering is
+  // what makes it a policy instead of a loop.
+  if (appShell && isBlockedInApp(pathname)) {
+    const url = request.nextUrl.clone();
+    url.search = "";
+    // `indeterminate` means Supabase was unreachable, not that this user is
+    // signed out (see updateSession) — bouncing them to /login over a network
+    // blip would sign them out of the app for no reason. /dashboard is the safe
+    // destination in both cases: if there is genuinely nobody signed in, the
+    // (app) layout redirects to /login on its own.
+    url.pathname = user || indeterminate ? "/dashboard" : "/login";
+    return NextResponse.redirect(url);
+  }
+
+  const isPaid = isPaidPath(pathname, { appShell });
   const isCheckout =
     pathname === "/checkout" || pathname.startsWith("/checkout/");
 
@@ -139,12 +176,27 @@ export async function proxy(request: NextRequest) {
   // and the real boundary can never disagree about who is paid up.
   if (!isSubscriptionActive(profile)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/checkout";
     url.search = "";
-    // What they reached for, so checkout opens by naming it. Same vocabulary
+    // What they reached for, so the destination can name it. Same vocabulary
     // the in-app upgrade cards use, not the raw path.
     const feature = featureForPath(pathname);
-    if (feature) url.searchParams.set("from", feature);
+    if (appShell) {
+      // There is no /checkout in the app, so an unpaid tap goes home carrying
+      // what it was reaching for. A different parameter name than the web's
+      // `from=` on purpose: they address different readers. `from` opens a
+      // sales page about that feature; `locked` is a request for access, and
+      // the screen it drives points at /support rather than at a price.
+      //
+      // Nothing reads `locked` yet. That is deliberate for this step — an
+      // unrecognised query parameter renders the dashboard exactly as it does
+      // today, so this redirect is already correct and already loop-free
+      // before the free-mode screens exist to interpret it.
+      url.pathname = "/dashboard";
+      if (feature) url.searchParams.set("locked", feature);
+    } else {
+      url.pathname = "/checkout";
+      if (feature) url.searchParams.set("from", feature);
+    }
     const redirectResponse = NextResponse.redirect(url);
     // Never leave a stale pass behind on a user who just lost access.
     redirectResponse.cookies.delete(GATE_COOKIE);
@@ -177,5 +229,35 @@ export const config = {
     // PROTECTED_PREFIXES, so the gate never runs here and the redirect to it
     // cannot loop.
     "/phone/:path*",
+
+    // The marketing surface, matched *only* when the request carries the app's
+    // user agent.
+    //
+    // A plain "/" and "/start" in this list would work, and would also undo the
+    // reason they were left out: these are the pages paid ads point at, and
+    // every click would start paying for an auth round-trip it has no use for
+    // (see the note at the top of start/page.tsx). `has` keeps that true for
+    // browsers — a web visitor never enters the proxy here at all — while the
+    // app, which needs the redirect, is the only caller that does.
+    //
+    // The pattern is anchored at both ends by Next (`new RegExp("^" + value +
+    // "$")`), hence the leading and trailing `.*` around a user-agent string
+    // that has a browser's worth of tokens either side of it. And it is spelled
+    // out literally rather than built from APP_SHELL_UA in lib/access because
+    // matcher values must be statically analysable at build time — a variable
+    // here is not an error, it is silently ignored, which would quietly serve
+    // the marketing page inside the app.
+    {
+      source: "/",
+      has: [
+        { type: "header", key: "user-agent", value: ".*HypeFitnessApp.*" },
+      ],
+    },
+    {
+      source: "/start/:path*",
+      has: [
+        { type: "header", key: "user-agent", value: ".*HypeFitnessApp.*" },
+      ],
+    },
   ],
 };

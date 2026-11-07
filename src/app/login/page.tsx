@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { LoginForm } from "./login-form";
+import { isAppShell } from "@/lib/app-shell";
 
 export default async function LoginPage({
   searchParams,
@@ -23,7 +24,22 @@ export default async function LoginPage({
    */
   const { plan: planId } = await searchParams;
   let plan: { tier: string; months: number; price_tnd: number } | null = null;
-  if (planId) {
+  /**
+   * Never inside the Android app.
+   *
+   * This block exists to restate a purchase in progress, and in the app there
+   * is no purchase in progress: /checkout is closed there, so the only way a
+   * `?plan=` gets this far is a stale link or a hand-typed one. Rendering it
+   * anyway would put a price in dinars on the app's opening screen — the one
+   * thing the whole app-mode surface exists to avoid — and promise a checkout
+   * step that the next tap cannot deliver.
+   *
+   * Skipping the lookup rather than blanking the price in the form keeps it in
+   * one place: with `plan` null the journey bar, the plan line and the price all
+   * fall away together, which is the correct screen for somebody who is simply
+   * signing in.
+   */
+  if (planId && !(await isAppShell())) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("subscription_plans")

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { submitQaRequest } from "@/app/actions/qa";
+import { Locked } from "@/components/shared/locked";
 import type { QaQuota } from "@/lib/qa";
 
 export type QaCategoryData = {
@@ -26,12 +27,27 @@ export function QaFeed({
   categories,
   cards,
   quota,
+  locked = false,
+  appShell = false,
 }: {
   locale: Locale;
   categories: QaCategoryData[];
   cards: QaCardData[];
   /** null when signed out — the ask box is hidden in that case. */
   quota: QaQuota | null;
+  /**
+   * Signed in, reading the library, but not entitled to ask.
+   *
+   * New with the app's free mode. On the web this is always false, because /qa
+   * is paywalled in `proxy.ts` and an unpaid browser never gets here — which is
+   * exactly why this screen had no unpaid state at all. The app opens the
+   * library as a preview, so for the first time somebody can be standing in
+   * front of this composer with no entitlement to use it. Rendering it anyway
+   * would hand them a text box, take their question, and fail on submit.
+   */
+  locked?: boolean;
+  /** Members-only wording, pointing at /support — see `lockCopy`. */
+  appShell?: boolean;
 }) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -123,7 +139,13 @@ export function QaFeed({
         )}
       </div>
 
-      {quota && (
+      {/* The library above is the preview; asking is the paid half. Checked
+          before `quota` so a locked reader gets the wall rather than a
+          composer, and a signed-out visitor still gets neither. */}
+      {locked ? (
+        <Locked locale={locale} feature="qa" appShell={appShell} />
+      ) : (
+        quota && (
         <div className="flex flex-col gap-3 rounded-2xl border border-dashed border-hairline p-5">
           <div className="flex items-center gap-3">
             <MessageCircleQuestion className="h-6 w-6 shrink-0 text-accent" />
@@ -158,6 +180,7 @@ export function QaFeed({
             </>
           )}
         </div>
+        )
       )}
     </div>
   );

@@ -50,6 +50,7 @@ export function ProgramEditor({
   catalog,
   experience,
   locked = false,
+  appShell = false,
 }: {
   locale: Locale;
   programId: string;
@@ -61,6 +62,13 @@ export function ProgramEditor({
   experience: string | null;
   /** Free account: the program is readable, but training against it is not. */
   locked?: boolean;
+  /**
+   * Inside the Android app: the wall above says "members only" and points at
+   * /support instead of naming a price. Threaded from the server rather than
+   * sniffed from `navigator.userAgent` here, which would differ between the
+   * server render and the client's and tear the hydration.
+   */
+  appShell?: boolean;
 }) {
   const [days, setDays] = useState(initialDays);
   const [activeDay, setActiveDay] = useState(0);
@@ -192,6 +200,7 @@ export function ProgramEditor({
         <LockedDialog
           locale={locale}
           feature="session"
+          appShell={appShell}
           onClose={() => setShowLock(false)}
         />
       )}

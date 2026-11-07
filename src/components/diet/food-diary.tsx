@@ -145,6 +145,7 @@ export function FoodDiary({
   prevDate,
   nextDate,
   locked = false,
+  appShell = false,
 }: {
   locale: Locale;
   targets: DiaryTargets | null;
@@ -160,6 +161,13 @@ export function FoodDiary({
   nextDate: string | null;
   /** Free account: the diary is readable, but logging into it is not. */
   locked?: boolean;
+  /**
+   * Inside the Android app: the wall above says "members only" and points at
+   * /support instead of naming a price. Threaded from the server rather than
+   * sniffed from `navigator.userAgent` here, which would differ between the
+   * server render and the client's and tear the hydration.
+   */
+  appShell?: boolean;
 }) {
   const router = useRouter();
   const mounted = useMounted();
@@ -329,6 +337,7 @@ export function FoodDiary({
         <LockedDialog
           locale={locale}
           feature="meal_log"
+          appShell={appShell}
           onClose={() => setShowLock(false)}
         />
       )}

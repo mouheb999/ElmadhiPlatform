@@ -7,6 +7,7 @@ import {
   type SubscriptionProfile,
 } from "@/lib/subscription";
 import { REVERSE_TRIAL } from "@/lib/access";
+import { isAppShell } from "@/lib/app-shell";
 
 import { PREMIUM_REQUIRED, SUBSCRIPTION_REQUIRED } from "@/lib/subscription";
 
@@ -113,6 +114,39 @@ export async function requirePlanUser(): Promise<
   { user: CurrentUser; denied?: never } | { user?: never; denied: string }
 > {
   if (!REVERSE_TRIAL) return requirePaidUser();
+  const user = await getCurrentUser();
+  if (!user) return { denied: "Not signed in." };
+  return { user };
+}
+
+/**
+ * Guard for the two onboarding questionnaires alone — nothing else.
+ *
+ * Narrower than `requirePlanUser` on purpose, and the reason is the Android
+ * app. /start is closed there (it is the ad funnel, and Play will not have the
+ * checkout it leads to), so an account created inside the app has never
+ * answered a single question. On the web that is impossible: everybody arrives
+ * through /start. In the app, gating these two actions means a new install
+ * signs up, lands on a dashboard with nothing in it, and has no way to put
+ * anything there — an app whose entire first-run experience is a locked door.
+ *
+ * So these two may run unpaid in the app. Deliberately *not* `requirePlanUser`,
+ * which also covers the plan editors, the swap pickers and the cardio edits:
+ * free mode is read-only, and widening all of those would hand away the editing
+ * surface as well as the onboarding.
+ *
+ * What stops this being a free-work hole is the monthly redo quota inside each
+ * action, which already applies to free and paid accounts alike — so the most a
+ * forged user-agent buys is the same three rebuilds a month everyone else gets.
+ * That matters, because a user agent is set by the caller: this is the one place
+ * the app marker gates a write rather than a redirect, and it is only
+ * acceptable because the write is bounded, idempotent-ish (it versions rather
+ * than destroys) and scoped by RLS to the caller's own rows.
+ */
+export async function requireOnboardingUser(): Promise<
+  { user: CurrentUser; denied?: never } | { user?: never; denied: string }
+> {
+  if (!REVERSE_TRIAL && !(await isAppShell())) return requirePaidUser();
   const user = await getCurrentUser();
   if (!user) return { denied: "Not signed in." };
   return { user };

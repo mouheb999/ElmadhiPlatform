@@ -11,6 +11,7 @@ import { LoadFailure } from "@/components/shared/load-failure";
 import type { Locale } from "@/lib/i18n";
 import { tunisDateKey } from "@/lib/dates";
 import { encodeFoodRef } from "@/lib/food-ref";
+import { isAppShell } from "@/lib/app-shell";
 
 function shiftDate(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);
@@ -381,6 +382,7 @@ export async function TodayView({
       prevDate={shiftDate(viewDate, -1)}
       nextDate={isToday ? null : shiftDate(viewDate, 1)}
       locked={!(await hasPaidAccess())}
+      appShell={await isAppShell()}
     />
   );
 }

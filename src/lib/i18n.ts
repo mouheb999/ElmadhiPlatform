@@ -140,6 +140,45 @@ const STRINGS = {
   "lock.cta": { en: "See plans", tn: "شاهد العروض" },
   "lock.not_now": { en: "Not now", tn: "ليس الآن" },
 
+  // ---- the same walls, as the Android app states them ----
+  // Google Play does not allow an app to sell a subscription through an outside
+  // payment flow, so inside the app there are no prices, no plan names carrying
+  // a price and no route to /checkout. These replace the three strings that
+  // would otherwise point at one: the title, the body and the CTA.
+  //
+  // They are also simply more honest there. On the web "See plans" leads to
+  // plans; in the app the way in genuinely is to talk to somebody, because an
+  // account is activated by hand after a transfer.
+  "lock.title_app": { en: "For members", tn: "للأعضاء" },
+  "lock.cta_app": { en: "Contact us", tn: "راسلنا" },
+  // One per feature, mirroring LOCK_REASON. Same sentence shape as the web's,
+  // with "part of the full plan" — which advertises something the app cannot
+  // sell — replaced by "for members", which is simply true.
+  "lock.session_app": {
+    en: "Recording your sets and reps is for members.",
+    tn: "تسجيل المجموعات والتكرارات للأعضاء.",
+  },
+  "lock.meal_log_app": {
+    en: "The food diary is for members.",
+    tn: "يوميات الطعام للأعضاء.",
+  },
+  "lock.checkin_app": {
+    en: "The morning check-in is for members.",
+    tn: "تسجيل الصباح للأعضاء.",
+  },
+  "lock.progress_app": {
+    en: "Progress charts are for members.",
+    tn: "رسوم التقدّم للأعضاء.",
+  },
+  "lock.ai_app": {
+    en: "The AI calorie camera is for members.",
+    tn: "كاميرا السعرات للأعضاء.",
+  },
+  "lock.qa_app": {
+    en: "Asking the coach is for members.",
+    tn: "سؤال المدرّب للأعضاء.",
+  },
+
   // ---- AI walkthrough, shown to anyone not on Premium ----
   "ai.how_title": { en: "How it works", tn: "كيف تعمل" },
   "ai.how_1": { en: "Photograph your meal", tn: "صوّر وجبتك" },
@@ -167,6 +206,13 @@ const STRINGS = {
   "up.body": {
     en: "Your program and your macros are free to keep. A subscription adds the daily side:",
     tn: "برنامجك وماكروزك يبقيان مجاناً. الاشتراك يضيف الجانب اليومي:",
+  },
+  // The app's wording of the same card — see the lock.*_app block above for
+  // why it names no price and asks them to get in touch instead.
+  "up.title_app": { en: "Members get the daily side", tn: "الأعضاء يحصلون على الجانب اليومي" },
+  "up.body_app": {
+    en: "Your program and your macros are yours to keep. Contact us to unlock the rest:",
+    tn: "برنامجك وماكروزك يبقيان ليك. راسلنا باش نفتحو لك الباقي:",
   },
   "up.i1": { en: "Log your sets, reps and weights", tn: "سجّل مجموعاتك وتكراراتك وأوزانك" },
   "up.i2": { en: "Food diary against your macros", tn: "يوميات طعام مقابل ماكروزك" },
@@ -752,6 +798,20 @@ const STRINGS = {
   "nav.ai": { en: "AI", tn: "ذكاء" },
   "nav.qa": { en: "Q&A", tn: "أسئلة" },
   "nav.profile": { en: "Profile", tn: "حسابي" },
+  // The bottom bar's own labels. "Today" rather than "Home" because the tab
+  // leads to the daily loop, not to a landing page — and the screen it opens
+  // calls itself Today.
+  "nav.today": { en: "Today", tn: "اليوم" },
+  // Shown by the offline banner. Deliberately about the consequence rather than
+  // the cause: "no connection" tells somebody mid-set nothing useful, and the
+  // session outbox genuinely does keep their logs and send them later.
+  "offline.banner": {
+    en: "Offline — your logs will sync when you're back",
+    tn: "بلا إنترنت — تسجيلاتك تتسنكرن كي ترجع الشبكة",
+  },
+  "nav.food": { en: "Food", tn: "الأكل" },
+  "nav.progress": { en: "Progress", tn: "التقدّم" },
+  "nav.scan": { en: "Scan a meal", tn: "صوّر وجبة" },
 
   // ---- dashboard ----
   "dashboard.greeting": { en: "Welcome back", tn: "أهلاً بك" },

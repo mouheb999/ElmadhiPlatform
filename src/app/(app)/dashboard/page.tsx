@@ -10,10 +10,13 @@ import { CheckinCard, type TodayCheckin } from "@/components/dashboard/checkin-c
 import { TodayWorkout, type TodayWorkoutDay, type TodayWorkoutState } from "@/components/dashboard/today-workout";
 import { ProgressTeaser } from "@/components/dashboard/progress-teaser";
 import { Reveal } from "@/components/shared/reveal";
-import { UpgradeSummary } from "@/components/shared/locked";
+import { Locked, UpgradeSummary } from "@/components/shared/locked";
 import { NutritionSection, NutritionSectionSkeleton } from "./_sections/nutrition-section";
 import { QaSparkSection, QaSparkSectionSkeleton } from "./_sections/qa-spark-section";
 import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
+import { isAppShell } from "@/lib/app-shell";
+import { LOCK_REASON } from "@/components/shared/locked";
+import type { LockedFeature } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -38,17 +41,39 @@ function checkinStreak(datesDesc: string[]): number {
  * The Today screen. Not a summary of what the user set up once — a live
  * answer to "what does HYPE FITNESS want from me today, and what did it notice?"
  */
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ locked?: string }>;
+}) {
   // `paid` decides whether the write controls on this page render as controls
   // or as the upgrade card. The dashboard itself is free to reach — see
   // lib/access — so an unpaid account lands here, reads its plan, and meets the
   // wall only at the point of recording something.
-  const [supabase, locale, user, paid] = await Promise.all([
+  const [supabase, locale, user, paid, appShell] = await Promise.all([
     createClient(),
     getLocale(),
     getCurrentUser(),
     hasPaidAccess(),
+    // Request-cached, and the header is already in hand — this adds no I/O.
+    isAppShell(),
   ]);
+
+  /**
+   * What they just tried to open, when the proxy sent them here.
+   *
+   * Only the app's gate redirects to this screen — on the web an unpaid tap
+   * goes to /checkout, which names the feature itself through `?from=`. So this
+   * is the app's equivalent: the dashboard is the destination, and without this
+   * a tap on Progress would land on an unchanged Today screen with no
+   * acknowledgement that anything had been refused.
+   *
+   * Validated against LOCK_REASON rather than cast, because it arrives in a URL
+   * anyone can edit and it indexes into a copy table.
+   */
+  const { locked: lockedRaw } = await searchParams;
+  const lockedFeature: LockedFeature | null =
+    lockedRaw && lockedRaw in LOCK_REASON ? (lockedRaw as LockedFeature) : null;
 
   // "Today" and "this week" in Africa/Tunis — never server-local time.
   const today = tunisDateKey();
@@ -273,10 +298,18 @@ export default async function DashboardPage() {
         </Suspense>
       </Reveal>
 
-      {/* After their program and their macros, not before. */}
+      {/* After their program and their macros, not before.
+          One wall, never two: when a redirect named a specific feature, that
+          card replaces the general summary rather than stacking under it —
+          three stacked prompts are the exact "dead end" impression the free
+          tier exists to avoid (see UpgradeSummary). */}
       {!paid && (
         <Reveal delay={0.15}>
-          <UpgradeSummary locale={locale} />
+          {lockedFeature ? (
+            <Locked locale={locale} feature={lockedFeature} appShell={appShell} />
+          ) : (
+            <UpgradeSummary locale={locale} appShell={appShell} />
+          )}
         </Reveal>
       )}
 

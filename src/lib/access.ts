@@ -67,6 +67,72 @@ export const ALWAYS_FREE_PREFIXES = [
 ] as const;
 
 /**
+ * The marker appended to the WebView's user agent by the Capacitor shell
+ * (`appendUserAgent` in capacitor.config.ts). Its presence is the only thing
+ * that distinguishes a request from inside the Android app from the same
+ * request made in a browser.
+ *
+ * Treat it as a routing hint, never as a security boundary: a user agent is
+ * set by the caller, so anybody can send this string. Nothing here decides who
+ * may *read* data — that is the subscription gate and RLS, both of which run
+ * identically either way. All this changes is which screens the app offers,
+ * and the worst a forged header can do is show a browser the app's navigation.
+ *
+ * Note this constant cannot be referenced from `config.matcher` in proxy.ts:
+ * matcher values must be statically analysable at build time, so a variable
+ * there is silently ignored. The pattern is spelled out literally in that file,
+ * next to a comment pointing back here.
+ */
+export const APP_SHELL_UA = "HypeFitnessApp";
+
+/** True when a request came from the Capacitor shell rather than a browser. */
+export function isAppShellUserAgent(userAgent: string | null | undefined): boolean {
+  return !!userAgent && userAgent.includes(APP_SHELL_UA);
+}
+
+/**
+ * Routes the Android app must never show, matched as path prefixes (plus "/",
+ * handled exactly — as a prefix it would match the entire site).
+ *
+ * Two different reasons, both pointing the same way. Google Play requires that
+ * an app not sell a digital subscription through an outside payment flow, and
+ * /checkout is exactly that: plan prices in dinars, a bank account number and a
+ * receipt upload. And the marketing surface — the hero, the eleven-question
+ * funnel pitched at ad traffic — is a sales page for a product the person has
+ * already installed, which makes the app feel like a website with a toolbar
+ * hidden.
+ *
+ * /phone is here because it is a step *inside* checkout; reachable on its own
+ * it is a form asking an app user for a contact number with nothing behind it.
+ *
+ * None of this changes the web. A browser reaches all four exactly as before.
+ */
+export const BLOCKED_IN_APP_PREFIXES = ["/start", "/checkout", "/phone"] as const;
+
+/** True when `pathname` is part of the web-only marketing and payment surface. */
+export function isBlockedInApp(pathname: string): boolean {
+  if (pathname === "/") return true;
+  return BLOCKED_IN_APP_PREFIXES.some((p) => matches(pathname, p));
+}
+
+/**
+ * Readable in the app while unpaid, even though the web charges for it.
+ *
+ * The Q&A library is the one paid surface that is worth more as a preview than
+ * as a locked door. It is a hundred and fifty written answers; somebody who can
+ * read them knows what the coach sounds like, which is the thing a subscription
+ * is actually bought on. Nothing here is per-user, so there is no data to leak.
+ *
+ * *Asking* a question is untouched and still paid — `submitQaRequest` guards
+ * itself with `requirePaidUser`, so the composer is replaced by a members-only
+ * card rather than left to fail on submit.
+ *
+ * Web behaviour is unchanged: /qa stays in PAID_PREFIXES and an unpaid browser
+ * never reaches it.
+ */
+export const APP_PREVIEW_PREFIXES = ["/qa"] as const;
+
+/**
  * Paid surface while the reverse trial is ON, matched as path prefixes. With it
  * off this list is not consulted: everything outside ALWAYS_FREE_PREFIXES costs
  * money.
@@ -95,14 +161,41 @@ function matches(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-/** True when reaching `pathname` requires an active subscription. */
-export function isPaidPath(pathname: string): boolean {
-  // Checked first in both modes: an always-free route must never be gated, or
+/**
+ * True when reaching `pathname` requires an active subscription.
+ *
+ * `appShell` makes the Android app behave as though the reverse trial were on,
+ * whatever the web is doing. It has to, and the reason is structural rather
+ * than a preference: on the web an account with nothing to show is sent to
+ * /checkout, and /checkout is the one screen the app is not allowed to have.
+ * Without a free surface of its own the app would have no destination for a
+ * new install at all — every route gated, and the only exit removed. So an
+ * unpaid app user gets what the trial grants (their answers, their numbers,
+ * their program and meal plan, readable) and meets a "this is for members"
+ * card at the things that record or track.
+ *
+ * Deliberately the same PAID_PREFIXES list rather than a second one. Two lists
+ * would drift, and then the app and the web would disagree about what a
+ * subscription buys.
+ */
+export function isPaidPath(
+  pathname: string,
+  options?: { appShell?: boolean },
+): boolean {
+  // Checked first in every mode: an always-free route must never be gated, or
   // the redirect to /checkout has nowhere to land.
   if (ALWAYS_FREE_PREFIXES.some((p) => matches(pathname, p))) return false;
-  // Trial off: everything that is left costs money, including the
-  // questionnaires and the plan they produce.
-  if (!REVERSE_TRIAL) return true;
+  // Free to read in the app although the web charges for it. Checked before
+  // PAID_PREFIXES rather than removed from it, so the web keeps gating /qa.
+  if (
+    options?.appShell &&
+    APP_PREVIEW_PREFIXES.some((p) => matches(pathname, p))
+  ) {
+    return false;
+  }
+  // Trial off on the web: everything that is left costs money, including the
+  // questionnaires and the plan they produce. The app never takes this branch.
+  if (!REVERSE_TRIAL && !options?.appShell) return true;
   return PAID_PREFIXES.some((p) => matches(pathname, p));
 }
 
