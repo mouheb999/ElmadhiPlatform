@@ -2,25 +2,27 @@
 
 import { t, type Locale } from "@/lib/i18n";
 
+// The same three colours the macros wear on Today and in the diary.
 const MACRO_COLORS = {
-  protein: "#A8FF00",
-  carbs: "#F5A623",
-  fat: "#B76CFF",
+  protein: "var(--protein)",
+  carbs: "var(--fuel)",
+  fat: "var(--sleep)",
 } as const;
 
 function Bar({ label, value, target, color }: { label: string; value: number; target: number; color: string }) {
   const pct = target > 0 ? Math.min((value / target) * 100, 100) : 0;
   return (
     <div className="flex items-center gap-3">
-      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
       <div className="flex-1">
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-semibold">{label}</span>
-          <span className="text-muted">
-            {Math.round(value)}g / {target}g
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-[15px] font-semibold">{label}</span>
+          <span className="flex items-baseline gap-0.5" style={{ color }}>
+            <span className="font-num text-[17px] font-bold">{Math.round(value)}</span>
+            <span className="font-num text-[13px] font-bold opacity-60">/{target}</span>
+            <span className="text-[11px] font-bold uppercase">g</span>
           </span>
         </div>
-        <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/5">
+        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/[0.08]">
           <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
         </div>
       </div>
@@ -57,17 +59,17 @@ export function MacroRing({
   const offset = circumference * (1 - pct);
 
   return (
-    <div className="card-surface flex flex-col gap-6 p-6 sm:flex-row sm:items-center">
+    <div className="card-surface flex flex-col gap-6 p-5 sm:flex-row sm:items-center">
       <div className="relative mx-auto h-44 w-44 shrink-0">
         <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90">
-          <circle cx="80" cy="80" r={radius} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="12" />
+          <circle cx="80" cy="80" r={radius} fill="none" stroke="var(--train)" strokeOpacity={0.2} strokeWidth="14" />
           <circle
             cx="80"
             cy="80"
             r={radius}
             fill="none"
-            stroke="#A8FF00"
-            strokeWidth="12"
+            stroke="var(--train)"
+            strokeWidth="14"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -75,9 +77,9 @@ export function MacroRing({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-extrabold">{Math.round(calories)}</span>
-          <span className="text-xs text-muted">kcal</span>
-          <span className="mt-1 text-xs text-muted">{dailyTargetLabel}</span>
+          <span className="font-num text-[34px] font-bold leading-none text-train">{Math.round(calories)}</span>
+          <span className="mt-1 text-[13px] font-bold uppercase text-train">{t(locale, "home.kcal")}</span>
+          <span className="mt-1 text-[13px] text-muted">{dailyTargetLabel}</span>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-4">

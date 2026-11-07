@@ -78,21 +78,29 @@ export function MealCard({
   const totalKcal = items.reduce((sum, i) => sum + (i.caloriesPer100g * i.quantityG) / 100, 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-surface">
+    <div className="card-surface overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between p-4"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 p-5"
       >
-        <span className="font-bold">{pick(locale, label.en, label.ar)}</span>
-        <span className="flex items-center gap-3 text-sm text-accent">
-          {Math.round(totalKcal)} kcal
-          {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        <span className="text-[20px] font-semibold leading-tight tracking-[-0.01em]">
+          {pick(locale, label.en, label.ar)}
+        </span>
+        <span className="flex items-center gap-3">
+          <span className="flex items-baseline gap-1 text-train">
+            <span className="font-num text-[17px] font-bold">{Math.round(totalKcal)}</span>
+            <span className="text-[11px] font-bold uppercase">{t(locale, "home.kcal")}</span>
+          </span>
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-[#5E5E60] text-[#1C1C1E]">
+            {open ? <ChevronUp className="h-4 w-4" strokeWidth={2.8} /> : <ChevronDown className="h-4 w-4" strokeWidth={2.8} />}
+          </span>
         </span>
       </button>
 
       {open && (
-        <div className="flex flex-col gap-2 border-t border-hairline p-4">
+        <div className="flex flex-col gap-3 border-t border-hairline p-5 pt-4">
           {items.map((item) => (
             <div key={item.id} className="flex flex-col gap-2">
               <div className="flex items-center gap-3">
@@ -101,17 +109,17 @@ export function MealCard({
                   <img
                     src={item.imageUrl}
                     alt=""
-                    className="h-9 w-9 shrink-0 rounded-lg border border-hairline object-cover"
+                    className="h-10 w-10 shrink-0 rounded-[10px] object-cover"
                   />
                 )}
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-sm font-semibold">
+                  <span className="truncate text-[15px] font-semibold">
                     {pick(locale, item.nameEn, item.nameAr)}
                   </span>
                   {/* The portion in the language of a kitchen, not a scale. The
                       grams beside it stay the authoritative number. */}
                   {formatServing(locale, item.quantityG, item) && (
-                    <span className="text-xs text-muted">
+                    <span className="text-[13px] text-muted">
                       {formatServing(locale, item.quantityG, item)}
                     </span>
                   )}
@@ -120,7 +128,7 @@ export function MealCard({
                   type="number"
                   value={item.quantityG}
                   onChange={(e) => onQuantityChange(item.id, Number(e.target.value))}
-                  className={cn("h-10 w-20 text-center text-sm")}
+                  className={cn("h-10 w-[4.5rem] bg-surface2 text-center text-[15px]")}
                 />
                 <span className="w-6 text-xs text-muted">g</span>
                 <button
@@ -130,13 +138,18 @@ export function MealCard({
                   title={t(locale, "plan.swap_food")}
                   aria-expanded={swappingId === item.id}
                   className={cn(
-                    "text-muted transition-colors hover:text-accent",
-                    swappingId === item.id && "text-accent",
+                    "press grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface2 text-muted",
+                    swappingId === item.id && "bg-accent/15 text-accent",
                   )}
                 >
                   <Repeat2 className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => onRemove(item.id)} aria-label="Remove" className="text-muted hover:text-ink">
+                <button
+                  type="button"
+                  onClick={() => onRemove(item.id)}
+                  aria-label="Remove"
+                  className="press grid h-9 w-9 shrink-0 place-items-center rounded-full bg-surface2 text-muted hover:text-ink"
+                >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -178,9 +191,11 @@ export function MealCard({
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="mt-1 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-hairline py-2 text-sm font-semibold text-accent hover:bg-white/5"
+              className="press mt-1 flex items-center gap-2.5 self-start text-[15px] font-semibold text-accent"
             >
-              <Plus className="h-4 w-4" />
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/15">
+                <Plus className="h-4 w-4" strokeWidth={2.6} />
+              </span>
               {locale === "tn" ? "زيد ماكلة" : "Add food"}
             </button>
           )}

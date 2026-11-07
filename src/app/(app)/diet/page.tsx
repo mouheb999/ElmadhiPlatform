@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { BuildModeChoice } from "@/components/shared/build-mode-choice";
 import { NutritionTabs, type NutritionView } from "@/components/diet/nutrition-tabs";
 import { TodayView } from "./_views/today-view";
+import { PageHeader, todayEyebrow } from "@/components/shared/page-header";
 import { PlanView } from "./_views/plan-view";
 
 export const dynamic = "force-dynamic";
@@ -14,10 +15,10 @@ export const dynamic = "force-dynamic";
 function NutritionViewSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-hidden>
-      <div className="h-36 w-full animate-pulse rounded-3xl bg-surface" />
-      <div className="h-20 w-full animate-pulse rounded-2xl bg-surface" />
-      <div className="h-20 w-full animate-pulse rounded-2xl bg-surface" />
-      <div className="h-20 w-full animate-pulse rounded-2xl bg-surface" />
+      <div className="h-12 w-full animate-pulse rounded-[22px] bg-surface" />
+      <div className="h-56 w-full animate-pulse rounded-[22px] bg-surface" />
+      <div className="h-32 w-full animate-pulse rounded-[22px] bg-surface" />
+      <div className="h-32 w-full animate-pulse rounded-[22px] bg-surface" />
     </div>
   );
 }
@@ -68,7 +69,10 @@ export default async function DietPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <NutritionTabs current={current} locale={locale} />
+      <div className="flex flex-col gap-3.5">
+        <PageHeader eyebrow={todayEyebrow(locale)} title={t(locale, "nav.food")} />
+        <NutritionTabs current={current} locale={locale} />
+      </div>
       {/* The active diet profile is already in hand — hand it down so the view
           doesn't re-query it and, worse, have to wait on that answer before it
           can ask for the macro targets keyed to it.

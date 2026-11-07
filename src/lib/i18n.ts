@@ -1074,6 +1074,9 @@ const STRINGS = {
   "workout.continue_day": { en: "Continue workout", tn: "أكمل الحصة" },
   "workout.day_done": { en: "Completed", tn: "اكتملت" },
   "workout.locked_until_monday": { en: "Locked until Monday", tn: "مقفلة حتى الاثنين" },
+  "workout.week_done": { en: "{done} of {total} done this week", tn: "{done} من {total} مكتملة هذا الأسبوع" },
+  "workout.fewer_sets": { en: "One set fewer", tn: "مجموعة أقل" },
+  "workout.more_sets": { en: "One set more", tn: "مجموعة أكثر" },
 
   // ---- workout session mode ----
   "session.kg": { en: "kg", tn: "كغ" },
@@ -1186,30 +1189,11 @@ const STRINGS = {
 
   // ---- progress page ----
   "progress.title": { en: "Progress", tn: "التقدّم" },
-  "progress.subtitle": {
-    en: "What your logging says about you.",
-    tn: "ما تقوله أرقامك عنك.",
-  },
   "progress.weight_title": { en: "Body weight", tn: "وزن الجسم" },
-  "progress.strength_title": { en: "Strength", tn: "القوة" },
-  "progress.volume_week": { en: "Weekly volume (kg)", tn: "الحجم في الأسبوع (كغ)" },
-  "progress.consistency_title": { en: "Consistency", tn: "الانتظام" },
-  "progress.muscles_title": { en: "By muscle group", tn: "حسب العضلة" },
-  "progress.muscles_sub": {
-    en: "Volume, last 4 weeks vs the 4 before",
-    tn: "الحجم، آخر 4 أسابيع مقابل الـ4 التي قبلها",
-  },
-  "progress.top_exercises": { en: "Top exercises", tn: "أهم التمارين" },
   "progress.range_30": { en: "30 days", tn: "30 يوماً" },
   "progress.range_90": { en: "90 days", tn: "90 يوماً" },
-  "progress.trend_up": { en: "trending up", tn: "في صعود" },
-  "progress.trend_down": { en: "trending down", tn: "في نزول" },
-  "progress.trend_flat": { en: "steady", tn: "ثابت" },
   "progress.sessions_label": { en: "sessions", tn: "حصص" },
   "progress.week_streak": { en: "week streak", tn: "أسبوع متتالٍ" },
-  "progress.this_week": { en: "this week", tn: "هذا الأسبوع" },
-  "progress.prior_label": { en: "before", tn: "قبل" },
-  "progress.recent_label": { en: "recent", tn: "مؤخراً" },
   "progress.empty": {
     en: "Log a few workouts and check-ins to see your progress here.",
     tn: "سجّل بضع حصص وتسجيلات صباح لترى تقدّمك هنا.",
@@ -1218,6 +1202,53 @@ const STRINGS = {
     en: "Log your weight in the morning check-in to see the trend.",
     tn: "سجّل وزنك في تسجيل الصباح لترى المنحنى.",
   },
+  "progress.eyebrow": { en: "Last 12 weeks", tn: "آخر 12 أسبوعاً" },
+  "progress.per_week_title": { en: "Workouts per week", tn: "الحصص في الأسبوع" },
+  "progress.per_week_explain": {
+    en: "Each bar is one week. Reach the dashed line and that week hits your goal.",
+    tn: "كل عمود أسبوع. إذا وصل إلى الخط المتقطّع، فقد حقّقت هدفك في ذلك الأسبوع.",
+  },
+  "progress.of_goal": { en: "of {n} this week", tn: "من {n} هذا الأسبوع" },
+  "progress.goal_met": { en: "Goal met in {hit} of the last {n} weeks", tn: "حقّقت هدفك في {hit} من آخر {n} أسابيع" },
+  "progress.first_week": { en: "Your first full week is under way.", tn: "أسبوعك الكامل الأول جارٍ." },
+  "progress.goal_line": { en: "Goal", tn: "الهدف" },
+  "progress.now_short": { en: "Now", tn: "الآن" },
+  "progress.weight_explain": {
+    en: "Dots are your daily weigh-ins. The line is the 7-day average, which smooths out day-to-day swings.",
+    tn: "النقاط هي وزنك اليومي، والخط هو معدّل 7 أيام الذي يخفّف تقلّبات كل يوم.",
+  },
+  "progress.weight_down": { en: "Down {n} kg since {date}", tn: "نقص {n} كغ منذ {date}" },
+  "progress.weight_up": { en: "Up {n} kg since {date}", tn: "زاد {n} كغ منذ {date}" },
+  "progress.weight_need_more": {
+    en: "Weigh in on a few more mornings and your trend appears here.",
+    tn: "سجّل وزنك في بضعة صباحات أخرى ليظهر منحناك هنا.",
+  },
+  "progress.weight_steady": { en: "Steady since {date}", tn: "ثابت منذ {date}" },
+  "progress.legend_daily": { en: "Daily weigh-in", tn: "الوزن اليومي" },
+  "progress.legend_avg": { en: "7-day average", tn: "معدّل 7 أيام" },
+  "progress.volume_title": { en: "Total weight lifted", tn: "مجموع الوزن المرفوع" },
+  "progress.volume_explain": {
+    en: "Weight × reps, added up over every set you log in a week. Higher means more work done.",
+    tn: "الوزن × التكرارات، مجموع كل المجموعات التي تسجّلها في الأسبوع. كلما ارتفع، زاد العمل الذي أنجزته.",
+  },
+  "progress.so_far": { en: "this week so far", tn: "هذا الأسبوع إلى الآن" },
+  "progress.last_week_n": { en: "Last week {n} kg", tn: "الأسبوع الماضي {n} كغ" },
+  "progress.best_week_n": { en: "Best week {n} kg", tn: "أفضل أسبوع {n} كغ" },
+  "progress.lifts_title": { en: "Heaviest lifts", tn: "أثقل الأوزان" },
+  "progress.lifts_explain": {
+    en: "Your heaviest set each week, on the exercises you train most.",
+    tn: "أثقل مجموعة لك كل أسبوع، في التمارين التي تتمرّن عليها أكثر.",
+  },
+  "progress.started_at": { en: "Started at {n} kg", tn: "بدأت بـ {n} كغ" },
+  "progress.first_logged": { en: "First week logged", tn: "أول أسبوع مسجّل" },
+  "progress.same": { en: "Same", tn: "نفس الوزن" },
+  "progress.sets_title": { en: "Sets per muscle", tn: "المجموعات لكل عضلة" },
+  "progress.sets_explain": {
+    en: "Last 4 weeks. The change compares with the 4 weeks before.",
+    tn: "آخر 4 أسابيع. الفرق مقارنةً بالأسابيع الأربعة التي قبلها.",
+  },
+  "progress.sets_unit": { en: "sets", tn: "مجموعات" },
+  "progress.new_label": { en: "New", tn: "جديد" },
   "progress.empty_strength": {
     en: "Finish a few workouts to see your strength build up.",
     tn: "أنهِ بضع حصص لترى قوّتك وهي تتقدّم.",
@@ -1284,8 +1315,6 @@ const STRINGS = {
   "nutrition.tab_plan": { en: "Plan", tn: "البرنامج" },
 
   // ---- food diary ----
-  "diary.title": { en: "Food diary", tn: "يوميات الطعام" },
-  "diary.subtitle": { en: "What you actually ate today.", tn: "ما أكلته فعلاً اليوم." },
   "diary.today_target": { en: "Today", tn: "اليوم" },
   "diary.no_target": {
     en: "Set up your diet first to get daily targets.",

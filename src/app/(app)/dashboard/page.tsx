@@ -20,6 +20,7 @@ import { RingsSection, RingsSectionSkeleton } from "./_sections/rings-section";
 import { QaSparkSection, QaSparkSectionSkeleton } from "./_sections/qa-spark-section";
 import { prevDateKey, tunisDateKey, tunisDayStartUtc, tunisWeekStartUtc } from "@/lib/dates";
 import { isAppShell } from "@/lib/app-shell";
+import { PageHeader, todayEyebrow } from "@/components/shared/page-header";
 import { LOCK_REASON } from "@/components/shared/locked";
 import type { LockedFeature } from "@/lib/access";
 
@@ -264,12 +265,7 @@ export default async function DashboardPage({
 
   // Today's date in Tunis, in the reader's language. ar-TN uses Western digits
   // by default, matching the rest of the Arabic UI.
-  const dateLabel = new Intl.DateTimeFormat(locale === "tn" ? "ar-TN" : "en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "Africa/Tunis",
-  }).format(new Date());
+  const dateLabel = todayEyebrow(locale);
 
   /*
    * Layout, top to bottom: a large title, the rings, today's session, food,
@@ -284,21 +280,19 @@ export default async function DashboardPage({
   return (
     <div className="flex flex-col gap-8 pb-4">
       <div className="flex flex-col gap-3.5">
-        <header>
-          <div className="flex min-h-6 items-center justify-between gap-3">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.02em] text-subtle">{dateLabel}</p>
-            {streak > 1 && (
+        <PageHeader
+          eyebrow={dateLabel}
+          title={t(locale, "nav.today")}
+          trailing={
+            streak > 1 ? (
               <span className="flex shrink-0 items-center gap-1 text-[13px] font-semibold">
                 <Flame className="h-4 w-4 text-fuel" />
                 <span className="font-num text-fuel">{streak}</span>
                 <span className="text-subtle">{t(locale, "today.streak_label")}</span>
               </span>
-            )}
-          </div>
-          <h1 className="mt-0.5 text-[34px] font-extrabold leading-tight tracking-[-0.025em]">
-            {t(locale, "nav.today")}
-          </h1>
-        </header>
+            ) : undefined
+          }
+        />
 
         {hasAnsweredQa && (
           <Link
