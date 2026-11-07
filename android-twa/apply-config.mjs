@@ -94,9 +94,14 @@ Object.assign(manifest, {
   navigationColorDark: "#0F0F0F",
   navigationDividerColor: "#0F0F0F",
   navigationDividerColorDark: "#0F0F0F",
-  iconUrl: `${origin}/icon`,
-  maskableIconUrl: `${origin}/icon`,
-  monochromeIconUrl: `${origin}/icon`,
+  // All three point at artwork built for Android, not at /icon. /icon is a
+  // finished rounded tile, and Android masks it again — a box inside a circle
+  // on the splash, letters cropped. iconUrl matters most: it is what the
+  // splash screen draws, and on a #0F0F0F full-bleed square the square
+  // disappears into the splash background, leaving just the glowing word.
+  iconUrl: `${origin}/icons/icon-maskable-512.png`,
+  maskableIconUrl: `${origin}/icons/icon-maskable-512.png`,
+  monochromeIconUrl: `${origin}/icons/icon-monochrome-512.png`,
   webManifestUrl: `${origin}/manifest.webmanifest`,
   splashScreenFadeOutDuration: 300,
   enableNotifications: true,
