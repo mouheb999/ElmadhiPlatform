@@ -16,11 +16,18 @@ workflows:
     environment:
       groups:
         - app_config
-      node: 20
+      # Capacitor 8's CLI requires Node 22.
+      node: 22
       xcode: latest
     scripts:
       - name: Install dependencies
-        script: npm ci
+        # The lockfile was written by npm 11, and older npm reads one of its
+        # peer-dependency entries (@swc/helpers, wanted by both Next and
+        # @serwist/turbopack at different versions) as missing. Same npm as
+        # the machine that wrote it, so `npm ci` sees what it saw.
+        script: |
+          npm install -g npm@11.14.1
+          npm ci
       - name: Copy config and web assets into the iOS project
         script: npx cap sync ios
       - name: Build for the simulator
