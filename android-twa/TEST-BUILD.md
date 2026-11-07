@@ -170,6 +170,36 @@ requires 24. `apply-config.mjs` pins 24, so re-run it, then
 suggestion (`tools:overrideLibrary`) — that turns a build failure into a
 runtime crash on the devices that cannot run the library.
 
+### If the Gradle daemon "disappears" mid-build
+
+```
+Gradle build daemon disappeared unexpectedly
+... hs_err_pid####.log
+Failed to reserve memory for metaspace / In 32 bit mode, the process size limit was hit
+```
+
+Not a memory problem on your machine. **Bubblewrap's installer downloads a
+32-bit JDK on Windows**, and a 32-bit JVM can only address about 2 GB however
+much RAM the machine has — so Gradle's `-Xmx1536m` plus metaspace does not fit.
+
+Check it:
+
+```bash
+findstr OS_ARCH %USERPROFILE%\.bubblewrap\jdk\*\release
+```
+
+`OS_ARCH="x86"` is the bug; you want `x86_64`. Fix by installing the x64 JDK 17
+and pointing Bubblewrap at it. That setting lives in Bubblewrap's own config,
+so the system `JAVA_HOME` is left alone:
+
+```bash
+bubblewrap updateConfig --jdkPath "C:\Users\MSI\.bubblewrap\jdk-x64\jdk-17.0.21+9"
+```
+
+Then `bubblewrap doctor` to confirm, and build again. Do not try to fix this by
+lowering `-Xmx`: the failure is in metaspace reservation, so a bigger build
+just exhausts the 32-bit address space somewhere further along.
+
 ## Step 5 — Where the APK is
 
 ```
