@@ -32,7 +32,7 @@ export function QaSpark({ locale, cards }: { locale: Locale; cards: QaSparkCard[
     setTimeout(() => setSpinning(false), 300);
   }
 
-  // The library's colour is blue, the same as its icon in the header, so a
+  // The library's colour is gold (the learn token), so a
   // card from it is recognisable as "from the library" before it is read.
   return (
     <div className="card-surface p-5">

@@ -15,11 +15,11 @@
 
     /* The coaching-loop palette; see tailwind.config.ts for why each exists. */
     --train: #a8ff00;
-    --fuel: #ff375f;
-    --protein: #00b1ff;
+    --fuel: #ff8a3d;
+    --protein: #2dd9c0;
     --sleep: #7d7aff;
     --body: #9d86e0;
-    --learn: #0a84ff;
+    --learn: #ffc53d;
     --danger: #ff453a;
 
     /* The UI face (body, headings, buttons) and the face for big figures. */

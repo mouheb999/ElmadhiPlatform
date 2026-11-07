@@ -35,24 +35,23 @@ const config: Config = {
         hairline: "rgba(255,255,255,0.09)",
         border: "rgba(255,255,255,0.09)",
         /**
-         * One colour per part of the coaching loop, taken from the same
-         * reference: lime for training (the active tab and buttons), the
-         * calorie pink for food (the Move ring's colour — calories, as there),
-         * blue for protein, purple for weight (the step-count purple).
+         * One colour per part of the coaching loop: lime for training (the
+         * brand, the active tab and buttons), tangerine for food and
+         * calories, aqua for protein, purple for weight, gold for Q&A.
          *
-         * Food uses the accessible pink (#FF375F) rather than the ring's raw
-         * #FA114F, which reaches only 4.3:1 behind small text on a card; the
-         * difference is barely visible and this one passes 4.5:1. Every colour
-         * here passes as text on #1C1C1E.
+         * Deliberately NOT Apple Fitness's pink and blue: with those next to
+         * the lime the app read as a copy of it. Tangerine is kept a step
+         * away from the error red below, because "over your calorie target"
+         * is drawn in that red right next to food numbers. Every colour here
+         * passes 4.5:1 as text on #1C1C1E.
          */
         train: "#A8FF00",
-        fuel: "#FF375F",
-        protein: "#00B1FF",
+        fuel: "#FF8A3D",
+        protein: "#2DD9C0",
         sleep: "#7D7AFF",
         body: "#9D86E0",
-        learn: "#0A84FF",
-        // Errors and "over target" get a red of their own. They used to borrow
-        // the pink, which is now food's colour.
+        learn: "#FFC53D",
+        // Errors and "over target" get a red of their own.
         danger: "#FF453A",
         background: "#000000",
         foreground: "#FFFFFF",

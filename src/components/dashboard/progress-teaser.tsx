@@ -9,7 +9,7 @@ const H = 64;
  * line that shows it — built from the check-ins the dashboard already
  * fetched, so it costs no queries.
  *
- * Drawn in the "body" pink, the colour the app uses for weight and
+ * Drawn in the "body" purple, the colour the app uses for weight and
  * measurements: the figure, its unit and the line all take it, so the card
  * reads as a different kind of number from the rings above.
  *
