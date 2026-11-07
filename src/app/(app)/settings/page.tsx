@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight, LifeBuoy } from "lucide-react";
 import { getLocale } from "@/lib/i18n-server";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { getAdminUser } from "@/lib/auth";
@@ -76,7 +77,25 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "settings.title")}</h1>
+      <h1 className="text-[34px] font-extrabold leading-tight tracking-[-0.025em]">{t(locale, "settings.title")}</h1>
+
+      {/* Support moved here from the header when the header became the logo,
+          the library and this account screen. It is first on the page because
+          "I need help" is the most urgent reason anybody opens it; the unread
+          dot on the account button points here. */}
+      <Card>
+        <Link
+          href="/support"
+          transitionTypes={["nav-forward"]}
+          className="press flex items-center gap-3.5 p-5"
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-body/15 text-body">
+            <LifeBuoy className="h-5 w-5" />
+          </span>
+          <span className="flex-1 font-semibold">{t(locale, "support.title")}</span>
+          <ChevronRight className="h-5 w-5 text-subtle rtl:rotate-180" />
+        </Link>
+      </Card>
 
       <Card>
         <CardContent className="flex items-center justify-between p-6">

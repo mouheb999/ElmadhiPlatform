@@ -102,7 +102,7 @@ export function UserFoodForm({
       </div>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+        <span className="text-[11px] font-bold tracking-normal text-muted">
           {t(locale, "uf.name")}
         </span>
         <Input
@@ -115,7 +115,7 @@ export function UserFoodForm({
       </label>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+        <span className="text-[11px] font-bold tracking-normal text-muted">
           {t(locale, "uf.kind")}
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -145,7 +145,7 @@ export function UserFoodForm({
       </div>
 
       {error && (
-        <p className="text-sm text-red-500" role="alert">
+        <p className="text-sm text-body" role="alert">
           {error}
         </p>
       )}
@@ -173,7 +173,7 @@ function MacroField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-[10px] font-bold tracking-normal text-muted">{label}</span>
       <Input
         type="number"
         inputMode="decimal"

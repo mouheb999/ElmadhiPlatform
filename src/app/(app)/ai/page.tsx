@@ -62,13 +62,13 @@ function AiWalkthrough({ locale }: { locale: Locale }) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <p className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
+        <p className="px-1 text-xs font-bold tracking-normal text-muted">
           {t(locale, "ai.how_title")}
         </p>
         {STEPS.map(({ icon: Icon, title, body }, index) => (
           <div
             key={title}
-            className="flex items-start gap-3 rounded-2xl border border-hairline bg-surface p-4"
+            className="flex items-start gap-3 rounded-2xl bg-surface p-4"
           >
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
               <Icon className="h-5 w-5" />

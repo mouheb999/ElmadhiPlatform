@@ -189,7 +189,7 @@ export default async function ProgressPage({
       </div>
 
       {!hasAnyData && (
-        <p className="rounded-2xl border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+        <p className="rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted">
           {t(locale, "progress.empty")}
         </p>
       )}
@@ -239,10 +239,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-hairline bg-surface p-5">
+    <section className="rounded-card bg-surface p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-extrabold uppercase tracking-wider">{title}</h2>
+          <h2 className="text-sm font-extrabold tracking-normalr">{title}</h2>
           {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
         </div>
         {action}

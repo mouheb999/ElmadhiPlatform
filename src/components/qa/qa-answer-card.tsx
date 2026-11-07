@@ -68,7 +68,7 @@ export function QaAnswerCard({ locale, card }: { locale: Locale; card: QaAnswerC
 
   return (
     <article
-      className="overflow-hidden rounded-3xl border border-hairline bg-surface shadow-card"
+      className="overflow-hidden rounded-3xl bg-surface shadow-card"
       style={{ borderTopColor: accent, borderTopWidth: 3 }}
     >
       <div className="flex flex-col gap-5 p-5 sm:p-6">
@@ -106,7 +106,7 @@ export function QaAnswerCard({ locale, card }: { locale: Locale; card: QaAnswerC
 
         {card.mistake && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-            <div className="mb-1 flex items-center gap-2 text-xs font-bold text-red-300">
+            <div className="mb-1 flex items-center gap-2 text-xs font-bold text-body">
               <TriangleAlert className="h-4 w-4 shrink-0" />
               {t(locale, "qa.block_mistake")}
             </div>

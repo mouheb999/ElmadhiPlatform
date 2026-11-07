@@ -32,6 +32,7 @@ import {
   type MealSlot,
 } from "@/app/actions/meal-logs";
 import { formatServing, type ServingUnit } from "@/lib/servings";
+import { MEAL_SLOT_LABELS } from "@/lib/meal-slots";
 
 export type DiaryTargets = { calories: number; proteinG: number; carbsG: number; fatG: number };
 
@@ -77,20 +78,8 @@ export type DiaryPlanMeal = {
   items: { food: DiaryFood; quantityG: number }[];
 };
 
-const PLAN_MEAL_LABELS: Record<string, { en: string; ar: string }> = {
-  meal_1: { en: "Meal 1", ar: "الوجبة 1" },
-  snack: { en: "Snack", ar: "وجبة خفيفة" },
-  meal_2: { en: "Meal 2", ar: "الوجبة 2" },
-  meal_3: { en: "Meal 3", ar: "الوجبة 3" },
-  pre_workout: { en: "Pre-workout", ar: "قبل التمرين" },
-  post_workout: { en: "Post-workout", ar: "بعد التمرين" },
-  last_meal: { en: "Last meal", ar: "آخر وجبة" },
-  other: { en: "Other", ar: "أخرى" },
-  // legacy slots, for days logged before the diary mirrored the plan
-  breakfast: { en: "Breakfast", ar: "الفطور" },
-  lunch: { en: "Lunch", ar: "الغداء" },
-  dinner: { en: "Dinner", ar: "العشاء" },
-};
+// Labels shared with the Today screen; see lib/meal-slots.
+const PLAN_MEAL_LABELS = MEAL_SLOT_LABELS;
 
 function slotLabel(locale: Locale, key: string): string {
   const label = PLAN_MEAL_LABELS[key];
@@ -219,7 +208,7 @@ export function FoodDiary({
         <p className="text-muted">{t(locale, "diary.subtitle")}</p>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-hairline bg-surface px-2 py-1.5">
+      <div className="flex items-center justify-between rounded-2xl bg-surface px-2 py-1.5">
         <Link
           href={`/diet?view=today&date=${prevDate}`}
           aria-label="Previous day"
@@ -244,7 +233,7 @@ export function FoodDiary({
       {targets ? (
         <DiaryHero locale={locale} targets={targets} consumed={consumed} />
       ) : (
-        <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-sm text-muted">
+        <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted">
           {t(locale, "diary.no_target")}
         </p>
       )}
@@ -265,7 +254,7 @@ export function FoodDiary({
         </Button>
       )}
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-body">{error}</p>}
 
       {slots.map((slotKey) => {
         const slotEntries = entries.filter((e) => e.slot === slotKey);
@@ -277,7 +266,7 @@ export function FoodDiary({
         // An empty "Other" bucket is noise; it only appears once used.
         if (slotKey === "other" && slotEntries.length === 0) return null;
         return (
-          <div key={slotKey} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4">
+          <div key={slotKey} className="flex flex-col gap-2 rounded-2xl bg-surface p-4">
             <div className="flex items-center justify-between">
               <div className="font-bold">{slotLabel(locale, slotKey)}</div>
               <span className="text-xs tabular-nums text-muted">
@@ -405,19 +394,19 @@ function DiaryHero({
   ];
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface p-5">
+    <div className="flex flex-col gap-4 rounded-2xl bg-surface p-5">
       {/* Eaten vs. goal — one plain reading of the day, no "remaining" or
           "over" arithmetic for the user to do in their head. */}
       <div className="text-center">
         <div className="flex items-baseline justify-center gap-1.5">
-          <span className={cn("text-5xl font-extrabold tabular-nums", over && "text-red-400")}>
+          <span className={cn("text-5xl font-extrabold tabular-nums", over && "text-body")}>
             {Math.round(consumed.calories)}
           </span>
           <span className="text-xl font-bold tabular-nums text-muted">
             / {Math.round(targets.calories)}
           </span>
         </div>
-        <div className="mt-1 text-xs font-bold uppercase tracking-wide text-muted">
+        <div className="mt-1 text-xs font-bold tracking-normal text-muted">
           {t(locale, "diary.kcal_eaten")}
         </div>
       </div>
@@ -458,7 +447,7 @@ function DiaryHero({
 
       {showDetails && (
         <div className="border-t border-hairline pt-3">
-          <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-bold uppercase tracking-wide text-muted">
+          <div className="grid grid-cols-4 gap-2 text-center text-[11px] font-bold tracking-normal text-muted">
             <span className="text-start" />
             <span>{t(locale, "diary.totals")}</span>
             <span>{t(locale, "diary.goal")}</span>
@@ -475,7 +464,7 @@ function DiaryHero({
               <span className="text-start text-xs font-bold text-muted">{row.label}</span>
               <span className="font-semibold">{Math.round(row.value)}</span>
               <span className="text-muted">{Math.round(row.goal)}</span>
-              <span className={cn("font-semibold", row.goal - row.value < 0 && "text-red-400")}>
+              <span className={cn("font-semibold", row.goal - row.value < 0 && "text-body")}>
                 {Math.round(row.goal - row.value)}
               </span>
             </div>
@@ -638,7 +627,7 @@ function AddFoodSheet({
 
         {selected ? (
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-4">
+            <div className="flex items-center gap-3 rounded-2xl bg-surface p-4">
               <FoodThumb src={selected.imageUrl} size="h-12 w-12" />
               <div>
                 <div className="font-bold">{pick(locale, selected.nameEn, selected.nameAr)}</div>
@@ -682,7 +671,7 @@ function AddFoodSheet({
                 {Math.round(selected.fatPer100g * factor)}g
               </p>
             )}
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-body">{error}</p>}
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" className="flex-1" onClick={() => setSelected(null)}>
                 {t(locale, "diary.back")}
@@ -715,7 +704,7 @@ function AddFoodSheet({
                 {planMeals.map((meal) => {
                   const label = PLAN_MEAL_LABELS[meal.mealType] ?? { en: meal.mealType, ar: meal.mealType };
                   return (
-                    <div key={meal.id} className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-3">
+                    <div key={meal.id} className="flex flex-col gap-2 rounded-2xl bg-surface p-3">
                       <div className="flex items-center justify-between">
                         <span className="font-bold">{pick(locale, label.en, label.ar)}</span>
                         <span className="text-xs tabular-nums text-muted">{Math.round(planMealKcal(meal))} kcal</span>
@@ -754,7 +743,7 @@ function AddFoodSheet({
                     </div>
                   );
                 })}
-                {error && <p className="text-sm text-red-400">{error}</p>}
+                {error && <p className="text-sm text-body">{error}</p>}
               </div>
             ) : tab === "quick" ? (
               <div className="flex flex-col gap-3">
@@ -800,7 +789,7 @@ function AddFoodSheet({
                     />
                   </label>
                 </div>
-                {error && <p className="text-sm text-red-400">{error}</p>}
+                {error && <p className="text-sm text-body">{error}</p>}
                 <Button size="sm" onClick={submitQuick} disabled={isPending || !quick.calories.trim()}>
                   {t(locale, "diary.log_cta")}
                 </Button>

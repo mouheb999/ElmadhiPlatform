@@ -60,7 +60,7 @@ export default function AppError({
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 text-center">
-      <div className="grid h-14 w-14 place-items-center rounded-full border border-hairline bg-surface">
+      <div className="grid h-14 w-14 place-items-center rounded-full bg-surface">
         <AlertTriangle className="h-6 w-6 text-accent" />
       </div>
       <div className="flex flex-col gap-2">

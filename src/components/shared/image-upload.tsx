@@ -89,7 +89,7 @@ export function ImageUpload({
         )}
       </div>
       {error && (
-        <p className="text-sm text-red-500" role="alert">
+        <p className="text-sm text-body" role="alert">
           {error}
         </p>
       )}

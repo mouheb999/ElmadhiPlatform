@@ -18,7 +18,7 @@ export function NutritionTabs({ current, locale }: { current: NutritionView; loc
   ];
 
   return (
-    <div className="flex gap-1 rounded-full border border-hairline bg-surface p-1" role="tablist">
+    <div className="flex gap-1 rounded-full bg-surface p-1" role="tablist">
       {tabs.map((tab) => {
         const active = tab.view === current;
         return (

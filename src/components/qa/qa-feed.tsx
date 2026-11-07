@@ -156,7 +156,7 @@ export function QaFeed({
           </div>
 
           {asked && <p className="text-sm text-accent">{t(locale, "qa.ask_sent")}</p>}
-          {error && <p className="text-sm text-red-300">{error}</p>}
+          {error && <p className="text-sm text-body">{error}</p>}
 
           {outOfQuestions ? (
             <p className="text-sm text-muted">

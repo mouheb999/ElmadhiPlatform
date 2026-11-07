@@ -19,7 +19,7 @@ import {
 } from "@/app/actions/support";
 
 const TEXTAREA_CLASS =
-  "min-h-28 w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  "min-h-28 w-full rounded-2xl bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 /** Typed against the shared list, so a new category can't ship unlabelled. */
 export const CATEGORY_LABEL: Record<SupportCategory, StringKey> = {
@@ -108,7 +108,7 @@ export function SupportClient({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+      <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
         <span className="text-xs font-bold text-muted">{t(locale, "support.category")}</span>
         <div className="flex flex-wrap gap-2">
           {SUPPORT_CATEGORIES.map((value) => (
@@ -142,7 +142,7 @@ export function SupportClient({
           />
         </label>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-body">{error}</p>}
         {sent && !error && (
           <p className="flex items-center gap-2 text-sm font-bold text-accent">
             <CheckCircle2 className="h-4 w-4" />
@@ -158,7 +158,7 @@ export function SupportClient({
       <div className="flex flex-col gap-3">
         <h2 className="text-sm font-bold text-muted">{t(locale, "support.my_reports")}</h2>
         {tickets.length === 0 ? (
-          <p className="rounded-2xl border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
+          <p className="rounded-2xl bg-surface px-4 py-6 text-center text-sm text-muted">
             {t(locale, "support.empty")}
           </p>
         ) : (
@@ -167,7 +167,7 @@ export function SupportClient({
             return (
               <div
                 key={ticket.id}
-                className="overflow-hidden rounded-2xl border border-hairline bg-surface"
+                className="overflow-hidden rounded-2xl bg-surface"
               >
                 <button
                   type="button"

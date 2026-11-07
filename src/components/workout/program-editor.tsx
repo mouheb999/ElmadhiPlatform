@@ -266,7 +266,7 @@ export function ProgramEditor({
         ))}
 
         {error && (
-          <p className="text-sm text-red-500" role="alert">
+          <p className="text-sm text-body" role="alert">
             {error}
           </p>
         )}
@@ -371,7 +371,7 @@ function DayAction({
       ? t(locale, "workout.continue_day")
       : t(locale, "workout.start_day");
   const className =
-    "flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-display font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform hover:-translate-y-0.5";
+    "flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-display font-bold text-bg transition-transform hover:-translate-y-0.5";
 
   // Reading the program is free; recording a session against it is not. Sending
   // an unpaid user to /checkout from here would throw away the screen they came

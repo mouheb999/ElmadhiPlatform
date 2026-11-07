@@ -36,7 +36,7 @@ export function ExerciseTrends({
           .map((p, i) => `${(i * step).toFixed(1)},${(H - 4 - ((p.kg - min) / spread) * (H - 8)).toFixed(1)}`)
           .join(" ");
         return (
-          <div key={ex.exerciseId} className="rounded-2xl border border-hairline bg-surface p-3">
+          <div key={ex.exerciseId} className="rounded-2xl bg-surface p-3">
             <div className="truncate text-xs font-bold" title={ex.name}>
               {ex.name}
             </div>
@@ -45,7 +45,7 @@ export function ExerciseTrends({
               <span className="text-[10px] font-bold text-muted">{t(locale, "session.kg")}</span>
               {delta !== 0 && (
                 <span
-                  className={`text-[10px] font-bold tabular-nums ${delta > 0 ? "text-accent" : "text-red-400"}`}
+                  className={`text-[10px] font-bold tabular-nums ${delta > 0 ? "text-accent" : "text-body"}`}
                 >
                   {delta > 0 ? "+" : ""}
                   {delta}

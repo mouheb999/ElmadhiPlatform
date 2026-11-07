@@ -30,5 +30,5 @@ export async function QaSparkSection({ locale }: { locale: Locale }) {
 
 /** Matches the card's resting height so the page doesn't reflow under it. */
 export function QaSparkSectionSkeleton() {
-  return <div className="h-24 w-full animate-pulse rounded-2xl bg-surface" aria-hidden />;
+  return <div className="h-40 w-full animate-pulse rounded-card bg-surface" aria-hidden />;
 }

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LifeBuoy, MessageCircleQuestion, Settings } from "lucide-react";
+import { MessageCircleQuestion, UserRound } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 import { OfflineBanner } from "@/components/shared/offline-banner";
+import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminCopyBar } from "@/components/admin/copy-bar";
 import { getSubscription } from "@/lib/subscription-server";
 
@@ -34,7 +35,7 @@ async function SupportUnreadDot({ userId }: { userId: string }) {
   return (
     <span
       aria-hidden
-      className="absolute end-1.5 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-bg bg-accent"
+      className="absolute -end-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-body"
     />
   );
 }
@@ -66,44 +67,46 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      {/* `select-none`: the header is chrome. A long press on the logo raising
+      {/* `app-chrome`: the header is chrome. A long press on the logo raising
           text-selection handles is one of the clearest tells that an app is a
-          web page in a shell. Content inside <main> stays selectable. */}
-      <header className="app-chrome sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-bg/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
+          web page in a shell. Content inside <main> stays selectable.
+
+          Translucent rather than opaque, so content scrolling up under it shows
+          through a blur the way a native navigation bar does. Pinned out of
+          screen transitions (viewTransitionName) so it holds still while the
+          content changes beneath it. */}
+      <header
+        style={{ viewTransitionName: "app-header" }}
+        className="app-chrome sticky top-0 z-30 flex items-center justify-between bg-[rgba(15,15,15,0.72)] px-5 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-xl backdrop-saturate-[1.8]"
+      >
+        {/* The logo stays exactly as it is — the redesign changes the frame
+            around the brand, never the brand. */}
         <Logo className="h-7" />
-        <div className="flex items-center gap-1">
-          {/* Q&A and Settings moved up here when the bottom bar went to four
-              tabs plus the scan button. Neither belongs in the daily loop — the
-              library is something you consult, and Settings is visited roughly
-              once — but Settings in particular has to stay reachable from every
+        <div className="flex items-center gap-2.5">
+          {/* Two controls, native-style: the library, and an account button.
+              Support and Settings live behind the account button now; the
+              unread-reply dot moved onto it so a support answer is still
+              impossible to miss. Settings has to stay one tap away from every
               screen: it holds the only sign-out button in the product, which is
               also why `proxy.ts` never paywalls it. */}
           <Link
             href="/qa"
+            transitionTypes={["nav-forward"]}
             aria-label={t(locale, "qa.title")}
-            title={t(locale, "qa.title")}
-            className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
+            className="press grid h-9 w-9 place-items-center rounded-full bg-surface"
           >
-            <MessageCircleQuestion className="h-5 w-5" />
-          </Link>
-          <Link
-            href="/support"
-            aria-label={t(locale, "support.title")}
-            title={t(locale, "support.title")}
-            className="relative grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
-          >
-            <LifeBuoy className="h-5 w-5" />
-            <Suspense fallback={null}>
-              <SupportUnreadDot userId={user.id} />
-            </Suspense>
+            <MessageCircleQuestion className="h-[19px] w-[19px]" strokeWidth={1.9} />
           </Link>
           <Link
             href="/settings"
-            aria-label={t(locale, "settings.title")}
-            title={t(locale, "settings.title")}
-            className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
+            transitionTypes={["nav-forward"]}
+            aria-label={`${t(locale, "settings.title")} · ${t(locale, "support.title")}`}
+            className="press relative grid h-9 w-9 place-items-center rounded-full bg-surface2"
           >
-            <Settings className="h-5 w-5" />
+            <UserRound className="h-[19px] w-[19px]" strokeWidth={1.9} />
+            <Suspense fallback={null}>
+              <SupportUnreadDot userId={user.id} />
+            </Suspense>
           </Link>
           {/* A notifications bell used to sit here. It was wired to nothing —
               it took a tap and did nothing, on every screen in the product.
@@ -114,7 +117,9 @@ export default async function AppLayout({
 
       <OfflineBanner locale={locale} />
 
-      <main className="container-page flex-1 py-6 pb-28">{children}</main>
+      <main className="container-page flex-1 pt-2 pb-28">
+        <RouteTransition>{children}</RouteTransition>
+      </main>
 
       <AppBottomNav locale={locale} />
 

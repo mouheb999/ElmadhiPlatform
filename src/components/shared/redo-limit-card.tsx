@@ -11,7 +11,7 @@ import { t, type Locale } from "@/lib/i18n";
  */
 export function RedoLimitCard({ locale, limit }: { locale: Locale; limit: number }) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-2xl border border-hairline bg-surface p-8 text-center">
+    <div className="flex flex-col items-center gap-4 rounded-2xl bg-surface p-8 text-center">
       <div className="grid h-14 w-14 place-items-center rounded-full bg-accent/15">
         <CalendarClock className="h-7 w-7 text-accent" />
       </div>

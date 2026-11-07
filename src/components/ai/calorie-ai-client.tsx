@@ -423,7 +423,7 @@ export function CalorieAiClient({
       </div>
 
       {/* ---- Camera / photo ---- */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+      <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
         {/* No `capture` attribute: this input is the gallery, and the live
             camera has its own path through `openCamera`. `capture` made every
             "pick a photo" button launch the camera app instead of the picker,
@@ -459,7 +459,7 @@ export function CalorieAiClient({
           <button
             type="button"
             onClick={openCamera}
-            className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-accent/40 bg-gradient-to-b from-accent/10 to-accent/[0.02] py-12 transition-colors hover:border-accent/70 hover:from-accent/15"
+            className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-accent/40 bg-surface py-12 transition-colors hover:border-accent/70 hover:from-accent/15"
           >
             <span className="grid h-16 w-16 place-items-center rounded-full bg-accent/15 text-accent transition-transform group-hover:scale-105">
               <Camera className="h-8 w-8" />
@@ -490,7 +490,7 @@ export function CalorieAiClient({
 
         {error && (
           <div className="flex items-start gap-2.5 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-body" />
             <div className="flex flex-1 flex-col gap-2">
               <p className="text-sm">{error}</p>
               {showIdleState && (
@@ -526,7 +526,7 @@ export function CalorieAiClient({
           {/* The answer, before the working. The total used to sit under the
               item list, so the one number the user opened the camera for was
               the last thing they reached. */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-accent/25 bg-gradient-to-b from-accent/[0.10] to-accent/[0.02] p-5">
+          <div className="flex flex-col gap-4 rounded-3xl border border-accent/25 bg-surface p-5">
             <div className="flex items-center gap-4">
               {photo && (
                 // eslint-disable-next-line @next/next/no-img-element -- in-memory data URL
@@ -537,7 +537,7 @@ export function CalorieAiClient({
                 />
               )}
               <div className="flex min-w-0 flex-col">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
+                <span className="text-[11px] font-bold tracking-normal text-muted">
                   {t(locale, "ai.total")}
                 </span>
                 <span className="flex items-baseline gap-1.5 tabular-nums">
@@ -560,7 +560,7 @@ export function CalorieAiClient({
                   key={macro.key}
                   className="flex flex-col items-center gap-0.5 rounded-2xl bg-black/25 px-2 py-2.5"
                 >
-                  <span className="text-center text-[10px] font-bold uppercase tracking-wide text-muted">
+                  <span className="text-center text-[10px] font-bold tracking-normal text-muted">
                     {macro.label}
                   </span>
                   <span className="text-sm font-extrabold tabular-nums">
@@ -585,7 +585,7 @@ export function CalorieAiClient({
           )}
 
           {items.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+            <div key={item.id} className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
               <div className="flex items-center gap-2">
                 <Input
                   value={item.name}
@@ -599,7 +599,7 @@ export function CalorieAiClient({
                   onClick={() => removeItem(item.id)}
                   aria-label={t(locale, "ai.remove_item")}
                   title={t(locale, "ai.remove_item")}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted transition-colors hover:border-red-500/40 hover:text-red-400"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted transition-colors hover:border-red-500/40 hover:text-body"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -678,7 +678,7 @@ export function CalorieAiClient({
                       ? "text-muted"
                       : item.confidence >= 0.4
                         ? "text-amber-300"
-                        : "text-red-300",
+                        : "text-body",
                   )}
                 >
                   {t(
@@ -926,7 +926,7 @@ function AnalysisOverlay({ locale, previewUrl }: { locale: Locale; previewUrl: s
         <div className="flex w-full max-w-xs flex-col gap-2">
           <div className="h-2 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-accent shadow-[0_0_16px_rgba(192,218,27,0.5)] transition-[width] duration-200 ease-out"
+              className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -972,7 +972,7 @@ function StepButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline bg-surface text-ink transition-colors hover:border-accent/60 hover:text-accent active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface text-ink transition-colors hover:border-accent/60 hover:text-accent active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Icon className="h-4 w-4" />
     </button>

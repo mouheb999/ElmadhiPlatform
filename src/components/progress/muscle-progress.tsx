@@ -26,7 +26,7 @@ export function MuscleProgress({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wide text-muted">
+      <div className="flex items-center gap-3 text-[10px] font-bold tracking-normal text-muted">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-4 rounded-sm bg-accent" /> {t(locale, "progress.recent_label")}
         </span>
@@ -47,7 +47,7 @@ export function MuscleProgress({
                     ? "flex items-center gap-1 font-bold text-muted"
                     : delta > 0
                       ? "flex items-center gap-1 font-bold text-accent"
-                      : "flex items-center gap-1 font-bold text-red-400"
+                      : "flex items-center gap-1 font-bold text-body"
                 }
               >
                 <DeltaIcon className="h-3 w-3" />

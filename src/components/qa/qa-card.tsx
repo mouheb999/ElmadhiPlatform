@@ -23,7 +23,7 @@ export function QaCard({ locale, card }: { locale: Locale; card: QaCardData }) {
   return (
     <Link
       href={`/qa/${card.id}`}
-      className="flex items-center gap-4 rounded-2xl border border-hairline bg-surface p-5 transition-colors hover:bg-white/5"
+      className="flex items-center gap-4 rounded-2xl bg-surface p-5 transition-colors hover:bg-white/5"
     >
       <span
         className="grid h-11 w-11 shrink-0 place-items-center rounded-full"

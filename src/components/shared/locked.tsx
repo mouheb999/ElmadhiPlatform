@@ -112,11 +112,11 @@ export function Locked({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-3xl border border-hairline bg-surface/60 p-5",
+        "flex flex-col gap-3 rounded-3xl bg-surface/60 p-5",
         className,
       )}
     >
-      <span className="flex w-max items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+      <span className="flex w-max items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold tracking-normalr text-accent">
         <Lock className="h-3 w-3" />
         {t(locale, copy.title)}
       </span>

@@ -78,7 +78,7 @@ export function MealCard({
   const totalKcal = items.reduce((sum, i) => sum + (i.caloriesPer100g * i.quantityG) / 100, 0);
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-hairline bg-surface">
+    <div className="overflow-hidden rounded-2xl bg-surface">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -229,7 +229,7 @@ function SwapOptions({
 
   return (
     <div className="flex flex-col gap-1 rounded-xl border border-hairline bg-bg/40 p-2">
-      <span className="px-1 pb-1 text-[11px] font-bold uppercase tracking-wide text-muted">
+      <span className="px-1 pb-1 text-[11px] font-bold tracking-normal text-muted">
         {t(locale, "plan.swap_for")}
       </span>
       <div className="flex max-h-56 flex-col divide-y divide-hairline overflow-y-auto">

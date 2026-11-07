@@ -7,11 +7,10 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "border border-hairline bg-surface text-ink shadow-card",
-      "rounded-card",
-      className,
-    )}
+    // No border, no shadow: a card is a lighter surface on the page, the way
+    // grouped content is drawn in native dark mode. The old 28px radius and
+    // drop shadow made every block a floating tile of equal weight.
+    className={cn("rounded-card bg-surface text-ink", className)}
     {...props}
   />
 ));
@@ -35,7 +34,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-xl font-extrabold leading-tight tracking-tight", className)}
+    className={cn("text-lg font-bold leading-snug tracking-tight", className)}
     {...props}
   />
 ));

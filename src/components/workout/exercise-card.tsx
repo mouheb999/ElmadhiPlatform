@@ -40,7 +40,7 @@ export function ExerciseCard({
   const [swapping, setSwapping] = useState(false);
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4">
+    <div className="flex flex-col gap-2 rounded-2xl bg-surface p-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <ExerciseMedia
@@ -80,7 +80,7 @@ export function ExerciseCard({
               type="button"
               onClick={onRemove}
               aria-label="Remove exercise"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-red-400"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-body"
             >
               <Trash2 className="h-4 w-4" />
             </button>

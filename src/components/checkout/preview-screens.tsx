@@ -276,6 +276,7 @@ export function TodayScreen({
 
       <CheckinCard
         locale={locale}
+        presentation="inline"
         todayCheckin={state.checkin}
         lastWeightKg={SAMPLE_LAST_WEIGHT}
         onSave={async (checkin) => {

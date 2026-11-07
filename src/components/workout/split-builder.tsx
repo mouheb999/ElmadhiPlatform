@@ -302,7 +302,7 @@ export function SplitBuilder({
 
           {matchingShapes.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted">
+              <p className="text-xs font-bold tracking-normal text-muted">
                 {t(locale, "cw.start_from")}
               </p>
               <p className="text-xs text-muted">{t(locale, "cw.start_from_hint")}</p>
@@ -311,7 +311,7 @@ export function SplitBuilder({
                   key={shape.id}
                   type="button"
                   onClick={() => applyShape(shape)}
-                  className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface px-4 py-3 text-start transition-colors hover:border-accent/50"
+                  className="flex flex-col gap-1 rounded-2xl bg-surface px-4 py-3 text-start transition-colors hover:border-accent/50"
                 >
                   <span className="font-bold">{shape.titleEn}</span>
                   <span className="text-xs text-muted">
@@ -400,7 +400,7 @@ export function SplitBuilder({
           )}
 
           {error && (
-            <p className="text-sm text-red-500" role="alert">
+            <p className="text-sm text-body" role="alert">
               {error}
             </p>
           )}
@@ -455,7 +455,7 @@ function DayEditor({
         return (
           <div
             key={entry.exerciseId}
-            className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-3"
+            className="flex flex-col gap-3 rounded-2xl bg-surface p-3"
           >
             <div className="flex items-center gap-3">
               {illustration ? (
@@ -476,7 +476,7 @@ function DayEditor({
                 type="button"
                 onClick={() => onRemove(entry.exerciseId)}
                 aria-label={t(locale, "cw.remove")}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-red-400"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-body"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -491,7 +491,7 @@ function DayEditor({
                 onChange={(sets) => onUpdate(entry.exerciseId, { sets })}
               />
               <label className="flex flex-col gap-1">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-muted">
+                <span className="text-[10px] font-bold tracking-normal text-muted">
                   {t(locale, "cw.reps")}
                 </span>
                 <Input
@@ -557,7 +557,7 @@ function NumberField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[10px] font-bold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-[10px] font-bold tracking-normal text-muted">{label}</span>
       <Input
         type="number"
         value={value}
@@ -578,7 +578,7 @@ function NumberField({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-xs font-bold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-xs font-bold tracking-normal text-muted">{label}</span>
       {children}
     </label>
   );
@@ -597,7 +597,7 @@ function ChoiceGroup({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-bold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-xs font-bold tracking-normal text-muted">{label}</span>
       <div className="flex flex-col gap-1.5">
         {options.map((option) => (
           <button
@@ -631,7 +631,7 @@ function StepBar({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-center text-xs font-bold uppercase tracking-wide text-muted">
+      <p className="text-center text-xs font-bold tracking-normal text-muted">
         {t(locale, "co.step")} {step} {t(locale, "co.of")} {labels.length} ·{" "}
         {t(locale, labels[step - 1])}
       </p>

@@ -125,6 +125,14 @@ const nextConfig: NextConfig = {
   // Nothing is gained by announcing the framework and version to a scanner.
   poweredByHeader: false,
 
+  // React's <ViewTransition>, so moving between screens animates instead of
+  // cutting: tabs crossfade, drilling in slides. See RouteTransition and the
+  // ::view-transition rules in globals.css. Browsers without the View
+  // Transitions API simply navigate as before.
+  experimental: {
+    viewTransition: true,
+  },
+
   // PostHog reverse proxy — routes /ingest/* through the server so the
   // browser never connects to PostHog directly (avoids ad-blocker drops).
   async rewrites() {

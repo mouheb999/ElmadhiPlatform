@@ -28,7 +28,7 @@ export default function SessionLoading() {
       {[0, 1, 2].map((card) => (
         <div
           key={card}
-          className="flex flex-col gap-3 rounded-3xl border border-hairline bg-surface/40 p-4"
+          className="flex flex-col gap-3 rounded-3xl bg-surface/40 p-4"
         >
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 shrink-0 animate-pulse rounded-xl bg-surface" />

@@ -67,7 +67,7 @@ export function LockedDialog({
         aria-labelledby="locked-dialog-title"
         // Clicks inside must not reach the backdrop's dismiss handler.
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-sm flex-col gap-3 rounded-3xl border border-hairline bg-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+        className="relative flex w-full max-w-sm flex-col gap-3 rounded-3xl bg-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
       >
         <button
           ref={closeRef}
@@ -79,7 +79,7 @@ export function LockedDialog({
           <X className="h-4 w-4" />
         </button>
 
-        <span className="flex w-max items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+        <span className="flex w-max items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold tracking-normalr text-accent">
           <Lock className="h-3 w-3" />
           {t(locale, copy.title)}
         </span>

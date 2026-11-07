@@ -812,6 +812,31 @@ const STRINGS = {
   "nav.food": { en: "Food", tn: "الأكل" },
   "nav.progress": { en: "Progress", tn: "التقدّم" },
   "nav.scan": { en: "Scan a meal", tn: "صوّر وجبة" },
+  // ---- the redesigned Today screen ----
+  // Short, sentence-case labels: the redesign retired the ALL-CAPS kickers.
+  "home.training": { en: "Training", tn: "التمرين" },
+  "home.food": { en: "Food", tn: "الأكل" },
+  "home.protein": { en: "Protein", tn: "البروتين" },
+  "home.carbs": { en: "Carbs", tn: "النشويات" },
+  "home.fat": { en: "Fat", tn: "الدهون" },
+  "home.kcal": { en: "kcal", tn: "سعرة" },
+  "home.g": { en: "g", tn: "غ" },
+  "home.in_progress": { en: "In progress", tn: "جارية" },
+  "home.up_next": { en: "In this session", tn: "في هالحصة" },
+  "home.kcal_left": { en: "kcal left", tn: "سعرة متبقية" },
+  "home.kcal_over": { en: "kcal over", tn: "سعرة زايدة" },
+  "home.of_target": { en: "of {n}", tn: "من {n}" },
+  "home.diary": { en: "Diary", tn: "اليوميات" },
+  "home.weight": { en: "Weight", tn: "الوزن" },
+  "home.weight_change": { en: "over your last {n} weigh-ins", tn: "في آخر {n} تسجيلات" },
+  "home.weight_empty": {
+    en: "Log your weight in the morning check-in to see your trend here.",
+    tn: "سجّل وزنك في تسجيل الصباح باش تشوف تطوّرك هنا.",
+  },
+  "home.see_progress": { en: "Progress", tn: "التقدّم" },
+  "home.log": { en: "Log", tn: "سجّل" },
+  "home.cancel": { en: "Cancel", tn: "إلغاء" },
+  "home.sleep_h": { en: "h sleep", tn: "س نوم" },
 
   // ---- dashboard ----
   "dashboard.greeting": { en: "Welcome back", tn: "أهلاً بك" },

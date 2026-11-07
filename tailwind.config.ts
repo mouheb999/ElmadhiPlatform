@@ -14,36 +14,57 @@ const config: Config = {
     extend: {
       colors: {
         bg: "#0F0F0F",
-        surface: "#202020",
+        // Surfaces step up in lightness instead of carrying borders and glows:
+        // a card is #1A1A1A on the #0F0F0F page, a control inside it #2C2C2E.
+        surface: "#1A1A1A",
+        surface2: "#2C2C2E",
         accent: {
           DEFAULT: "#C0DA1B",
-          hover: "#7D8E10",
+          hover: "#A9C016",
         },
         ink: "#F8F8F8",
-        muted: "rgba(248,248,248,0.65)",
-        hairline: "rgba(255,255,255,0.08)",
-        border: "rgba(255,255,255,0.08)",
+        // Solid greys rather than translucent white, so a label reads the same
+        // on the page and on a card. Both pass 4.5:1 on #1A1A1A.
+        muted: "#9A9AA0",
+        subtle: "#8E8E93",
+        hairline: "rgba(255,255,255,0.09)",
+        border: "rgba(255,255,255,0.09)",
+        /**
+         * One colour per part of the coaching loop, so a ring, a chart or an
+         * icon says which part of your day it belongs to before you read it.
+         * Lime stays the brand and owns training; the rest join it. All six
+         * pass 4.5:1 as text on #1A1A1A, and they differ in lightness as well as
+         * hue so they stay apart for colour-blind users.
+         */
+        train: "#C0DA1B",
+        fuel: "#FF9F43",
+        protein: "#3DD6F5",
+        sleep: "#A58BFF",
+        body: "#FF6B8B",
+        learn: "#5AA9FF",
         background: "#0F0F0F",
         foreground: "#F8F8F8",
         ring: "#C0DA1B",
       },
       fontFamily: {
-        sans: ["var(--font-cairo)", "Cairo", "Tajawal", "system-ui", "sans-serif"],
-        // --font-brand is Saira in English and Cairo in Arabic; see globals.css.
-        display: [
-          "var(--font-brand)",
-          "var(--font-cairo)",
-          "Cairo",
-          "system-ui",
-          "sans-serif",
-        ],
+        // --font-ui is Inter in English and Cairo in Arabic; see globals.css.
+        sans: ["var(--font-ui)", "Inter", "Cairo", "system-ui", "sans-serif"],
+        // Headings and buttons share the UI face now — one family, many
+        // weights, the way native apps set type. Kept as its own token so the
+        // 60-odd `font-display` call sites did not all have to change.
+        display: ["var(--font-ui)", "Inter", "Cairo", "system-ui", "sans-serif"],
+        // Big figures: Saira in English, Cairo in Arabic.
+        num: ["var(--font-num)", "Saira", "Cairo", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        card: "28px",
+        card: "22px",
       },
       boxShadow: {
-        card: "0 10px 40px rgba(0,0,0,0.35)",
-        glow: "0 0 80px rgba(192,218,27,0.25)",
+        // Neutralised rather than deleted: a drop shadow is invisible on a near-
+        // black page and the lime glow was on everything, so nothing stood out.
+        // Depth now comes from the surface steps above.
+        card: "none",
+        glow: "none",
       },
       keyframes: {
         "fade-up": {

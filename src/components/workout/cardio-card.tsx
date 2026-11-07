@@ -95,7 +95,7 @@ export function CardioCard({
     );
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface/40 p-4">
+    <div className="flex flex-col gap-3 rounded-2xl bg-surface/40 p-4">
       <div className="flex items-center gap-2">
         <Footprints className="h-4 w-4 text-accent" />
         <span className="font-display text-sm font-bold">{t(locale, "cardio.title")}</span>
@@ -172,7 +172,7 @@ export function CardioCard({
       <p className="text-[11px] leading-relaxed text-muted">{scheduleLabel}</p>
 
       {error && (
-        <p className="text-xs text-red-500" role="alert">
+        <p className="text-xs text-body" role="alert">
           {error}
         </p>
       )}
