@@ -3,7 +3,7 @@
 import { t, type Locale } from "@/lib/i18n";
 
 const MACRO_COLORS = {
-  protein: "#C0DA1B",
+  protein: "#A8FF00",
   carbs: "#F5A623",
   fat: "#B76CFF",
 } as const;
@@ -66,7 +66,7 @@ export function MacroRing({
             cy="80"
             r={radius}
             fill="none"
-            stroke="#C0DA1B"
+            stroke="#A8FF00"
             strokeWidth="12"
             strokeLinecap="round"
             strokeDasharray={circumference}

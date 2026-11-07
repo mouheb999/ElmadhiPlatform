@@ -158,7 +158,7 @@ export function CheckinCard({
         </div>
       </div>
 
-      {error && <p className="text-sm text-body">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <Button
         onClick={save}

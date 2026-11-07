@@ -18,7 +18,7 @@ export function NutritionTabs({ current, locale }: { current: NutritionView; loc
   ];
 
   return (
-    <div className="flex gap-1 rounded-full bg-surface p-1" role="tablist">
+    <div className="flex gap-2" role="tablist">
       {tabs.map((tab) => {
         const active = tab.view === current;
         return (
@@ -32,8 +32,10 @@ export function NutritionTabs({ current, locale }: { current: NutritionView; loc
             role="tab"
             aria-selected={active}
             className={cn(
-              "flex-1 rounded-full py-2 text-center text-sm font-bold outline-none transition-colors",
-              active ? "bg-accent text-bg" : "text-muted hover:text-ink",
+              // Chips as native apps draw them: the selected one white with
+              // black text, the rest dark grey with white text, no outlines.
+              "press h-10 flex-1 content-center rounded-full text-center text-[15px] font-semibold outline-none transition-colors",
+              active ? "bg-ink text-bg" : "bg-surface2 text-ink",
             )}
           >
             {t(locale, tab.label)}

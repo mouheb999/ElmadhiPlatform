@@ -94,7 +94,7 @@ export function TodayWorkout({
                 className="object-cover"
               />
               {state === "in_progress" && (
-                <span className="absolute start-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(15,15,15,0.62)] px-2.5 py-1 text-xs font-semibold backdrop-blur-md">
+                <span className="absolute start-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(0,0,0,0.55)] px-2.5 py-1 text-xs font-semibold backdrop-blur-md">
                   <span className="h-[7px] w-[7px] animate-pulse rounded-full bg-train" />
                   {t(locale, "home.in_progress")}
                 </span>

@@ -737,7 +737,7 @@ export function SessionClient({
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
                     armedSkip === ex.rowId
-                      ? "border-red-500/60 bg-red-500/10 text-body"
+                      ? "border-red-500/60 bg-red-500/10 text-danger"
                       : "border-hairline text-muted hover:text-ink",
                   )}
                 >

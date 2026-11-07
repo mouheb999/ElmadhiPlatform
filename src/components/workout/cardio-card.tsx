@@ -172,7 +172,7 @@ export function CardioCard({
       <p className="text-[11px] leading-relaxed text-muted">{scheduleLabel}</p>
 
       {error && (
-        <p className="text-xs text-body" role="alert">
+        <p className="text-xs text-danger" role="alert">
           {error}
         </p>
       )}

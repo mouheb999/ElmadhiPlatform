@@ -37,7 +37,7 @@ export function CardTitleRow({
             aria-label={linkLabel ?? title}
             className="press -m-2.5 grid place-items-center p-2.5"
           >
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-white/[0.28] text-[#1C1C1E]">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-[#5E5E60] text-[#1C1C1E]">
               <ChevronRight className="h-4 w-4 rtl:rotate-180" strokeWidth={2.8} />
             </span>
           </Link>

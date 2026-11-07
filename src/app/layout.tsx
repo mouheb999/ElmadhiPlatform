@@ -51,7 +51,7 @@ export async function generateViewport(): Promise<Viewport> {
     initialScale: 1,
     maximumScale: appShell ? 1 : 5,
     ...(appShell ? { userScalable: false } : {}),
-    themeColor: "#0F0F0F",
+    themeColor: "#000000",
     // Let content extend under the notch/home-indicator; nav uses env(safe-area-inset-*).
     viewportFit: "cover",
   };
@@ -97,8 +97,16 @@ export default async function RootLayout({
         {/* Registers /serwist/sw.js. Here rather than in the (app) layout
             because installability is judged on whatever page the user happens
             to be on, and because the precached /~offline page must be fetched
-            whether they arrived at the dashboard or the landing page. */}
-        <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>
+            whether they arrived at the dashboard or the landing page.
+
+            Off in development: dev CSS and JS chunks keep the same URL when
+            their contents change, and the worker caches /_next/static/ as if
+            it never changed, so edits silently stop showing up. Production
+            chunk names are content-hashed, so this cannot happen there. Test
+            offline behaviour against `npm run build && npm start`. */}
+        <SerwistProvider swUrl="/serwist/sw.js" disable={process.env.NODE_ENV === "development"}>
+          {children}
+        </SerwistProvider>
         {/* Renders nothing unless NEXT_PUBLIC_META_PIXEL_ID is set. Here rather
             than on /start alone because the funnel spans four routes — the
             questionnaire, the offer, sign-up and the payment screen — and a

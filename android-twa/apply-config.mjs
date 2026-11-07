@@ -87,13 +87,13 @@ Object.assign(manifest, {
   // The flag the proxy exchanges for the app_shell cookie. Everything the app
   // sees differently hangs off this.
   startUrl: "/login?app=1",
-  themeColor: "#0F0F0F",
-  themeColorDark: "#0F0F0F",
-  backgroundColor: "#0F0F0F",
-  navigationColor: "#0F0F0F",
-  navigationColorDark: "#0F0F0F",
-  navigationDividerColor: "#0F0F0F",
-  navigationDividerColorDark: "#0F0F0F",
+  themeColor: "#000000",
+  themeColorDark: "#000000",
+  backgroundColor: "#000000",
+  navigationColor: "#000000",
+  navigationColorDark: "#000000",
+  navigationDividerColor: "#000000",
+  navigationDividerColorDark: "#000000",
   // All three point at artwork built for Android, not at /icon. /icon is a
   // finished rounded tile, and Android masks it again — a box inside a circle
   // on the splash, letters cropped. iconUrl matters most: it is what the

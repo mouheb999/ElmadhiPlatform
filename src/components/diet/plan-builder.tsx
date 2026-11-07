@@ -446,7 +446,7 @@ export function PlanBuilder({
           )}
 
           {error && (
-            <p className="text-sm text-body" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {error}
             </p>
           )}
@@ -549,7 +549,7 @@ function MealDraftEditor({
               type="button"
               onClick={() => onRemove(item.foodRef)}
               aria-label={t(locale, "cw.remove")}
-              className="shrink-0 text-muted hover:text-body"
+              className="shrink-0 text-muted hover:text-danger"
             >
               <Trash2 className="h-4 w-4" />
             </button>

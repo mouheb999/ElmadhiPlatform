@@ -142,7 +142,7 @@ export function SupportClient({
           />
         </label>
 
-        {error && <p className="text-sm text-body">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
         {sent && !error && (
           <p className="flex items-center gap-2 text-sm font-bold text-accent">
             <CheckCircle2 className="h-4 w-4" />

@@ -490,7 +490,7 @@ export function CalorieAiClient({
 
         {error && (
           <div className="flex items-start gap-2.5 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-body" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
             <div className="flex flex-1 flex-col gap-2">
               <p className="text-sm">{error}</p>
               {showIdleState && (
@@ -599,7 +599,7 @@ export function CalorieAiClient({
                   onClick={() => removeItem(item.id)}
                   aria-label={t(locale, "ai.remove_item")}
                   title={t(locale, "ai.remove_item")}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted transition-colors hover:border-red-500/40 hover:text-body"
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted transition-colors hover:border-red-500/40 hover:text-danger"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -678,7 +678,7 @@ export function CalorieAiClient({
                       ? "text-muted"
                       : item.confidence >= 0.4
                         ? "text-amber-300"
-                        : "text-body",
+                        : "text-danger",
                   )}
                 >
                   {t(

@@ -104,8 +104,8 @@ export function QaFeed({
           onClick={() => setActiveCategory(null)}
           className={
             activeCategory === null
-              ? "shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-bold text-bg"
-              : "shrink-0 rounded-full border border-hairline px-4 py-2 text-sm font-bold text-muted hover:text-ink"
+              ? "press h-10 shrink-0 rounded-full bg-ink px-4 text-[15px] font-semibold text-bg"
+              : "press h-10 shrink-0 rounded-full bg-surface2 px-4 text-[15px] font-semibold text-ink"
           }
         >
           {t(locale, "qa.category_all")}
@@ -118,13 +118,15 @@ export function QaFeed({
               key={cat.slug}
               type="button"
               onClick={() => setActiveCategory(cat.slug)}
-              style={active ? { backgroundColor: accent } : { color: accent }}
+              // Category colour survives as a small dot; the chip itself
+              // follows the one chip style used everywhere.
               className={
                 active
-                  ? "shrink-0 rounded-full px-4 py-2 text-sm font-bold text-bg"
-                  : "shrink-0 rounded-full border border-hairline px-4 py-2 text-sm font-bold hover:bg-white/5"
+                  ? "press flex h-10 shrink-0 items-center gap-2 rounded-full bg-ink px-4 text-[15px] font-semibold text-bg"
+                  : "press flex h-10 shrink-0 items-center gap-2 rounded-full bg-surface2 px-4 text-[15px] font-semibold text-ink"
               }
             >
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: accent }} aria-hidden />
               {pick(locale, cat.nameEn, cat.nameAr)}
             </button>
           );
@@ -156,7 +158,7 @@ export function QaFeed({
           </div>
 
           {asked && <p className="text-sm text-accent">{t(locale, "qa.ask_sent")}</p>}
-          {error && <p className="text-sm text-body">{error}</p>}
+          {error && <p className="text-sm text-danger">{error}</p>}
 
           {outOfQuestions ? (
             <p className="text-sm text-muted">

@@ -254,7 +254,7 @@ export function FoodDiary({
         </Button>
       )}
 
-      {error && <p className="text-sm text-body">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {slots.map((slotKey) => {
         const slotEntries = entries.filter((e) => e.slot === slotKey);
@@ -399,7 +399,7 @@ function DiaryHero({
           "over" arithmetic for the user to do in their head. */}
       <div className="text-center">
         <div className="flex items-baseline justify-center gap-1.5">
-          <span className={cn("text-5xl font-extrabold tabular-nums", over && "text-body")}>
+          <span className={cn("text-5xl font-extrabold tabular-nums", over && "text-danger")}>
             {Math.round(consumed.calories)}
           </span>
           <span className="text-xl font-bold tabular-nums text-muted">
@@ -464,7 +464,7 @@ function DiaryHero({
               <span className="text-start text-xs font-bold text-muted">{row.label}</span>
               <span className="font-semibold">{Math.round(row.value)}</span>
               <span className="text-muted">{Math.round(row.goal)}</span>
-              <span className={cn("font-semibold", row.goal - row.value < 0 && "text-body")}>
+              <span className={cn("font-semibold", row.goal - row.value < 0 && "text-danger")}>
                 {Math.round(row.goal - row.value)}
               </span>
             </div>
@@ -671,7 +671,7 @@ function AddFoodSheet({
                 {Math.round(selected.fatPer100g * factor)}g
               </p>
             )}
-            {error && <p className="text-sm text-body">{error}</p>}
+            {error && <p className="text-sm text-danger">{error}</p>}
             <div className="flex gap-2">
               <Button variant="secondary" size="sm" className="flex-1" onClick={() => setSelected(null)}>
                 {t(locale, "diary.back")}
@@ -743,7 +743,7 @@ function AddFoodSheet({
                     </div>
                   );
                 })}
-                {error && <p className="text-sm text-body">{error}</p>}
+                {error && <p className="text-sm text-danger">{error}</p>}
               </div>
             ) : tab === "quick" ? (
               <div className="flex flex-col gap-3">
@@ -789,7 +789,7 @@ function AddFoodSheet({
                     />
                   </label>
                 </div>
-                {error && <p className="text-sm text-body">{error}</p>}
+                {error && <p className="text-sm text-danger">{error}</p>}
                 <Button size="sm" onClick={submitQuick} disabled={isPending || !quick.calories.trim()}>
                   {t(locale, "diary.log_cta")}
                 </Button>

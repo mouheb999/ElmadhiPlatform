@@ -75,7 +75,7 @@ export function AdaptationCard({
         {t(locale, "adapt.protein_note")}
       </p>
 
-      {error && <p className="text-sm text-body">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {applied ? (
         <div className="flex items-center gap-2 text-sm font-bold text-accent">

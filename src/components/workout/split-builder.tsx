@@ -400,7 +400,7 @@ export function SplitBuilder({
           )}
 
           {error && (
-            <p className="text-sm text-body" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {error}
             </p>
           )}
@@ -476,7 +476,7 @@ function DayEditor({
                 type="button"
                 onClick={() => onRemove(entry.exerciseId)}
                 aria-label={t(locale, "cw.remove")}
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-body"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-danger"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

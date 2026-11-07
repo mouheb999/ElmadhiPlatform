@@ -47,7 +47,7 @@ export function MuscleProgress({
                     ? "flex items-center gap-1 font-bold text-muted"
                     : delta > 0
                       ? "flex items-center gap-1 font-bold text-accent"
-                      : "flex items-center gap-1 font-bold text-body"
+                      : "flex items-center gap-1 font-bold text-danger"
                 }
               >
                 <DeltaIcon className="h-3 w-3" />

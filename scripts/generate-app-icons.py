@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 MARK = ROOT / "public" / "logo-mark.png"
 OUT = ROOT / "public" / "icons"
 
-BACKGROUND = (0x0F, 0x0F, 0x0F, 255)
+BACKGROUND = (0x00, 0x00, 0x00, 255)
 
 # The wordmark's width as a fraction of the icon. For a mark this wide
 # (aspect ~3.2:1) the limit is set by the safe-zone circle's diameter: the

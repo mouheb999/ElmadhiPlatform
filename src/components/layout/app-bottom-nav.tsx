@@ -11,7 +11,7 @@ type Tab = {
   href: string;
   label: StringKey;
   icon: ComponentType<{ className?: string; strokeWidth?: number }>;
-  /** Drawn inside a filled white disc — the one action in a bar of places. */
+  /** Drawn inside a filled disc — the one action in a bar of places. */
   disc?: boolean;
 };
 
@@ -37,16 +37,16 @@ function TabBody({ tab, active, locale }: { tab: Tab; active: boolean; locale: L
     <span
       className={cn(
         "flex h-14 flex-col items-center justify-center gap-[3px] rounded-[26px] text-[11px] font-semibold transition-colors duration-300",
-        // The selected tab sits on its own soft pill inside the capsule.
-        active ? "bg-white/[0.09]" : "bg-transparent",
-        lit ? "text-accent" : "text-[#C7C7CC]",
+        // The selected tab sits in a darker pill inside the capsule.
+        active ? "bg-[#131313]" : "bg-transparent",
+        lit ? "text-accent" : "text-ink",
       )}
     >
       {tab.disc ? (
         <span
           className={cn(
             "grid h-[26px] w-[26px] place-items-center rounded-full transition-colors duration-300",
-            lit ? "bg-accent text-bg" : "bg-[#F2F2F7] text-bg",
+            lit ? "bg-accent text-bg" : "bg-ink text-bg",
           )}
         >
           <Icon className="h-[15px] w-[15px]" strokeWidth={2.4} />
@@ -60,17 +60,13 @@ function TabBody({ tab, active, locale }: { tab: Tab; active: boolean; locale: L
 }
 
 /**
- * The tab bar: a floating glass capsule.
+ * The tab bar: a floating capsule, matched to the reference design's colours.
  *
- * Drawn the way current native apps draw it — inset from the screen edges,
- * fully rounded, translucent over a strong blur so content scrolling beneath
- * shows through as colour, with a hairline rim and a soft shadow lifting it
- * off the page. Labels under every icon, so nothing has to be learned.
- *
- * The selected tab is marked twice and quietly: a soft pill behind it inside
- * the capsule, and the brand lime on its icon and label. Scan keeps its place
- * in the middle but is drawn like the other tabs, its camera set in a white
- * disc, so it reads as the bar's one action without breaking the row.
+ * The capsule is #2A2A2A — translucent over a blur, so content scrolling under
+ * it tints it — with a barely-there rim. The selected tab sits in a darker
+ * #131313 pill inside it, with its icon and label in lime; every other tab is
+ * plain white. Scan keeps its place in the middle, its camera in a white disc,
+ * so it reads as the bar's one action without breaking the row.
  *
  * Every tab tags its navigation `tab`, which RouteTransition turns into a
  * crossfade — moving sideways between equals, no direction implied.
@@ -85,7 +81,7 @@ export function AppBottomNav({ locale }: { locale: Locale }) {
       // Pinned out of screen transitions so the bar stays still while the
       // content behind it changes; see ::view-transition-group(app-tabbar).
       style={{ viewTransitionName: "app-tabbar" }}
-      className="app-chrome fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+10px)] z-40 mx-auto grid max-w-md grid-cols-5 gap-0.5 rounded-[32px] border-[0.5px] border-white/[0.14] bg-[rgba(30,30,32,0.66)] p-1.5 shadow-[0_16px_40px_-10px_rgba(0,0,0,0.8),inset_0_0.5px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl backdrop-saturate-[1.8]"
+      className="app-chrome fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+10px)] z-40 mx-auto grid max-w-md grid-cols-5 gap-0.5 rounded-[32px] border-[0.5px] border-white/[0.06] bg-[rgba(42,42,42,0.86)] p-1.5 backdrop-blur-2xl backdrop-saturate-[1.6]"
     >
       {TABS.map((tab) => (
         <Link

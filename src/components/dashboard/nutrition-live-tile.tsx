@@ -91,7 +91,7 @@ export function NutritionLiveTile({
           {header}
           {/* The figure and its unit share the food orange (pink once over
               target), the way native summaries colour the number itself. */}
-          <div className={cn("mt-3 flex items-baseline gap-1.5", over ? "text-body" : "text-fuel")}>
+          <div className={cn("mt-3 flex items-baseline gap-1.5", over ? "text-danger" : "text-fuel")}>
             <span className="font-num text-[40px] font-bold leading-none tracking-[-0.02em]">
               {fmt.format(Math.round(Math.abs(left)))}
             </span>

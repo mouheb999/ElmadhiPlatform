@@ -35,7 +35,7 @@ async function SupportUnreadDot({ userId }: { userId: string }) {
   return (
     <span
       aria-hidden
-      className="absolute -end-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-body"
+      className="absolute -end-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-bg bg-danger"
     />
   );
 }
@@ -77,7 +77,7 @@ export default async function AppLayout({
           content changes beneath it. */}
       <header
         style={{ viewTransitionName: "app-header" }}
-        className="app-chrome sticky top-0 z-30 flex items-center justify-between bg-[rgba(15,15,15,0.72)] px-5 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-xl backdrop-saturate-[1.8]"
+        className="app-chrome sticky top-0 z-30 flex items-center justify-between bg-[rgba(0,0,0,0.72)] px-5 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur-xl backdrop-saturate-[1.8]"
       >
         {/* The logo stays exactly as it is — the redesign changes the frame
             around the brand, never the brand. */}

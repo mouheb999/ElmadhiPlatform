@@ -4,22 +4,23 @@
 
 @layer base {
   :root {
-    --bg: #0f0f0f;
-    --surface: #1a1a1a;
+    --bg: #000000;
+    --surface: #1c1c1e;
     --surface-2: #2c2c2e;
-    --accent: #c0da1b;
-    --accent-hover: #a9c016;
-    --ink: #f8f8f8;
-    --muted: #9a9aa0;
+    --accent: #a8ff00;
+    --accent-hover: #93e000;
+    --ink: #ffffff;
+    --muted: #98989f;
     --hairline: rgba(255, 255, 255, 0.09);
 
     /* The coaching-loop palette; see tailwind.config.ts for why each exists. */
-    --train: #c0da1b;
-    --fuel: #ff9f43;
-    --protein: #3dd6f5;
-    --sleep: #a58bff;
-    --body: #ff6b8b;
-    --learn: #5aa9ff;
+    --train: #a8ff00;
+    --fuel: #ff375f;
+    --protein: #00b1ff;
+    --sleep: #7d7aff;
+    --body: #9d86e0;
+    --learn: #0a84ff;
+    --danger: #ff453a;
 
     /* The UI face (body, headings, buttons) and the face for big figures. */
     --font-ui: var(--font-inter);
@@ -136,7 +137,7 @@
   }
 
   ::selection {
-    background: rgba(192, 218, 27, 0.3);
+    background: rgba(168, 255, 0, 0.3);
     color: var(--ink);
   }
 }
@@ -151,30 +152,22 @@
   .glow-accent {
     background: radial-gradient(
       60% 60% at 50% 40%,
-      rgba(192, 218, 27, 0.18) 0%,
-      rgba(192, 218, 27, 0) 70%
+      rgba(168, 255, 0, 0.18) 0%,
+      rgba(168, 255, 0, 0) 70%
     );
   }
 
   /*
-   * The card material. Three things give it depth, and all three are subtle
-   * on purpose — together they are why a native card looks like an object and
-   * a flat grey rectangle looks like a div:
+   * The card: flat #1C1C1E on the black page, 22px corners. Nothing else.
    *
-   *   - a faint vertical gradient, lighter at the top, as if lit from above;
-   *   - a half-pixel highlight along the top edge (the inset shadow), where
-   *     that light catches the rim;
-   *   - a soft drop shadow underneath, mostly felt rather than seen on a dark
-   *     page, that lifts the card off it.
-   *
-   * 24px corners, the radius native grouped cards use at this size.
+   * An earlier pass gave cards a lit gradient, a rim highlight and a drop
+   * shadow. It read as a 3D effect and was taken out: the reference design
+   * gets all of its depth from one thing, the contrast between a pure black
+   * page and a flat dark-grey card.
    */
   .card-surface {
-    border-radius: 24px;
-    background: linear-gradient(180deg, #252527 0%, #1c1c1e 60%, #1a1a1c 100%);
-    box-shadow:
-      inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
-      0 10px 28px -14px rgba(0, 0, 0, 0.7);
+    border-radius: 22px;
+    background-color: var(--surface);
   }
   /* The old name, kept so nothing that reaches for it falls back to flat. */
   .surface-card {

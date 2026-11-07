@@ -106,7 +106,7 @@ export function QaAnswerCard({ locale, card }: { locale: Locale; card: QaAnswerC
 
         {card.mistake && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-            <div className="mb-1 flex items-center gap-2 text-xs font-bold text-body">
+            <div className="mb-1 flex items-center gap-2 text-xs font-bold text-danger">
               <TriangleAlert className="h-4 w-4 shrink-0" />
               {t(locale, "qa.block_mistake")}
             </div>

@@ -45,7 +45,7 @@ export function ExerciseTrends({
               <span className="text-[10px] font-bold text-muted">{t(locale, "session.kg")}</span>
               {delta !== 0 && (
                 <span
-                  className={`text-[10px] font-bold tabular-nums ${delta > 0 ? "text-accent" : "text-body"}`}
+                  className={`text-[10px] font-bold tabular-nums ${delta > 0 ? "text-accent" : "text-danger"}`}
                 >
                   {delta > 0 ? "+" : ""}
                   {delta}
@@ -58,7 +58,7 @@ export function ExerciseTrends({
                   <polyline
                     points={line}
                     fill="none"
-                    stroke="#C0DA1B"
+                    stroke="#A8FF00"
                     strokeWidth="2"
                     strokeLinejoin="round"
                     strokeLinecap="round"

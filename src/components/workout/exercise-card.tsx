@@ -80,7 +80,7 @@ export function ExerciseCard({
               type="button"
               onClick={onRemove}
               aria-label="Remove exercise"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-body"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-hairline text-muted hover:border-red-500/50 hover:text-danger"
             >
               <Trash2 className="h-4 w-4" />
             </button>

@@ -348,7 +348,7 @@ function PillNav({
                 className={cn(
                   "grid h-11 w-11 place-items-center rounded-full transition-all duration-200",
                   active
-                    ? "bg-accent text-bg shadow-[0_6px_16px_-4px_rgba(192,218,27,0.6)]"
+                    ? "bg-accent text-bg shadow-[0_6px_16px_-4px_rgba(168,255,0,0.6)]"
                     : "text-muted",
                 )}
               >
@@ -415,7 +415,7 @@ function PaywallSheet({
             type="button"
             onClick={onPickPlan}
             tabIndex={open ? 0 : -1}
-            className="mt-1 flex h-12 w-full items-center justify-center rounded-full bg-accent font-display text-[15px] font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform active:scale-[0.97]"
+            className="mt-1 flex h-12 w-full items-center justify-center rounded-full bg-accent font-display text-[15px] font-bold text-bg shadow-[0_10px_28px_rgba(168,255,0,0.25)] transition-transform active:scale-[0.97]"
           >
             {t(locale, "tour.lock_cta")}
           </button>

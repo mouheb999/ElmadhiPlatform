@@ -13,38 +13,50 @@ const config: Config = {
     },
     extend: {
       colors: {
-        bg: "#0F0F0F",
-        // Surfaces step up in lightness instead of carrying borders and glows:
-        // a card is #1A1A1A on the #0F0F0F page, a control inside it #2C2C2E.
-        surface: "#1A1A1A",
+        /*
+         * The dark palette of native fitness apps, sampled from reference
+         * screenshots rather than approximated: a pure black page, flat
+         * #1C1C1E cards, #2C2C2E for chips and controls inside them. No
+         * gradients, rims or shadows — the contrast between black and the card
+         * is the whole effect.
+         */
+        bg: "#000000",
+        surface: "#1C1C1E",
         surface2: "#2C2C2E",
         accent: {
-          DEFAULT: "#C0DA1B",
-          hover: "#A9C016",
+          DEFAULT: "#A8FF00",
+          hover: "#93E000",
         },
-        ink: "#F8F8F8",
-        // Solid greys rather than translucent white, so a label reads the same
-        // on the page and on a card. Both pass 4.5:1 on #1A1A1A.
-        muted: "#9A9AA0",
+        ink: "#FFFFFF",
+        // Solid greys, so a label reads the same on the page and on a card.
+        // Both pass 4.5:1 on #1C1C1E.
+        muted: "#98989F",
         subtle: "#8E8E93",
         hairline: "rgba(255,255,255,0.09)",
         border: "rgba(255,255,255,0.09)",
         /**
-         * One colour per part of the coaching loop, so a ring, a chart or an
-         * icon says which part of your day it belongs to before you read it.
-         * Lime stays the brand and owns training; the rest join it. All six
-         * pass 4.5:1 as text on #1A1A1A, and they differ in lightness as well as
-         * hue so they stay apart for colour-blind users.
+         * One colour per part of the coaching loop, taken from the same
+         * reference: lime for training (the active tab and buttons), the
+         * calorie pink for food (the Move ring's colour — calories, as there),
+         * blue for protein, purple for weight (the step-count purple).
+         *
+         * Food uses the accessible pink (#FF375F) rather than the ring's raw
+         * #FA114F, which reaches only 4.3:1 behind small text on a card; the
+         * difference is barely visible and this one passes 4.5:1. Every colour
+         * here passes as text on #1C1C1E.
          */
-        train: "#C0DA1B",
-        fuel: "#FF9F43",
-        protein: "#3DD6F5",
-        sleep: "#A58BFF",
-        body: "#FF6B8B",
-        learn: "#5AA9FF",
-        background: "#0F0F0F",
-        foreground: "#F8F8F8",
-        ring: "#C0DA1B",
+        train: "#A8FF00",
+        fuel: "#FF375F",
+        protein: "#00B1FF",
+        sleep: "#7D7AFF",
+        body: "#9D86E0",
+        learn: "#0A84FF",
+        // Errors and "over target" get a red of their own. They used to borrow
+        // the pink, which is now food's colour.
+        danger: "#FF453A",
+        background: "#000000",
+        foreground: "#FFFFFF",
+        ring: "#A8FF00",
       },
       fontFamily: {
         // --font-ui is Inter in English and Cairo in Arabic; see globals.css.
@@ -57,7 +69,7 @@ const config: Config = {
         num: ["var(--font-num)", "Saira", "Cairo", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        card: "24px",
+        card: "22px",
       },
       boxShadow: {
         // Neutralised rather than deleted: a drop shadow is invisible on a near-
