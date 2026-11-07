@@ -1,6 +1,6 @@
 import { cache } from "react";
-import { headers } from "next/headers";
-import { isAppShellUserAgent } from "@/lib/access";
+import { cookies, headers } from "next/headers";
+import { APP_SHELL_COOKIE, isAppShellSignal } from "@/lib/access";
 
 /**
  * Server-side "is this the Android app?", for Server Components and Server
@@ -15,11 +15,20 @@ import { isAppShellUserAgent } from "@/lib/access";
  * `cache()` dedupes it per request, so a layout, the page inside it and an
  * action it calls all read the one header without repeating the work.
  *
- * Reading a header opts a route into dynamic rendering. Every `(app)` route is
- * already `force-dynamic` and `/login` already reads `searchParams`, so nothing
- * that calls this was statically rendered to begin with.
+ * Reading a header or a cookie opts a route into dynamic rendering. Every
+ * `(app)` route is already `force-dynamic` and `/login` already reads
+ * `searchParams`, so nothing that calls this was statically rendered to begin
+ * with.
+ *
+ * The cookie is the real signal and the user agent is the fallback — see
+ * `isAppShellSignal`. This never has to cope with the launch request that has
+ * `?app=1` but no cookie yet: the proxy answers that one with a redirect to the
+ * clean URL, so by the time any page renders, the cookie is on the request.
  */
 export const isAppShell = cache(async (): Promise<boolean> => {
-  const store = await headers();
-  return isAppShellUserAgent(store.get("user-agent"));
+  const [headerStore, cookieStore] = await Promise.all([headers(), cookies()]);
+  return isAppShellSignal({
+    cookie: cookieStore.get(APP_SHELL_COOKIE)?.value,
+    userAgent: headerStore.get("user-agent"),
+  });
 });

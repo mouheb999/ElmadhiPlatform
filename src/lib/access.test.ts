@@ -2,9 +2,11 @@ import { describe, it, expect } from "vitest";
 import {
   ALWAYS_FREE_PREFIXES,
   APP_PREVIEW_PREFIXES,
+  APP_SHELL_COOKIE_OPTIONS,
   APP_SHELL_UA,
   PAID_PREFIXES,
   REVERSE_TRIAL,
+  isAppShellSignal,
   isAppShellUserAgent,
   isBlockedInApp,
   isPaidPath,
@@ -152,6 +154,53 @@ describe("isAppShellUserAgent", () => {
     expect(isAppShellUserAgent(null)).toBe(false);
     expect(isAppShellUserAgent(undefined)).toBe(false);
     expect(isAppShellUserAgent("")).toBe(false);
+  });
+});
+
+describe("isAppShellSignal", () => {
+  const CHROME =
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36";
+
+  it("recognises the cookie the start URL leaves behind", () => {
+    // The TWA case: real Chrome, ordinary user agent, cookie set by the proxy
+    // when it saw ?app=1.
+    expect(isAppShellSignal({ cookie: "1", userAgent: CHROME })).toBe(true);
+  });
+
+  it("still recognises the user agent, with no cookie", () => {
+    // The Capacitor fallback, kept so a TWA rejection does not strand us — and
+    // so that clearing site data cannot silently drop an install into web mode.
+    expect(
+      isAppShellSignal({ cookie: undefined, userAgent: `${CHROME} ${APP_SHELL_UA}` }),
+    ).toBe(true);
+  });
+
+  it("treats an ordinary browser as the web", () => {
+    expect(isAppShellSignal({ cookie: undefined, userAgent: CHROME })).toBe(false);
+    expect(isAppShellSignal({ cookie: null, userAgent: null })).toBe(false);
+    expect(isAppShellSignal({})).toBe(false);
+  });
+
+  it("accepts only the exact cookie value", () => {
+    // Guards against a half-written or legacy cookie counting as the app. The
+    // proxy writes "1" and nothing else.
+    expect(isAppShellSignal({ cookie: "", userAgent: CHROME })).toBe(false);
+    expect(isAppShellSignal({ cookie: "0", userAgent: CHROME })).toBe(false);
+    expect(isAppShellSignal({ cookie: "true", userAgent: CHROME })).toBe(false);
+    expect(isAppShellSignal({ cookie: "11", userAgent: CHROME })).toBe(false);
+  });
+});
+
+describe("APP_SHELL_COOKIE_OPTIONS", () => {
+  it("outlives any plausible install", () => {
+    // This records which installation a request came from, not a session. A
+    // short life would flip a long-standing install back to web mode, and the
+    // first symptom would be a price appearing inside the app.
+    const tenYears = 60 * 60 * 24 * 365 * 10;
+    expect(APP_SHELL_COOKIE_OPTIONS.maxAge).toBe(tenYears);
+    expect(APP_SHELL_COOKIE_OPTIONS.path).toBe("/");
+    expect(APP_SHELL_COOKIE_OPTIONS.httpOnly).toBe(true);
   });
 });
 

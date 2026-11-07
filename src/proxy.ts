@@ -8,8 +8,11 @@ import {
 } from "@/lib/paywall-gate";
 import { isSubscriptionActive } from "@/lib/subscription";
 import {
+  APP_SHELL_COOKIE,
+  APP_SHELL_COOKIE_OPTIONS,
+  APP_SHELL_QUERY,
   featureForPath,
-  isAppShellUserAgent,
+  isAppShellSignal,
   isBlockedInApp,
   isPaidPath,
 } from "@/lib/access";
@@ -29,7 +32,9 @@ import {
 // session). The (app) layout still requires a signed-in user, and RLS still
 // scopes every row to its owner.
 //
-// The Android app is the one caller that does not follow the paragraph above.
+// The Android app — a Trusted Web Activity, so real Chrome with a cookie
+// rather than a WebView with its own user agent — is the one caller that does
+// not follow the paragraph above.
 // It cannot: /checkout is where an unpaid web user is sent, and /checkout is
 // the single screen Google Play will not let the app contain. So requests
 // carrying the shell's user agent are routed on the reverse-trial surface
@@ -40,13 +45,42 @@ import {
 
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {
+  /**
+   * The shell announcing itself: `/login?app=1`, its start URL.
+   *
+   * Answered with a redirect to the same path minus the flag, carrying the
+   * cookie. The redirect is the point, not a tidying-up: a cookie set on a
+   * response is not on the *request* that set it, so without the extra hop the
+   * very first render of the launch screen would still look like the web to
+   * `isAppShell()`. One 307 at cold start buys "every render sees the cookie",
+   * which is a much easier rule to hold in your head than "every render after
+   * the first". It also keeps the flag out of the address and out of history.
+   *
+   * Before `updateSession`, so the hop does not pay for a session refresh it is
+   * about to throw away. The next request does that.
+   *
+   * No loop is possible: the flag is deleted on the way out, so the redirected
+   * request does not match this branch again.
+   */
+  if (request.nextUrl.searchParams.get(APP_SHELL_QUERY) === "1") {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete(APP_SHELL_QUERY);
+    const marked = NextResponse.redirect(url);
+    marked.cookies.set(APP_SHELL_COOKIE, "1", APP_SHELL_COOKIE_OPTIONS);
+    return marked;
+  }
+
   const { response, supabase, user, indeterminate } =
     await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  // Is this the Android app rather than a browser? See lib/access for why this
-  // is a routing hint and not a security boundary.
-  const appShell = isAppShellUserAgent(request.headers.get("user-agent"));
+  // Is this the Android app rather than a browser? The cookie above is the
+  // real signal; the user agent is the Capacitor-era fallback. See lib/access
+  // for why this is a routing hint and not a security boundary.
+  const appShell = isAppShellSignal({
+    cookie: request.cookies.get(APP_SHELL_COOKIE)?.value,
+    userAgent: request.headers.get("user-agent"),
+  });
 
   // The app shows neither the marketing site nor the till.
   //
@@ -230,8 +264,7 @@ export const config = {
     // cannot loop.
     "/phone/:path*",
 
-    // The marketing surface, matched *only* when the request carries the app's
-    // user agent.
+    // The marketing surface, matched *only* when the request came from the app.
     //
     // A plain "/" and "/start" in this list would work, and would also undo the
     // reason they were left out: these are the pages paid ads point at, and
@@ -240,24 +273,37 @@ export const config = {
     // browsers — a web visitor never enters the proxy here at all — while the
     // app, which needs the redirect, is the only caller that does.
     //
-    // The pattern is anchored at both ends by Next (`new RegExp("^" + value +
-    // "$")`), hence the leading and trailing `.*` around a user-agent string
-    // that has a browser's worth of tokens either side of it. And it is spelled
-    // out literally rather than built from APP_SHELL_UA in lib/access because
-    // matcher values must be statically analysable at build time — a variable
-    // here is not an error, it is silently ignored, which would quietly serve
-    // the marketing page inside the app.
+    // Two entries per path rather than one, because `has` is an AND of its
+    // conditions while separate entries are an OR, and the app can identify
+    // itself either way: by cookie (the TWA) or by user agent (the Capacitor
+    // fallback). A cookie condition with no `value` matches on presence alone.
+    //
+    // All of it is spelled out literally rather than built from the constants
+    // in lib/access, because matcher values must be statically analysable at
+    // build time — a variable here is not an error, it is silently ignored,
+    // which would quietly serve the marketing page inside the app. The user
+    // agent pattern is additionally anchored at both ends by Next (`new
+    // RegExp("^" + value + "$")`), hence the surrounding `.*` around a string
+    // that has a browser's worth of tokens either side of it.
+    { source: "/", has: [{ type: "cookie", key: "elmadhi_app" }] },
     {
       source: "/",
       has: [
         { type: "header", key: "user-agent", value: ".*HypeFitnessApp.*" },
       ],
     },
+    { source: "/start/:path*", has: [{ type: "cookie", key: "elmadhi_app" }] },
     {
       source: "/start/:path*",
       has: [
         { type: "header", key: "user-agent", value: ".*HypeFitnessApp.*" },
       ],
     },
+
+    // The shell's start URL. /login is otherwise deliberately outside the
+    // matcher — it has no session to refresh and nothing to gate — and it only
+    // needs to be here for the one request that carries `?app=1`, so that the
+    // flag can be exchanged for the cookie.
+    { source: "/login", has: [{ type: "query", key: "app", value: "1" }] },
   ],
 };

@@ -85,9 +85,59 @@ export const ALWAYS_FREE_PREFIXES = [
  */
 export const APP_SHELL_UA = "HypeFitnessApp";
 
-/** True when a request came from the Capacitor shell rather than a browser. */
+/** True when a request carries the shell's user-agent marker. */
 export function isAppShellUserAgent(userAgent: string | null | undefined): boolean {
   return !!userAgent && userAgent.includes(APP_SHELL_UA);
+}
+
+/**
+ * How the Android app announces itself, now that it is a Trusted Web Activity.
+ *
+ * A TWA is Chrome. That is the whole reason for choosing it — Google sign-in
+ * refuses to run in an embedded WebView, and in a TWA it is not one — but it
+ * also means there is no WebView to append a user agent to. Chrome's own
+ * guidance for coordinating with the page is to pass data "in URLs (e.g.
+ * through query parameters)", so the shell's start URL is /login?app=1 and the
+ * proxy turns that one-off flag into a cookie that rides every later request.
+ *
+ * `APP_SHELL_UA` is kept as a fallback rather than deleted. It costs one string
+ * comparison, it keeps the Capacitor option open if the TWA submission is
+ * rejected, and unlike the cookie it cannot be cleared — a user who wipes site
+ * data mid-session would otherwise silently drop into web mode and be shown a
+ * price. Note the UA needs no cookie of its own: it is re-sent on every
+ * request by definition.
+ *
+ * Still a routing hint and still not a security boundary — a cookie is even
+ * easier to forge than a header. Nothing here decides who may read data; see
+ * the note on APP_SHELL_UA.
+ */
+export const APP_SHELL_COOKIE = "elmadhi_app";
+
+/** The query flag on the shell's start URL. `?app=1`, and only "1". */
+export const APP_SHELL_QUERY = "app";
+
+export const APP_SHELL_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  // Ten years. This is not a session or a credential — it records which
+  // *installation* the request came from, which does not expire. Anything
+  // shorter would quietly flip a long-standing install back into web mode,
+  // and the first symptom would be a price appearing inside the app.
+  maxAge: 60 * 60 * 24 * 365 * 10,
+} as const;
+
+/**
+ * The one predicate both the proxy and the server helpers use, so a request
+ * cannot be "the app" in one of them and the web in the other.
+ */
+export function isAppShellSignal(signal: {
+  cookie?: string | null;
+  userAgent?: string | null;
+}): boolean {
+  if (signal.cookie === "1") return true;
+  return isAppShellUserAgent(signal.userAgent);
 }
 
 /**
