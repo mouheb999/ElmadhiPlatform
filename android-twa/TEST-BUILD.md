@@ -17,19 +17,26 @@ Do these first. Each one fails in a way that looks like a different problem.
 
 ### 1. Vercel Deployment Protection must be OFF for previews
 
+**Checked on 2026-11-07: it is currently ON.** The preview answers every
+request with a 302 to `vercel.com/sso-api`, including the asset links file. So
+this step is not hypothetical — nothing below will work until it is changed.
+
+Vercel → **elmadhi-platform → Settings → Deployment Protection → Vercel
+Authentication → Disabled**, then redeploy the branch.
+
 This is the big one. If preview deployments require a Vercel login, your phone
 gets an auth wall instead of the app, **and** Chrome gets a `401` when it
 fetches `assetlinks.json` — so verification fails and you get a URL bar even if
 everything else is perfect.
 
-Vercel → your project → **Settings → Deployment Protection** → set Vercel
-Authentication to **Disabled** for Preview (or at minimum allow public access
-to this deployment). Turn it back on when you are done testing.
+Turn it back on when you are done testing — the preview is a working copy of
+the product with a live database behind it, and with protection off the URL is
+public to anyone who guesses it.
 
 Check it from a machine that is not logged into Vercel:
 
 ```bash
-curl -I https://<PREVIEW-HOST>/.well-known/assetlinks.json
+curl -I https://elmadhi-platform-git-feat-app-shell-mouheb999s-projects.vercel.app/.well-known/assetlinks.json
 ```
 
 `200` means you are fine. `401` means protection is still on.
@@ -87,23 +94,27 @@ It is a few hundred MB and takes a few minutes.
 > spaces** in the path — `C:\android-sdk`, not `C:\Program Files\...`.
 > Bubblewrap breaks on spaces.
 
-## Step 2 — Get the preview URL
+## Step 2 — The preview URL
 
-Vercel → your project → **Deployments**, find the one for `feat/app-shell`.
-Copy the branch URL (the stable one, ending `-git-feat-app-shell-…`), not the
-per-deployment hash URL — the branch URL survives the next push.
+Already worked out, and confirmed to exist:
 
-It looks like `something-git-feat-app-shell-yourname.vercel.app`.
+```
+elmadhi-platform-git-feat-app-shell-mouheb999s-projects.vercel.app
+```
 
-Sanity-check it in a browser before going further: the marketing page should
-load, and `https://<PREVIEW-HOST>/manifest.webmanifest` should return JSON.
+That is the stable *branch* alias — it survives every push to
+`feat/app-shell`, unlike the per-deployment hash URL, so the app does not need
+rebuilding each time you ship a fix.
+
+Once protection is off, sanity-check it in a browser: the marketing page should
+load and `/manifest.webmanifest` should return JSON.
 
 ## Step 3 — Create the project and your signing key
 
 From `android-twa`:
 
 ```bash
-bubblewrap init --manifest https://<PREVIEW-HOST>/manifest.webmanifest
+bubblewrap init --manifest https://elmadhi-platform-git-feat-app-shell-mouheb999s-projects.vercel.app/manifest.webmanifest
 ```
 
 It asks a lot of questions. **Press enter through all of them** — the next step
@@ -139,7 +150,7 @@ website: marketing pages, checkout, prices.
 So:
 
 ```bash
-node apply-config.mjs <PREVIEW-HOST>
+node apply-config.mjs elmadhi-platform-git-feat-app-shell-mouheb999s-projects.vercel.app
 bubblewrap update
 bubblewrap build
 ```
@@ -196,7 +207,7 @@ already exist — Vercel → Deployments → the `feat/app-shell` one → ⋯ �
 Confirm it went live:
 
 ```bash
-curl https://<PREVIEW-HOST>/.well-known/assetlinks.json
+curl https://elmadhi-platform-git-feat-app-shell-mouheb999s-projects.vercel.app/.well-known/assetlinks.json
 ```
 
 Your fingerprint must be in `sha256_cert_fingerprints`, and
