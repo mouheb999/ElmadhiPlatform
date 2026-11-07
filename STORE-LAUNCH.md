@@ -31,14 +31,24 @@ Capacitor).
 
 ## 1. Code that both stores require
 
-- [ ] **Code — delete my account, inside the app.** Required by Google Play
-  (data deletion policy, plus a web link to request it) and by Apple (rule
-  5.1.1(v)). Today only admins can delete accounts.
-- [ ] **Code — a privacy policy page** at a public URL, e.g.
-  `hypefitness.club/privacy`. Both store listings require the link. It must
-  cover what is collected (account, weight and check-ins, meals, meal photos
-  sent for estimation, workout logs) and who processes it (Supabase, the AI
-  model used for photo estimates, Meta pixel on the website).
+- [x] **Code — delete my account, inside the app.** Settings → Delete
+  account (`src/app/(app)/settings/delete-account/`). Immediate: removes the
+  user's receipt files, then the auth user, and every row cascades with it.
+  Admin accounts are refused. Required by Google Play (data deletion
+  policy) and Apple (rule 5.1.1(v)).
+- [x] **Code — public deletion page** for Google Play's "delete account URL":
+  `https://hypefitness.club/delete-account`.
+- [x] **Code — privacy policy page:** `https://hypefitness.club/privacy`, in
+  English and Arabic, linked from Settings. Written from what the code does;
+  update it (and `LEGAL_LAST_UPDATED` in `src/lib/legal.ts`) when that
+  changes.
+- [ ] **You — set `NEXT_PUBLIC_CONTACT_EMAIL` on Vercel** to a real inbox you
+  read, and redeploy. Both pages print it; until then they point to in-app
+  support, which a locked-out user cannot reach, and Play Console expects a
+  contact for deletion requests.
+- [ ] **You — have the privacy policy reviewed.** It is a plain-language
+  draft written from the code, not legal advice. Check the age limit (18+)
+  and add your business name and address if you have a registered company.
 - [ ] **Code — native Google sign-in on iPhone.** Google refuses its sign-in
   page inside embedded web views, so "Continue with Google" cannot work in
   the iPhone app as is. Needs a native plugin and the Supabase ID-token

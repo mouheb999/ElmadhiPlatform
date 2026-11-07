@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, LifeBuoy } from "lucide-react";
+import { ChevronRight, LifeBuoy, ShieldCheck, Trash2 } from "lucide-react";
 import { getLocale } from "@/lib/i18n-server";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { getAdminUser } from "@/lib/auth";
@@ -134,6 +134,34 @@ export default async function SettingsPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Account and privacy. Both stores require that deleting an account is
+          possible inside the app and easy to find, and both ask for the
+          privacy policy to be reachable from it. Delete is red and last, so
+          it is found by someone looking for it and not hit by someone who
+          isn't. */}
+      <Card>
+        <CardContent className="flex flex-col divide-y divide-hairline p-0">
+          <Link href="/privacy" className="press flex items-center gap-3.5 p-5">
+            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-protein/15 text-protein">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+            <span className="flex-1 font-semibold">{t(locale, "settings.privacy")}</span>
+            <ChevronRight className="h-5 w-5 text-subtle rtl:rotate-180" />
+          </Link>
+          <Link
+            href="/settings/delete-account"
+            transitionTypes={["nav-forward"]}
+            className="press flex items-center gap-3.5 p-5"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-[10px] bg-danger/15 text-danger">
+              <Trash2 className="h-5 w-5" />
+            </span>
+            <span className="flex-1 font-semibold text-danger">{t(locale, "account.delete_title")}</span>
+            <ChevronRight className="h-5 w-5 text-subtle rtl:rotate-180" />
+          </Link>
+        </CardContent>
+      </Card>
 
       <form action={signOut}>
         <Button type="submit" variant="secondary" className="w-full">

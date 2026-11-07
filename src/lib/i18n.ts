@@ -1074,6 +1074,53 @@ const STRINGS = {
   "workout.continue_day": { en: "Continue workout", tn: "أكمل الحصة" },
   "workout.day_done": { en: "Completed", tn: "اكتملت" },
   "workout.locked_until_monday": { en: "Locked until Monday", tn: "مقفلة حتى الاثنين" },
+  // ---- delete account + privacy ----
+  "account.delete_title": { en: "Delete account", tn: "حذف الحساب" },
+  "account.delete_intro": {
+    en: "This permanently deletes your HYPE FITNESS account and everything in it. It can't be undone.",
+    tn: "هذا يحذف حسابك في HYPE FITNESS وكل ما فيه نهائياً، ولا يمكن التراجع عنه.",
+  },
+  "account.delete_what": { en: "What gets deleted", tn: "ما الذي سيُحذف" },
+  "account.delete_item_profile": { en: "Your profile, email and phone number", tn: "ملفك الشخصي وبريدك ورقم هاتفك" },
+  "account.delete_item_training": {
+    en: "Your workout program, sessions and progress",
+    tn: "برنامج تمارينك وحصصك وتقدّمك",
+  },
+  "account.delete_item_food": { en: "Your meal plan, food diary and check-ins", tn: "خطة أكلك ويوميات الأكل وتسجيلاتك اليومية" },
+  "account.delete_item_messages": {
+    en: "Your questions, support messages and payment receipts",
+    tn: "أسئلتك ورسائل الدعم ووصولات الدفع",
+  },
+  "account.delete_when": {
+    en: "It happens straight away and you are signed out.",
+    tn: "يتم ذلك فوراً ويتم تسجيل خروجك.",
+  },
+  "account.delete_sub_warning": {
+    en: "Your subscription ends with your account. The time left on it, until {date}, is lost.",
+    tn: "ينتهي اشتراكك مع حسابك، وتضيع المدة المتبقية منه حتى {date}.",
+  },
+  "account.delete_button": { en: "Delete my account", tn: "احذف حسابي" },
+  "account.delete_confirm_title": { en: "Delete your account?", tn: "حذف حسابك؟" },
+  "account.delete_confirm_body": {
+    en: "Everything listed is removed right away. This can't be undone.",
+    tn: "يُحذف كل ما ذُكر فوراً، ولا يمكن التراجع عن ذلك.",
+  },
+  "account.delete_confirm_yes": { en: "Delete permanently", tn: "احذف نهائياً" },
+  "account.deleting": { en: "Deleting…", tn: "جارٍ الحذف…" },
+  "account.delete_failed": {
+    en: "Your account could not be deleted and is still active. Please try again.",
+    tn: "تعذّر حذف حسابك وما زال نشطاً. حاول مرة أخرى.",
+  },
+  "account.delete_admin": {
+    en: "Admin accounts can't be deleted here. Ask another admin to remove your admin rights first.",
+    tn: "لا يمكن حذف حسابات المشرفين من هنا. اطلب من مشرف آخر إزالة صلاحياتك أولاً.",
+  },
+  "account.deleted_title": { en: "Your account has been deleted", tn: "تم حذف حسابك" },
+  "account.deleted_body": {
+    en: "Your account and its data have been removed. Thank you for training with HYPE FITNESS.",
+    tn: "تم حذف حسابك وبياناته. شكراً لأنك تمرّنت مع HYPE FITNESS.",
+  },
+  "settings.privacy": { en: "Privacy policy", tn: "سياسة الخصوصية" },
   "workout.week_done": { en: "{done} of {total} done this week", tn: "{done} من {total} مكتملة هذا الأسبوع" },
   "workout.fewer_sets": { en: "One set fewer", tn: "مجموعة أقل" },
   "workout.more_sets": { en: "One set more", tn: "مجموعة أكثر" },

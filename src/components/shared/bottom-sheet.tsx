@@ -92,7 +92,9 @@ export function BottomSheet({
         )}
       >
         <div className="mx-auto h-[5px] w-9 rounded-full bg-[#48484A]" aria-hidden />
-        <div className="grid h-[52px] grid-cols-[1fr_auto_1fr] items-center">
+        {/* A gap between the columns, so a long title can never run into the
+            Cancel button beside it. */}
+        <div className="grid min-h-[52px] grid-cols-[1fr_auto_1fr] items-center gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -100,7 +102,7 @@ export function BottomSheet({
           >
             {cancelLabel}
           </button>
-          <span className="text-[17px] font-bold">{title}</span>
+          <span className="text-center text-[17px] font-bold">{title}</span>
           <span />
         </div>
         {children}
