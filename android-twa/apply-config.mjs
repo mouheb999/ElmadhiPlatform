@@ -19,6 +19,8 @@
  *   - **The colours.** Default to white, which flashes at every cold start
  *     before the dark app paints.
  *
+ * And one that fails loudly, which is `minSdkVersion` — see below.
+ *
  * Run it after `init` and after any `init` re-run, then `bubblewrap update`.
  */
 
@@ -60,6 +62,24 @@ const origin = `https://${host}`;
 Object.assign(manifest, {
   packageId: "club.hypefitness.app",
   host,
+  /**
+   * 24, because Bubblewrap's template and its own dependency disagree.
+   *
+   * `bubblewrap init` writes minSdkVersion 21, but androidbrowserhelper —
+   * the support library every TWA is built on — declares 24 since 2.7.x. The
+   * manifest merger refuses to reconcile them and the Gradle build dies with
+   * "uses-sdk:minSdkVersion 21 cannot be smaller than version 24 declared in
+   * library [com.google.androidbrowserhelper]".
+   *
+   * Raising ours is the right fix rather than forcing the merge with
+   * `tools:overrideLibrary`, which the error also suggests: the library means
+   * it, and overriding would move a build failure to a runtime crash on the
+   * devices that cannot run it.
+   *
+   * Nothing is lost by it. API 24 is Android 7.0, from 2016, and a TWA already
+   * needs Chrome 72+ — a device too old for 24 was never going to run this.
+   */
+  minSdkVersion: 24,
   name: "HYPE FITNESS",
   launcherName: "HYPE",
   display: "standalone",
@@ -88,5 +108,6 @@ writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
 console.log(`twa-manifest.json updated for ${origin}`);
 console.log(`  packageId  ${manifest.packageId}`);
 console.log(`  startUrl   ${manifest.startUrl}`);
+console.log(`  minSdk     ${manifest.minSdkVersion}`);
 console.log(`  signingKey ${manifest.signingKey?.path ?? "(not set — run bubblewrap init)"}`);
 console.log("\nNext: bubblewrap update && bubblewrap build");

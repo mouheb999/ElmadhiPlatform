@@ -157,6 +157,19 @@ bubblewrap build
 
 `build` asks for the two passwords from step 3.
 
+### If the build fails on `minSdkVersion`
+
+```
+uses-sdk:minSdkVersion 21 cannot be smaller than version 24 declared in
+library [com.google.androidbrowserhelper]
+```
+
+Bubblewrap's template writes 21; the support library every TWA is built on
+requires 24. `apply-config.mjs` pins 24, so re-run it, then
+`bubblewrap update && bubblewrap build`. Do not take the error's other
+suggestion (`tools:overrideLibrary`) — that turns a build failure into a
+runtime crash on the devices that cannot run the library.
+
 ## Step 5 — Where the APK is
 
 ```
