@@ -3,10 +3,11 @@ Generate the Android app icons from the transparent HYPE wordmark.
 
     python scripts/generate-app-icons.py
 
-Writes to public/icons/. Re-run whenever public/logo-mark.png changes, then
-rebuild the Android app (`bubblewrap update && bubblewrap build`): Bubblewrap
-downloads these at build time and bakes them into the APK, so a new icon on
-the website does not reach an installed app on its own.
+Writes to public/icons/, and the iPhone app's icon and launch image into
+ios/App/App/Assets.xcassets/. Re-run whenever public/logo-mark.png changes,
+then rebuild both apps (`bubblewrap update && bubblewrap build` for Android,
+a new Xcode archive for iOS): the icons are baked into the builds, so a new
+icon on the website does not reach an installed app on its own.
 
 Why these exist rather than reusing /icon (public/brand-tile.png):
 
@@ -113,8 +114,8 @@ def glow_layer(alpha: Image.Image, colour: tuple[int, int, int], radius: float, 
     return layer
 
 
-def maskable(size: int, letters: Image.Image) -> Image.Image:
-    width = round(size * MARK_WIDTH)
+def maskable(size: int, letters: Image.Image, mark_width: float = MARK_WIDTH) -> Image.Image:
+    width = round(size * mark_width)
     height = round(letters.height * width / letters.width)
     scaled = resize(letters, (width, height))
     origin = ((size - width) // 2, (size - height) // 2)
@@ -162,6 +163,36 @@ def monochrome(size: int, letters: Image.Image) -> Image.Image:
     return canvas
 
 
+IOS_ASSETS = ROOT / "ios" / "App" / "App" / "Assets.xcassets"
+
+# The launch image is a 2732px square that iOS scales to FILL the screen, so a
+# phone shows only a central strip of it, scaled to the screen's height. At 18%
+# the wordmark lands about 150pt wide on an iPhone — the size of the icon's
+# mark, so the launch reads as the icon opening up.
+SPLASH_MARK_WIDTH = 0.18
+
+
+def ios_outputs(letters: Image.Image) -> dict[Path, Image.Image]:
+    """
+    The iPhone app's icon and launch image.
+
+    Both flattened to RGB: App Store Connect rejects an app icon with an alpha
+    channel outright. The icon is the same full-bleed artwork as the Android
+    maskable one; iOS cuts its own rounded square from it.
+    """
+    if not IOS_ASSETS.exists():
+        return {}
+    icon = maskable(1024, letters).convert("RGB")
+    splash = maskable(2732, letters, SPLASH_MARK_WIDTH).convert("RGB")
+    splash_dir = IOS_ASSETS / "Splash.imageset"
+    return {
+        IOS_ASSETS / "AppIcon.appiconset" / "AppIcon-512@2x.png": icon,
+        splash_dir / "splash-2732x2732.png": splash,
+        splash_dir / "splash-2732x2732-1.png": splash,
+        splash_dir / "splash-2732x2732-2.png": splash,
+    }
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     letters = load_letters()
@@ -173,6 +204,9 @@ def main() -> None:
     }
     for name, image in outputs.items():
         path = OUT / name
+        image.save(path, optimize=True)
+        print(f"wrote {path.relative_to(ROOT)}  {image.size[0]}x{image.size[1]}")
+    for path, image in ios_outputs(letters).items():
         image.save(path, optimize=True)
         print(f"wrote {path.relative_to(ROOT)}  {image.size[0]}x{image.size[1]}")
 

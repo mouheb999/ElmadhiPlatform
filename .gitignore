@@ -65,3 +65,10 @@ keystore.properties
 /android-twa/app/
 /android-twa/*.aab
 /android-twa/*.apk
+
+# iPhone app (Capacitor): Apple signing material and API keys. A leaked
+# App Store Connect key (.p8) can upload builds as you. See ios/README.md.
+*.p8
+*.mobileprovision
+*.cer
+*.certSigningRequest
