@@ -16,6 +16,10 @@ long-lived `elmadhi_app` cookie and redirects to the clean URL. Everything the
 app sees differently — no marketing pages, no checkout, no prices, free mode
 for unactivated accounts — hangs off that cookie. See `src/lib/access.ts`.
 
+> **Testing on a phone today?** [TEST-BUILD.md](./TEST-BUILD.md) is the short
+> path: a sideloaded APK pointed at a Vercel preview, no Play Console. This
+> file is the production route.
+
 ---
 
 ## What you do by hand
@@ -49,8 +53,17 @@ bubblewrap init --manifest https://hypefitness.club/manifest.webmanifest
 ```
 
 It will ask a lot of questions and offer defaults from the web manifest.
-**`twa-manifest.json` in this folder already has the answers we want** — if
-init overwrites it, restore it from git and run `bubblewrap update` instead.
+`init` writes its own `twa-manifest.json` over the one in this folder. Rather
+than restoring it by hand, run:
+
+```bash
+node apply-config.mjs hypefitness.club
+bubblewrap update
+```
+
+which forces the fields that matter back on — most importantly `startUrl`,
+which `init` takes from the web manifest as `/dashboard` and which must be
+`/login?app=1` or the app gets the full website, prices included.
 The values that matter and must not drift:
 
 | Field | Value | Why |
