@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LifeBuoy } from "lucide-react";
+import { LifeBuoy, MessageCircleQuestion, Settings } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +9,7 @@ import { countUnreadSupportReplies } from "@/lib/support";
 import { t } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
+import { OfflineBanner } from "@/components/shared/offline-banner";
 import { AdminCopyBar } from "@/components/admin/copy-bar";
 import { getSubscription } from "@/lib/subscription-server";
 
@@ -65,9 +66,26 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-bg/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
+      {/* `select-none`: the header is chrome. A long press on the logo raising
+          text-selection handles is one of the clearest tells that an app is a
+          web page in a shell. Content inside <main> stays selectable. */}
+      <header className="app-chrome sticky top-0 z-30 flex items-center justify-between border-b border-hairline bg-bg/95 px-4 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur">
         <Logo className="h-7" />
         <div className="flex items-center gap-1">
+          {/* Q&A and Settings moved up here when the bottom bar went to four
+              tabs plus the scan button. Neither belongs in the daily loop — the
+              library is something you consult, and Settings is visited roughly
+              once — but Settings in particular has to stay reachable from every
+              screen: it holds the only sign-out button in the product, which is
+              also why `proxy.ts` never paywalls it. */}
+          <Link
+            href="/qa"
+            aria-label={t(locale, "qa.title")}
+            title={t(locale, "qa.title")}
+            className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
+          >
+            <MessageCircleQuestion className="h-5 w-5" />
+          </Link>
           <Link
             href="/support"
             aria-label={t(locale, "support.title")}
@@ -79,12 +97,22 @@ export default async function AppLayout({
               <SupportUnreadDot userId={user.id} />
             </Suspense>
           </Link>
+          <Link
+            href="/settings"
+            aria-label={t(locale, "settings.title")}
+            title={t(locale, "settings.title")}
+            className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/5"
+          >
+            <Settings className="h-5 w-5" />
+          </Link>
           {/* A notifications bell used to sit here. It was wired to nothing —
               it took a tap and did nothing, on every screen in the product.
               Removed rather than stubbed: a control that visibly does nothing
               teaches people that controls here might not work. */}
         </div>
       </header>
+
+      <OfflineBanner locale={locale} />
 
       <main className="container-page flex-1 py-6 pb-28">{children}</main>
 

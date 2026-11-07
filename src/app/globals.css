@@ -33,6 +33,22 @@
 
   html {
     scroll-behavior: smooth;
+
+    /*
+     * Stop the whole page rubber-banding past its ends.
+     *
+     * In a WebView this is one of the loudest tells that the thing is a web
+     * page: drag down at the top of a native screen and nothing happens, drag
+     * down here and the entire app peeled away from a grey void. `contain` also
+     * blocks the overscroll from chaining to the WebView's own pull-to-refresh,
+     * so a slightly enthusiastic swipe on the dashboard can no longer reload
+     * the app.
+     *
+     * `contain`, not `none`: scroll containers inside the page (the exercise
+     * picker, the add-food sheet) keep their own bounce, which is correct —
+     * that one reads as native.
+     */
+    overscroll-behavior-y: contain;
   }
 
   body {
@@ -40,6 +56,31 @@
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+
+    /*
+     * The grey flash on tap. Chrome on Android paints a translucent highlight
+     * over any tapped link or button, and against this palette it reads as a
+     * rendering glitch rather than feedback. Every control in the product
+     * already has its own `active:` state — the bottom nav scales, buttons
+     * lift — so the highlight is pure noise on top of better feedback.
+     */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * Typing must stay typeable.
+   *
+   * `user-select: none` on an ancestor is inherited, and the chrome classes
+   * below put it on the header and the nav. Nothing with an input lives inside
+   * either today, but this is cheap insurance against the day one does — a
+   * field you cannot select text in is a genuinely broken field, and it would
+   * be a confusing bug to track down.
+   */
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /*
@@ -110,6 +151,25 @@
 }
 
 @layer utilities {
+  /*
+   * For chrome — the header, the bottom nav — as opposed to content.
+   *
+   * Two properties, both about long-press. `user-select: none` stops the text
+   * selection handles coming up over a tab label or the logo; the callout
+   * suppression stops Chrome's "Open in new tab / Copy link address" sheet
+   * appearing over the navigation. Both are what a native app does, and neither
+   * belongs on anything inside <main>: a user who wants to copy a number off
+   * their own meal plan should be able to.
+   *
+   * Applied as one class rather than Tailwind's `select-none` so the pair
+   * cannot drift apart, and so the intent — "this is chrome" — is named.
+   */
+  .app-chrome {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
     *,
