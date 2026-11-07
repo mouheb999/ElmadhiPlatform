@@ -2,7 +2,7 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Dumbbell, Utensils, TrendingUp, Camera } from "lucide-react";
+import { Home, Dumbbell, Utensils, TrendingUp, ScanLine } from "lucide-react";
 import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
 import { type Locale, type StringKey, t } from "@/lib/i18n";
@@ -19,7 +19,9 @@ type Tab = {
 const TABS: Tab[] = [
   { href: "/dashboard", label: "nav.today", icon: Home },
   { href: "/workout", label: "nav.workouts", icon: Dumbbell },
-  { href: "/ai", label: "nav.scan_short", icon: Camera, disc: true },
+  // A scan frame rather than a camera: the tab opens straight into the
+  // viewfinder, and this is the same mark its "Scan food" mode wears.
+  { href: "/ai", label: "nav.scan_short", icon: ScanLine, disc: true },
   { href: "/diet", label: "nav.food", icon: Utensils },
   { href: "/progress", label: "nav.progress", icon: TrendingUp },
 ];

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Camera,
@@ -12,8 +13,11 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  ScanLine,
   Trash2,
   X,
+  Zap,
+  ZapOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DecimalInput, Input } from "@/components/ui/input";
@@ -158,8 +162,15 @@ export function CalorieAiClient({
     onLog: () => void;
   };
 }) {
+  const router = useRouter();
   const [photo, setPhoto] = useState<Photo | null>(null);
-  const [camera, setCamera] = useState<CameraState>("idle");
+  // The screen IS the camera: it opens straight into the viewfinder, so the
+  // first paint is the black "starting" frame rather than a card to tap. The
+  // checkout preview starts idle — a marketing page must never ask for the
+  // camera on arrival.
+  const [camera, setCamera] = useState<CameraState>(preview ? "idle" : "starting");
+  /** Torch state, and whether this camera has one at all (most Android rear cameras do). */
+  const [torch, setTorch] = useState<{ supported: boolean; on: boolean }>({ supported: false, on: false });
   /** True once the stream reports real dimensions — capture needs them. */
   const [videoReady, setVideoReady] = useState(false);
   const [notes, setNotes] = useState("");
@@ -179,6 +190,27 @@ export function CalorieAiClient({
     streamRef.current = null;
     setCamera("idle");
     setVideoReady(false);
+    setTorch({ supported: false, on: false });
+  }
+
+  async function toggleTorch() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torch.on;
+    try {
+      // `torch` is a Chrome constraint not yet in the DOM typings.
+      await track.applyConstraints({ advanced: [{ torch: next } as MediaTrackConstraintSet] });
+      setTorch({ supported: true, on: next });
+    } catch {
+      setTorch({ supported: false, on: false });
+    }
+  }
+
+  /** The X in the viewfinder leaves the scanner, the way a camera app closes. */
+  function closeScanner() {
+    stopCamera();
+    if (window.history.length > 1) router.back();
+    else router.push("/dashboard");
   }
 
   // Never leave the camera running when navigating away. Touches only the ref,
@@ -213,7 +245,7 @@ export function CalorieAiClient({
     void video.play().catch(() => {});
   }, [camera]);
 
-  async function openCamera() {
+  async function openCamera(isCancelled: () => boolean = () => false) {
     setError(null);
     setPhoto(null);
     setVideoReady(false);
@@ -242,9 +274,19 @@ export function CalorieAiClient({
         video: { facingMode: "environment", width: { ideal: 1280 } },
         audio: false,
       });
+      // The screen was left (or, in development, Strict Mode re-ran the
+      // mount) while the permission prompt was up. Without this the stream
+      // would be orphaned with the camera light still on.
+      if (isCancelled()) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
+      const caps = stream.getVideoTracks()[0]?.getCapabilities?.() as { torch?: boolean } | undefined;
+      setTorch({ supported: !!caps?.torch, on: false });
       setCamera("live");
     } catch (cameraError) {
+      if (isCancelled()) return;
       streamRef.current = null;
       setCamera("idle");
       // Say what went wrong instead of silently opening the file picker — a
@@ -254,11 +296,33 @@ export function CalorieAiClient({
     }
   }
 
+  // Straight into the viewfinder on arrival. The cancel flag covers leaving
+  // the screen before the permission prompt is answered.
+  useEffect(() => {
+    if (preview) return;
+    let cancelled = false;
+    // Starting a camera is syncing with an external system — what effects
+    // are for. Its state updates land after the permission prompt resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void openCamera(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount
+  }, []);
+
+  /**
+   * The shutter is the whole action: it captures and starts the estimate in
+   * one press, as camera-first food scanners do. The old flow made you take
+   * the photo, then find and press "Estimate calories" underneath it.
+   */
   function capture() {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return;
-    setPhoto(captureVisibleRegion(video));
+    const shot = captureVisibleRegion(video);
+    setPhoto(shot);
     stopCamera();
+    estimate(shot);
   }
 
   async function onPickFile(file: File | undefined) {
@@ -274,6 +338,7 @@ export function CalorieAiClient({
       // hide the photo the user just chose behind a live camera feed.
       stopCamera();
       setPhoto(picked);
+      estimate(picked);
     } catch {
       setError(t(locale, "ai.camera_error"));
     }
@@ -289,8 +354,9 @@ export function CalorieAiClient({
     else void openCamera();
   }
 
-  function estimate() {
-    if (!photo) return;
+  /** Takes the photo explicitly: it runs in the same tick as setPhoto. */
+  function estimate(shot: Photo | null = photo) {
+    if (!shot) return;
     setError(null);
 
     if (preview) {
@@ -307,8 +373,8 @@ export function CalorieAiClient({
     startTransition(async () => {
       const result = await estimateMealAction({
         description: notes,
-        imageBase64: photo.base64,
-        imageMediaType: photo.mediaType,
+        imageBase64: shot.base64,
+        imageMediaType: shot.mediaType,
       });
       if (!result.ok) {
         setError(result.error);
@@ -457,7 +523,7 @@ export function CalorieAiClient({
         ) : (
           <button
             type="button"
-            onClick={openCamera}
+            onClick={() => void openCamera()}
             // A viewfinder-shaped panel with the shutter in the middle: the
             // one thing on the screen to press, in the brand colour.
             className="press flex flex-col items-center justify-center gap-3 rounded-[18px] bg-surface2 px-6 py-11"
@@ -499,7 +565,7 @@ export function CalorieAiClient({
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={openCamera}
+                    onClick={() => void openCamera()}
                     className={chipClass(false, "sm")}
                   >
                     {t(locale, "ai.camera_retry")}
@@ -517,7 +583,7 @@ export function CalorieAiClient({
           </div>
         )}
 
-        <Button onClick={estimate} disabled={isPending || !photo}>
+        <Button onClick={() => estimate()} disabled={isPending || !photo}>
           {isPending && !items ? t(locale, "ai.estimating") : t(locale, "ai.estimate_cta")}
         </Button>
       </div>
@@ -730,8 +796,10 @@ export function CalorieAiClient({
           videoReady={videoReady}
           onReady={() => setVideoReady(true)}
           onCapture={capture}
-          onClose={stopCamera}
+          onClose={closeScanner}
           onPickFile={() => fileRef.current?.click()}
+          torch={torch}
+          onToggleTorch={toggleTorch}
         />
       )}
 
@@ -758,6 +826,8 @@ function CameraOverlay({
   onCapture,
   onClose,
   onPickFile,
+  torch,
+  onToggleTorch,
 }: {
   locale: Locale;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -766,6 +836,8 @@ function CameraOverlay({
   onCapture: () => void;
   onClose: () => void;
   onPickFile: () => void;
+  torch: { supported: boolean; on: boolean };
+  onToggleTorch: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-[60] bg-black">
@@ -804,56 +876,87 @@ function CameraOverlay({
             className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[76vw] max-w-[420px] -translate-x-1/2 -translate-y-1/2"
           >
             {[
-              "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-2xl",
-              "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-2xl",
-              "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-2xl",
-              "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-2xl",
+              "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-[22px]",
+              "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-[22px]",
+              "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-[22px]",
+              "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-[22px]",
             ].map((corner) => (
-              <span key={corner} className={cn("absolute h-10 w-10 border-white/85", corner)} />
+              <span key={corner} className={cn("absolute h-12 w-12 border-white", corner)} />
             ))}
           </div>
 
-          <p className="pointer-events-none absolute inset-x-0 top-[calc(4.5rem+env(safe-area-inset-top))] mx-auto max-w-[17rem] text-center text-xs font-semibold leading-relaxed text-white/85 drop-shadow">
+          <p className="pointer-events-none absolute inset-x-0 top-[calc(5rem+env(safe-area-inset-top))] mx-auto max-w-[17rem] text-center text-[13px] font-semibold leading-snug text-white/90 drop-shadow">
             {t(locale, "ai.frame_hint")}
           </p>
         </>
       )}
 
+      {/* Close at the start corner, as camera apps place it. */}
       <button
         type="button"
         onClick={onClose}
         aria-label={t(locale, "ai.close_camera")}
-        className="absolute end-4 top-[calc(1rem+env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+        className="press absolute start-4 top-[calc(1rem+env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-white/20 text-white backdrop-blur-md"
       >
-        <X className="h-5 w-5" />
+        <X className="h-5 w-5" strokeWidth={2.4} />
       </button>
 
-      {/* Gallery on one side, shutter centred, an empty cell on the other so
-          the shutter sits on the true centre line rather than near it. */}
-      <div className="absolute inset-x-0 bottom-[calc(2rem+env(safe-area-inset-bottom))] grid grid-cols-3 items-center px-8">
-        <button
-          type="button"
-          onClick={onPickFile}
-          aria-label={t(locale, "ai.gallery")}
-          className="grid h-12 w-12 place-items-center justify-self-start rounded-2xl bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25"
-        >
-          <ImageIcon className="h-5 w-5" />
-        </button>
+      <div className="absolute inset-x-0 bottom-[calc(1.75rem+env(safe-area-inset-bottom))] flex flex-col items-center gap-6 px-6">
+        {/* Mode pill: scanning a plate is the mode you are in; the gallery is
+            the other way in. A frosted capsule over the picture, the active
+            mode in a white segment. */}
+        <div className="flex items-center gap-1 rounded-full bg-white/80 p-1 text-black backdrop-blur-xl">
+          <span className="flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-[14px] font-semibold shadow-sm">
+            <ScanLine className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            {t(locale, "ai.scan_food")}
+          </span>
+          <button
+            type="button"
+            onClick={onPickFile}
+            aria-label={t(locale, "ai.gallery")}
+            className="press grid h-9 w-12 place-items-center rounded-full text-black/70"
+          >
+            <ImageIcon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={onCapture}
-          disabled={!videoReady}
-          aria-label={t(locale, "ai.capture")}
-          className={cn(
-            "grid h-20 w-20 place-items-center justify-self-center rounded-full ring-4 ring-white/90 transition-transform",
-            videoReady ? "active:scale-90" : "cursor-not-allowed opacity-40",
+        {/* Torch on one side, the shutter on the true centre line, an empty
+            cell opposite so it does not drift off centre. */}
+        <div className="grid w-full max-w-sm grid-cols-3 items-center">
+          {torch.supported ? (
+            <button
+              type="button"
+              onClick={onToggleTorch}
+              aria-label={t(locale, "ai.flash")}
+              aria-pressed={torch.on}
+              className={cn(
+                "press grid h-11 w-11 place-items-center justify-self-center rounded-full backdrop-blur-md",
+                torch.on ? "bg-white text-black" : "bg-white/20 text-white",
+              )}
+            >
+              {torch.on ? <Zap className="h-5 w-5" /> : <ZapOff className="h-5 w-5" />}
+            </button>
+          ) : (
+            <span aria-hidden />
           )}
-        >
-          <span className="h-[3.75rem] w-[3.75rem] rounded-full bg-white shadow-[0_0_28px_rgba(255,255,255,0.45)]" />
-        </button>
 
-        <span aria-hidden />
+          {/* A plain white shutter inside a white ring — nothing on it, so it
+              reads as the one button that takes the picture. */}
+          <button
+            type="button"
+            onClick={onCapture}
+            disabled={!videoReady}
+            aria-label={t(locale, "ai.capture")}
+            className={cn(
+              "grid h-[78px] w-[78px] place-items-center justify-self-center rounded-full border-[4px] border-white transition-transform",
+              videoReady ? "active:scale-90" : "cursor-not-allowed opacity-40",
+            )}
+          >
+            <span className="h-[62px] w-[62px] rounded-full bg-white" />
+          </button>
+
+          <span aria-hidden />
+        </div>
       </div>
     </div>
   );

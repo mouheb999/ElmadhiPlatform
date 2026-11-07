@@ -1580,6 +1580,8 @@ const STRINGS = {
     tn: "املأ الإطار بالصحن. لا يُرسل إلا ما تراه هنا.",
   },
   "ai.gallery": { en: "Gallery", tn: "الصور" },
+  "ai.scan_food": { en: "Scan food", tn: "صوّر الأكل" },
+  "ai.flash": { en: "Flash", tn: "الفلاش" },
   "ai.close_camera": { en: "Close camera", tn: "أغلق الكاميرا" },
   "ai.analyzing_title": { en: "Reading your plate", tn: "يقرأ صحنك" },
   "ai.analyzing_1": { en: "Looking at the photo", tn: "ينظر في الصورة" },
