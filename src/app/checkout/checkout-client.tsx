@@ -13,6 +13,7 @@ import {
   startPaymentRequest,
 } from "@/app/actions/payment";
 import { PaymentMethods } from "@/components/checkout/payment-methods";
+import { TrialEndedHero, type TrialRecap } from "@/components/checkout/trial-ended-hero";
 import { Faq, Testimonials } from "@/components/funnel/proof";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,8 @@ type Props = {
   trialDaysLeft: number | null;
   /** The window ran out and nothing was ever paid. */
   trialEnded: boolean;
+  /** Their goal and what they did in the free days. Only when `trialEnded`. */
+  trialRecap: TrialRecap | null;
   hasProof: boolean;
   /** There is an open request: they have said they transferred the money. */
   hasOpenRequest: boolean;
@@ -171,6 +174,7 @@ export function CheckoutClient({
   hasAccessNow,
   trialDaysLeft,
   trialEnded,
+  trialRecap,
   hasProof,
   hasOpenRequest,
   wasRejected,
@@ -638,16 +642,22 @@ export function CheckoutClient({
       <div className="flex w-full max-w-md flex-col gap-4">
         {step === 1 && (
           <>
-            <div className="text-center">
-              {/* The page's own title, not the step bar's label for it: the
-                  strip above already says "Step 1 · Pick your plan". */}
-              <h1 className="text-2xl font-extrabold tracking-tight">
-                {t(locale, "checkout.title")}
-              </h1>
-              {fromFeature && (
-                <p className="mt-1 text-sm text-muted">{t(locale, FROM_REASON[fromFeature])}</p>
-              )}
-            </div>
+            {/* Two different pages share this step. For somebody whose free
+                days have just run out it opens on their own goal and what they
+                did, and offers the challenge — see TrialEndedHero. For
+                everybody else it is a title and the plans. */}
+            {trialEnded ? (
+              <TrialEndedHero locale={locale} recap={trialRecap} />
+            ) : (
+              <div className="text-center">
+                <h1 className="text-2xl font-extrabold tracking-tight">
+                  {t(locale, "checkout.title")}
+                </h1>
+                {fromFeature && (
+                  <p className="mt-1 text-sm text-muted">{t(locale, FROM_REASON[fromFeature])}</p>
+                )}
+              </div>
+            )}
 
             {wasRejected && (
               <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
@@ -662,21 +672,6 @@ export function CheckoutClient({
               <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-sm font-semibold">
                 {t(locale, "checkout.renewal_banner")}
               </p>
-            )}
-
-            {/* The trial ran out. The one thing this reader needs to hear
-                before a price is that nothing they built is gone — the plan
-                and every meal and session they logged are still there, behind
-                this screen. Somebody who believes they are starting over has
-                much less reason to pay than somebody picking up where they
-                stopped. */}
-            {trialEnded && (
-              <div className="flex flex-col gap-1 rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3.5">
-                <p className="text-sm font-bold">{t(locale, "trial.ended_title")}</p>
-                <p className="text-xs leading-relaxed text-muted">
-                  {t(locale, "trial.ended_body")}
-                </p>
-              </div>
             )}
 
             {/* Still inside the trial and looking at prices on purpose. Says
@@ -757,8 +752,15 @@ export function CheckoutClient({
                           )}
                           <span className="flex flex-wrap items-center gap-2">
                             <span className="font-display text-lg font-extrabold">
-                              {term(plan.months)}
+                              {/* The recommended term is sold as what it is
+                                  for, with its length beside it. */}
+                              {best ? t(locale, "plans.challenge") : term(plan.months)}
                             </span>
+                            {best && (
+                              <span className="text-xs font-semibold text-muted">
+                                {term(plan.months)}
+                              </span>
+                            )}
                             {save !== null && (
                               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
                                 {t(locale, "plans.save")} <bdi>{dt(save)} DT</bdi>
@@ -838,7 +840,11 @@ export function CheckoutClient({
                   size="lg"
                   className="w-full"
                 >
-                  {signedIn ? t(locale, "co.next") : t(locale, "co.next_signup")}
+                  {!signedIn
+                    ? t(locale, "co.next_signup")
+                    : selectedPlan?.months === BEST_VALUE_MONTHS
+                      ? t(locale, "plans.challenge_cta")
+                      : t(locale, "co.next")}
                   {selectedPlan && ` — ${dt(selectedPlan.price_tnd)} DT`}
                   {/* Points the way the reader is going. Not Tailwind's `rtl:`
                       variant: it matches on any ancestor with dir="rtl", and

@@ -130,3 +130,55 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+/**
+ * Reminders.
+ *
+ * The server sends a small JSON payload — a title, a body and the path to open
+ * — and this shows it. A push that cannot be read still shows something: the
+ * browser requires a visible notification for every push, and silently
+ * swallowing one gets the permission revoked.
+ *
+ * `tag` means a newer reminder of the same kind replaces the one already on
+ * the lock screen instead of stacking under it.
+ */
+self.addEventListener("push", (event) => {
+  let payload: { title?: string; body?: string; url?: string; tag?: string } = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = {};
+  }
+  const url = typeof payload.url === "string" && payload.url.startsWith("/") ? payload.url : "/dashboard";
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "HYPE FITNESS", {
+      body: payload.body || "",
+      icon: "/icon",
+      badge: "/icons/icon-monochrome-512.png",
+      tag: payload.tag || "hype",
+      data: { url },
+    }),
+  );
+});
+
+/**
+ * Tapping a reminder opens the app at the place it was about — and reuses a
+ * window that is already open rather than starting a second copy of the app.
+ */
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data as { url?: string } | undefined)?.url || "/dashboard";
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of windows) {
+        if ("focus" in client) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(url).catch(() => undefined);
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});

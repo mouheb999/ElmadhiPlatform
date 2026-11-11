@@ -11,6 +11,8 @@ import { signOut } from "@/app/actions/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
+import { RemindersCard } from "@/components/settings/reminders-card";
+import { pushConfigured } from "@/lib/push/send";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +98,13 @@ export default async function SettingsPage() {
           <ChevronRight className="h-5 w-5 text-subtle rtl:rotate-180" />
         </Link>
       </Card>
+
+      {/* Reminders are opt-in and switched on here, never by a prompt on
+          arrival. The key is only passed when the server can actually send. */}
+      <RemindersCard
+        locale={locale}
+        vapidKey={pushConfigured() ? (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null) : null}
+      />
 
       <Card>
         <CardContent className="flex items-center justify-between p-6">

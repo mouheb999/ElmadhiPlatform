@@ -5,6 +5,8 @@ import { getLocale } from "@/lib/i18n-server";
 import { isUnread } from "@/lib/support";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
 import { freeAccessDaysLeft, hasFreeAccess, hasPaidTerm } from "@/lib/subscription";
+import { loadJourney } from "@/lib/journey";
+import type { TrialRecap } from "@/components/checkout/trial-ended-hero";
 import { CheckoutClient, type PaymentThread } from "./checkout-client";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +97,53 @@ export default async function CheckoutPage({
   const trialEnded =
     !!profile?.free_access_until && !freeAccess && !hasPaidTerm(profile) && !expired;
 
+  /**
+   * What the trial-ended screen opens with: the member's own goal and what
+   * they did in the free days. Read only for that one state — everybody else
+   * on this page is looking at prices and needs none of it.
+   *
+   * Counts, not rows, and a failure is not worth failing the page over: with
+   * no recap the screen still names the challenge and shows the plans.
+   */
+  let trialRecap: TrialRecap | null = null;
+  if (user && trialEnded) {
+    try {
+      const count = { count: "exact" as const, head: true };
+      const [journey, meals, sessions, weighIns] = await Promise.all([
+        loadJourney(supabase, user.id),
+        supabase.from("meal_logs").select("id", count).eq("user_id", user.id),
+        supabase
+          .from("workout_sessions")
+          .select("id", count)
+          .eq("user_id", user.id)
+          .not("completed_at", "is", null),
+        supabase
+          .from("daily_checkins")
+          .select("id", count)
+          .eq("user_id", user.id)
+          .not("weight_kg", "is", null),
+      ]);
+      const lastStop =
+        journey && journey.plan.kind === "scale"
+          ? journey.plan.timeline[journey.plan.timeline.length - 1]
+          : null;
+      trialRecap = {
+        goalDeltaKg: lastStop && journey ? lastStop.kg - journey.startKg : null,
+        goalDate: lastStop
+          ? lastStop.date.toLocaleDateString(locale === "tn" ? "ar-TN-u-nu-latn" : "en-GB", {
+              day: "numeric",
+              month: "long",
+            })
+          : null,
+        meals: meals.count ?? 0,
+        sessions: sessions.count ?? 0,
+        weighIns: weighIns.count ?? 0,
+      };
+    } catch {
+      trialRecap = null;
+    }
+  }
+
   // The conversation attached to the open request (migration 044). This is what
   // turns the review screen from a status light into somewhere the customer can
   // actually say "I sent it from my brother's account" and get an answer.
@@ -137,6 +186,7 @@ export default async function CheckoutPage({
       hasAccessNow={freeAccess}
       trialDaysLeft={freeAccessDaysLeft(profile)}
       trialEnded={trialEnded}
+      trialRecap={trialRecap}
       hasProof={openRequest?.status === "pending" && !!openRequest.proof_path}
       hasOpenRequest={openRequest?.status === "pending"}
       wasRejected={openRequest?.status === "rejected"}

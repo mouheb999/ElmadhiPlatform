@@ -2404,6 +2404,67 @@ const STRINGS = {
   "hint.install_cta": { en: "Add", tn: "أضف" },
   "hint.close": { en: "Close", tn: "إغلاق" },
 
+  // ---- the trial-ended screen, and the challenge it offers ----
+  "plans.challenge": { en: "90-day challenge", tn: "تحدّي 90 يوماً" },
+  "plans.challenge_cta": { en: "Start my 90-day challenge", tn: "ابدأ تحدّي الـ90 يوماً" },
+  "te.eyebrow": { en: "Your free days are over", tn: "انتهت أيامك المجانية" },
+  "te.title": { en: "Now make it count: 90 days to your goal", tn: "الآن الجدّ: 90 يوماً لهدفك" },
+  "te.saved": {
+    en: "Your plan and everything you logged are saved. Pick up exactly where you stopped.",
+    tn: "برنامجك وكل ما سجّلته محفوظ. واصل من حيث توقّفت بالضبط.",
+  },
+  "te.meal": { en: "meal logged", tn: "وجبة مسجّلة" },
+  "te.meals": { en: "meals logged", tn: "وجبات مسجّلة" },
+  "te.session": { en: "workout done", tn: "حصّة منجزة" },
+  "te.sessions": { en: "workouts done", tn: "حصص منجزة" },
+  "te.weigh_in": { en: "weigh-in", tn: "وزن مسجّل" },
+  "te.weigh_ins": { en: "weigh-ins", tn: "أوزان مسجّلة" },
+
+  // ---- reminders (web push), switched on in Settings ----
+  "rem.title": { en: "Reminders", tn: "التذكيرات" },
+  "rem.sub": {
+    en: "One a day at most: to log, to train, and before your free days end.",
+    tn: "واحد في اليوم على الأكثر: للتسجيل، للتمرين، وقبل انتهاء أيامك المجانية.",
+  },
+  "rem.test": { en: "Send me a test", tn: "أرسل لي تجربة" },
+  "rem.sending": { en: "Sending…", tn: "جارٍ الإرسال…" },
+  "rem.on_done": {
+    en: "Reminders are on. Send yourself a test to check.",
+    tn: "التذكيرات مفعّلة. أرسل لنفسك تجربة لتتأكّد.",
+  },
+  "rem.test_sent": {
+    en: "Sent. It should appear in a few seconds.",
+    tn: "أُرسل. سيظهر خلال ثوانٍ.",
+  },
+  "rem.test_failed": {
+    en: "It did not go through. Check that notifications are allowed for this app in your phone's settings.",
+    tn: "لم يصل. تأكّد أن الإشعارات مسموحة لهذا التطبيق في إعدادات هاتفك.",
+  },
+  "rem.test_none": {
+    en: "Switch reminders on first.",
+    tn: "فعّل التذكيرات أوّلاً.",
+  },
+  "rem.failed": {
+    en: "Could not change reminders. Try again.",
+    tn: "تعذّر تغيير التذكيرات. حاول مرة أخرى.",
+  },
+  "rem.blocked": {
+    en: "Notifications are blocked for this app. Allow them in your phone's settings, then come back.",
+    tn: "الإشعارات محظورة لهذا التطبيق. اسمح بها من إعدادات هاتفك ثم ارجع.",
+  },
+  "rem.needs_home": {
+    en: "On iPhone, add HYPE to your home screen first, then open it from there and switch this on.",
+    tn: "على الآيفون، أضف HYPE إلى شاشتك الرئيسية أوّلاً، ثم افتحه من هناك وفعّل هذا.",
+  },
+  "rem.unsupported": {
+    en: "This browser cannot receive reminders.",
+    tn: "هذا المتصفّح لا يستقبل التذكيرات.",
+  },
+  "rem.unavailable": {
+    en: "Reminders are not available yet.",
+    tn: "التذكيرات غير متاحة بعد.",
+  },
+
   // ---- proof blocks, shared by /start and /checkout ----
   "proof.title": { en: "What people say", tn: "ماذا يقول الناس" },
 

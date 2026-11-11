@@ -30,7 +30,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@capacitor/cli": "8.5.3",
@@ -38,6 +39,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.5.0",
     "esbuild": "^0.28.2",
     "eslint": "^9",

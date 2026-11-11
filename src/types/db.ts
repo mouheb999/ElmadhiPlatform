@@ -1029,6 +1029,33 @@ export type Database = {
         >;
         Relationships: [];
       };
+      /** migration 059 — browsers a member has allowed reminders in. */
+      push_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          locale: string;
+          created_at: string;
+          last_sent_at: string | null;
+          last_kind: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          locale?: string;
+          created_at?: string;
+          last_sent_at?: string | null;
+          last_kind?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["push_subscriptions"]["Insert"]>;
+        Relationships: [];
+      };
       funnel_events: {
         Row: {
           id: number;
