@@ -395,3 +395,34 @@ describe("calculateFitnessPlan — incomplete data cannot look like a plan", () 
         }
   });
 });
+
+describe("a plan read back inside the app", () => {
+  const answers = {
+    goal: "lose_fat" as const,
+    gender: "male" as const,
+    age: 27,
+    heightCm: 176,
+    weightKg: 88,
+    targetWeightKg: 78,
+    activityLevel: "moderate" as const,
+    trainingDays: "3_4",
+  };
+
+  it("keeps its stops where they were when anchored to the start date", () => {
+    const startAt = Date.UTC(2026, 9, 9, 12); // 9 October 2026
+    const plan = calculateFitnessPlan({ ...answers, startAt });
+    expect(plan.valid).toBe(true);
+    expect(plan.timeline.map((stop) => stop.week)).toEqual([0, 4, 8, 12]);
+    expect(plan.timeline[0].date.getTime()).toBe(startAt);
+    expect(plan.timeline[1].date.getTime()).toBe(startAt + 28 * 86_400_000);
+    expect(plan.timeline[3].date.getTime()).toBe(startAt + 84 * 86_400_000);
+  });
+
+  it("changes only the dates, never the numbers", () => {
+    const anchored = calculateFitnessPlan({ ...answers, startAt: Date.UTC(2026, 0, 1) });
+    const fresh = calculateFitnessPlan(answers);
+    expect(anchored.timeline.map((stop) => stop.kg)).toEqual(fresh.timeline.map((stop) => stop.kg));
+    expect(anchored.targets.calories).toBe(fresh.targets.calories);
+    expect(anchored.targetWeeks).toBe(fresh.targetWeeks);
+  });
+});

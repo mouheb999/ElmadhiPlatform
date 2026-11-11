@@ -206,6 +206,15 @@ export type FitnessPlanInput = {
   trainingDays?: string | null;
   bodyFatPercent?: number | null;
   pace?: Pace | null;
+  /**
+   * The instant the plan starts, in epoch milliseconds. Defaults to now.
+   *
+   * On /start the plan begins the moment it is shown, so "today" is right. In
+   * the app the same plan is read back weeks later, and its stops have to stay
+   * where they were: the four-week milestone is four weeks after the day the
+   * member started, not four weeks after whenever they opened the screen.
+   */
+  startAt?: number | null;
 };
 
 export type TimelinePoint = {
@@ -448,7 +457,7 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
   // already standing on, or a screened plan held at maintenance. The reveal
   // renders its recomposition card instead of a timeline.
   if (energy.direction === "hold" || (Math.abs(gap) < MEANINGFUL_KG && !planGoesDown && !planGoesUp)) {
-    const now = Date.now();
+    const now = input.startAt ?? Date.now();
     return {
       valid: invalidReason === null,
       invalidReason,
@@ -536,7 +545,7 @@ export function calculateFitnessPlan(input: FitnessPlanInput): FitnessPlan {
 
   const at = (week: number): number => weights[Math.min(week, weights.length - 1)] ?? startKg;
 
-  const now = Date.now();
+  const now = input.startAt ?? Date.now();
   const timeline: TimelinePoint[] = HORIZON_WEEKS.map((week) => {
     const kg = at(week);
     const band = bandKgForWeek(week);

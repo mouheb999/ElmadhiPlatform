@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Flame } from "lucide-react";
+import { ChevronDown, Flame } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
@@ -10,7 +10,8 @@ import { WeightTrendChart, shortDate, type WeightPoint } from "@/components/prog
 import { WeeklyBars } from "@/components/progress/weekly-bars";
 import { MuscleProgress, type MuscleRow } from "@/components/progress/muscle-progress";
 import { ExerciseTrends, type ExerciseTrend } from "@/components/progress/exercise-trends";
-import { CardTitleRow } from "@/components/shared/card-title-row";
+import { JourneyCard } from "@/components/progress/journey-card";
+import { loadJourney } from "@/lib/journey";
 import { PageHeader } from "@/components/shared/page-header";
 import { chipClass } from "@/components/ui/chip";
 
@@ -57,7 +58,9 @@ export default async function ProgressPage({
   ).toISOString();
   const checkinsFrom = tunisDaysAgoKey(89);
 
-  const [{ data: trainingProfile }, { data: checkins }, { data: sessions }] = await Promise.all([
+  const [journey, { data: trainingProfile }, { data: checkins }, { data: sessions }] = await Promise.all([
+    // The plan they were shown on /start, anchored to the day they began.
+    loadJourney(supabase, user.id),
     supabase
       .from("training_profiles")
       .select("days_per_week")
@@ -212,17 +215,33 @@ export default async function ProgressPage({
 
   const hasAnyData = weightPoints.length > 0 || sessionIds.length > 0;
 
+  // The newest weigh-in in the last 90 days, whatever range the chart is on.
+  const weighIns = (checkins ?? []).filter((c) => c.weight_kg !== null);
+  const newestKg = weighIns.length > 0 ? weighIns[weighIns.length - 1].weight_kg : null;
+
   return (
     <div className="flex flex-col gap-5 pb-4">
       <PageHeader eyebrow={t(locale, "progress.eyebrow")} title={t(locale, "progress.title")} />
 
-      {!hasAnyData && (
+      {/* The plan, first and loud. Everything under it is the detail. */}
+      {journey && <JourneyCard locale={locale} journey={journey} latestKg={newestKg} />}
+
+      {!hasAnyData && !journey && (
         <p className="card-surface px-5 py-6 text-center text-[15px] text-muted">{t(locale, "progress.empty")}</p>
       )}
+
+      {/* Five charts used to be stacked open under the header, each a screen
+          tall. They are the record, not the headline, so each is now one row —
+          its title and its number — and opens when somebody wants the chart. */}
+      <h2 className="-mb-2 mt-1 px-1 text-[13px] font-bold uppercase tracking-[0.06em] text-muted">
+        {t(locale, "progress.details")}
+      </h2>
 
       {/* 1. Did I train enough? */}
       <Card
         title={t(locale, "progress.per_week_title")}
+        figure={target > 0 ? `${sessionsNow}/${target}` : String(sessionsNow)}
+        tone="text-train"
         trailing={
           weekStreak > 1 ? (
             <span className="flex items-center gap-1 text-[13px] font-semibold text-train">
@@ -259,6 +278,8 @@ export default async function ProgressPage({
       {/* 2. Where is my weight going? */}
       <Card
         title={t(locale, "progress.weight_title")}
+        figure={latestWeight !== null ? `${latestWeight.toFixed(1)} ${kg}` : undefined}
+        tone="text-body"
         trailing={
           <div className="flex gap-1.5">
             <Link href="/progress?range=30" scroll={false} className={chipClass(range === 30, "sm")}>
@@ -278,7 +299,11 @@ export default async function ProgressPage({
       </Card>
 
       {/* 3. Am I doing more work? */}
-      <Card title={t(locale, "progress.volume_title")}>
+      <Card
+        title={t(locale, "progress.volume_title")}
+        figure={volumeBest > 0 ? `${compactKg(volumeNow)} ${kg}` : undefined}
+        tone="text-train"
+      >
         {volumeBest > 0 ? (
           <>
             <Headline
@@ -330,21 +355,46 @@ export default async function ProgressPage({
   );
 }
 
-/** A Progress card: Today's card and title row, content stacked below. */
+/**
+ * A Progress row: closed, it is a title and the figure that answers it; open,
+ * it is the chart and the sentence that explains it.
+ *
+ * A native <details>, so it needs no client code and the open state survives
+ * the range links inside the weight card re-rendering the page.
+ */
 function Card({
   title,
+  figure,
+  tone,
   trailing,
   children,
 }: {
   title: string;
+  /** The one number shown while the row is closed. */
+  figure?: string;
+  /** Its colour class, matching the chart inside. */
+  tone?: string;
   trailing?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section aria-label={title} className="card-surface flex flex-col gap-4 p-5">
-      <CardTitleRow title={title} trailing={trailing} />
-      {children}
-    </section>
+    <details aria-label={title} className="card-surface group">
+      <summary className="press flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 [&::-webkit-details-marker]:hidden">
+        <span className="text-[16px] font-bold text-ink">{title}</span>
+        <span className="flex items-center gap-2.5">
+          {figure && (
+            <span className={`font-num text-[17px] font-bold ${tone ?? "text-ink"}`}>
+              <bdi>{figure}</bdi>
+            </span>
+          )}
+          <ChevronDown className="h-5 w-5 shrink-0 text-muted transition-transform duration-200 group-open:rotate-180" />
+        </span>
+      </summary>
+      <div className="flex flex-col gap-4 px-5 pb-5 pt-1">
+        {trailing && <div className="flex justify-end">{trailing}</div>}
+        {children}
+      </div>
+    </details>
   );
 }
 

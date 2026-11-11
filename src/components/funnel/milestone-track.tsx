@@ -34,16 +34,30 @@ export function MilestoneTrack({
   unitLabel,
   /** The stop where the weight they typed is reached, if it is on the track. */
   targetWeek,
+  elapsedWeeks,
 }: {
   locale: Locale;
   milestones: TimelinePoint[];
   /** "kg", localised — passed in so this file holds no unit vocabulary. */
   unitLabel: string;
   targetWeek?: number | null;
+  /**
+   * Whole weeks since the plan started, when this is read back inside the app.
+   *
+   * Leave it out on /start, where every stop is in the future and the first
+   * row is "today". Given, the track becomes a record as well as a forecast:
+   * the first row is the day they started, the stops already behind them are
+   * filled in, and the one they are walking towards is marked as next.
+   */
+  elapsedWeeks?: number;
 }) {
   if (milestones.length < 2) return null;
 
   const start = milestones[0].kg;
+  const inApp = elapsedWeeks !== undefined;
+  const nextWeek = inApp
+    ? (milestones.find((stop) => stop.week > elapsedWeeks)?.week ?? null)
+    : null;
 
   /**
    * One decimal reads as a measurement; none reads as an estimate, which is
@@ -83,6 +97,9 @@ export function MilestoneTrack({
         const isToday = stop.week === 0;
         const isTarget = targetWeek != null && stop.week === targetWeek;
         const delta = stop.kg - start;
+        const isPassed = inApp && stop.week <= elapsedWeeks;
+        const isNext = inApp && stop.week === nextWeek;
+        const isAhead = inApp && !isPassed && !isNext;
         const Icon = isToday ? MapPin : isTarget ? Flag : Check;
 
         return (
@@ -93,11 +110,17 @@ export function MilestoneTrack({
               <span
                 className={cn(
                   "grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 transition-colors",
-                  isTarget
-                    ? "border-accent bg-accent text-bg"
-                    : isToday
-                      ? "border-accent/60 bg-accent/15 text-accent"
-                      : "border-hairline bg-surface text-accent",
+                  inApp
+                    ? isPassed
+                      ? "border-accent bg-accent text-bg"
+                      : isNext
+                        ? "border-accent bg-accent/15 text-accent"
+                        : "border-white/15 bg-transparent text-white/30"
+                    : isTarget
+                      ? "border-accent bg-accent text-bg"
+                      : isToday
+                        ? "border-accent/60 bg-accent/15 text-accent"
+                        : "border-hairline bg-surface text-accent",
                 )}
               >
                 <Icon className="h-4 w-4" strokeWidth={isTarget ? 3 : 2.5} />
@@ -105,7 +128,14 @@ export function MilestoneTrack({
               {!isLast && (
                 <span
                   aria-hidden
-                  className="w-0.5 flex-1 bg-gradient-to-b from-accent/50 to-accent/15"
+                  className={cn(
+                    "w-0.5 flex-1",
+                    inApp
+                      ? isPassed && nextWeek !== null && stop.week < nextWeek && !isNext
+                        ? "bg-accent/70"
+                        : "bg-white/10"
+                      : "bg-gradient-to-b from-accent/50 to-accent/15",
+                  )}
                 />
               )}
             </div>
@@ -115,15 +145,20 @@ export function MilestoneTrack({
                 <span
                   className={cn(
                     "font-display text-[15px] font-extrabold leading-tight",
-                    isTarget ? "text-accent" : "text-ink",
+                    isAhead ? "text-muted" : isTarget && !inApp ? "text-accent" : "text-ink",
                   )}
                 >
                   {isToday
-                    ? t(locale, "fn.r_today")
+                    ? t(locale, inApp ? "jr.start" : "fn.r_today")
                     : `${stop.week} ${weeksLabel(locale, stop.week)}`}
+                  {isNext && (
+                    <span className="ms-2 rounded-full bg-accent px-2 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-bg">
+                      {t(locale, "jr.next")}
+                    </span>
+                  )}
                 </span>
                 <span className="text-[12px] text-muted">
-                  {isToday ? t(locale, "fn.r_start_here") : dayOf(stop.date)}
+                  {isToday && !inApp ? t(locale, "fn.r_start_here") : dayOf(stop.date)}
                 </span>
               </span>
 
@@ -131,7 +166,7 @@ export function MilestoneTrack({
                 <span
                   className={cn(
                     "font-display text-lg font-extrabold leading-tight tabular-nums",
-                    isTarget ? "text-accent" : "text-ink",
+                    isAhead ? "text-muted" : isTarget && !inApp ? "text-accent" : "text-ink",
                   )}
                 >
                   <bdi>

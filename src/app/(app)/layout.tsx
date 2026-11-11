@@ -11,6 +11,7 @@ import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 import { OfflineBanner } from "@/components/shared/offline-banner";
 import { TrialBanner } from "@/components/layout/trial-banner";
+import { AppHintsLoader } from "@/components/layout/app-hints-loader";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminCopyBar } from "@/components/admin/copy-bar";
 import { getSubscription } from "@/lib/subscription-server";
@@ -127,6 +128,13 @@ export default async function AppLayout({
       <main className="container-page flex-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+7.5rem)]">
         <RouteTransition>{children}</RouteTransition>
       </main>
+
+      {/* The two one-time pointers. Suspended: nothing here may hold up the
+          shell, and for a member who has dismissed both this resolves to
+          nothing without a query. */}
+      <Suspense fallback={null}>
+        <AppHintsLoader locale={locale} userId={user.id} />
+      </Suspense>
 
       <AppBottomNav locale={locale} />
 

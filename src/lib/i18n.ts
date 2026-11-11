@@ -2363,6 +2363,32 @@ const STRINGS = {
   },
   "co.open_cta": { en: "Open my app", tn: "افتح تطبيقي" },
 
+  // ---- the plan timeline inside the app, and the two one-time pointers ----
+  "jr.title": { en: "Your 12-week plan", tn: "خطّتك لـ12 أسبوعاً" },
+  "jr.of_weeks": { en: "of {n} weeks", tn: "من {n} أسبوعاً" },
+  "jr.heading_to": { en: "Heading to", tn: "وجهتك" },
+  "jr.start": { en: "Start", tn: "البداية" },
+  "jr.next": { en: "Next", tn: "التالي" },
+  "jr.you_now": { en: "You today:", tn: "أنت اليوم:" },
+  "jr.since_start": { en: "since you started", tn: "منذ البداية" },
+  "jr.recomp": {
+    en: "Your plan is about changing shape, not the number on the scale. Train your sessions and hit your protein: that is the progress here.",
+    tn: "خطّتك عن تغيير شكل الجسم، لا عن رقم الميزان. أكمل حصصك واحرص على البروتين: هذا هو التقدّم هنا.",
+  },
+  "progress.details": { en: "The details", tn: "التفاصيل" },
+  "hint.progress_title": { en: "Your 12-week timeline is here", tn: "خطّتك لـ12 أسبوعاً هنا" },
+  "hint.progress_body": {
+    en: "Milestones and dates, in Progress.",
+    tn: "المحطّات والتواريخ، في التقدّم.",
+  },
+  "hint.install_title": { en: "Add HYPE to your home screen", tn: "أضف HYPE إلى شاشتك الرئيسية" },
+  "hint.install_one_tap": { en: "One tap. Opens like an app.", tn: "ضغطة واحدة. يُفتح كتطبيق." },
+  "hint.install_tap": { en: "Tap", tn: "اضغط" },
+  "hint.install_then": { en: "then", tn: "ثم" },
+  "hint.install_a2hs": { en: "Add to Home Screen", tn: "إضافة إلى الشاشة الرئيسية" },
+  "hint.install_cta": { en: "Add", tn: "أضف" },
+  "hint.close": { en: "Close", tn: "إغلاق" },
+
   // ---- proof blocks, shared by /start and /checkout ----
   "proof.title": { en: "What people say", tn: "ماذا يقول الناس" },
 
