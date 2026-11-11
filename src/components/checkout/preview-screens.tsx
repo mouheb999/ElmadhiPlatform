@@ -154,7 +154,7 @@ export function PrimaryButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 font-display text-[15px] font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform active:scale-[0.97]",
+        "flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-6 font-display text-[15px] font-bold text-bg shadow-[0_10px_28px_rgba(168,255,0,0.25)] transition-transform active:scale-[0.97]",
         full ? "w-full" : "w-max",
       )}
     >
@@ -208,7 +208,7 @@ export function Donut({ pct, size, children }: { pct: number; size: number; chil
           cy="80"
           r={r}
           fill="none"
-          stroke="#C0DA1B"
+          stroke="#A8FF00"
           strokeWidth="12"
           strokeLinecap="round"
           strokeDasharray={c}
@@ -276,6 +276,7 @@ export function TodayScreen({
 
       <CheckinCard
         locale={locale}
+        presentation="inline"
         todayCheckin={state.checkin}
         lastWeightKg={SAMPLE_LAST_WEIGHT}
         onSave={async (checkin) => {

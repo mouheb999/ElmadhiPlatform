@@ -1,77 +1,71 @@
-import { TrendingDown, TrendingUp, Minus } from "lucide-react";
 import { t, type Locale } from "@/lib/i18n";
 
 export type MuscleRow = {
   muscle: string;
   label: string;
-  recentKg: number;
-  prevKg: number;
+  /** Sets logged in the last 4 weeks. */
+  recentSets: number;
+  /** Sets logged in the 4 weeks before that. */
+  prevSets: number;
 };
 
 /**
- * Where the work is going: volume per muscle group, last 4 weeks (accent)
- * against the 4 before (recessive reference bar), with a per-muscle delta.
+ * Where the training went, counted in sets.
+ *
+ * Sets rather than kilos of "volume": "Chest — 24 sets" means something to
+ * anyone who has trained, while "Chest — 9,840 kg" means nothing to most
+ * people, and a set of push-ups or planks counted as zero kilos made those
+ * muscles look untrained. One bar per muscle for the last 4 weeks, with the
+ * change against the 4 weeks before written beside it as "+6" or "−3".
+ * A drop is grey, not red: a lighter month is a choice, not an error.
  */
-export function MuscleProgress({
-  locale,
-  rows,
-}: {
-  locale: Locale;
-  rows: MuscleRow[];
-}) {
+export function MuscleProgress({ locale, rows }: { locale: Locale; rows: MuscleRow[] }) {
   if (rows.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted">{t(locale, "progress.empty_strength")}</p>;
+    return <p className="py-6 text-center text-[15px] text-muted">{t(locale, "progress.empty_strength")}</p>;
   }
-  const max = Math.max(...rows.map((r) => Math.max(r.recentKg, r.prevKg)), 1);
+  const max = Math.max(...rows.map((r) => r.recentSets), 1);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-wide text-muted">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-4 rounded-sm bg-accent" /> {t(locale, "progress.recent_label")}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-4 rounded-sm bg-white/20" /> {t(locale, "progress.prior_label")}
-        </span>
-      </div>
+    <ul className="flex flex-col gap-3.5">
       {rows.map((r) => {
-        const delta = r.prevKg > 0 ? ((r.recentKg - r.prevKg) / r.prevKg) * 100 : r.recentKg > 0 ? 100 : 0;
-        const DeltaIcon = Math.abs(delta) < 5 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
+        const delta = r.recentSets - r.prevSets;
         return (
-          <div key={r.muscle}>
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="font-bold">{r.label}</span>
-              <span
-                className={
-                  Math.abs(delta) < 5
-                    ? "flex items-center gap-1 font-bold text-muted"
-                    : delta > 0
-                      ? "flex items-center gap-1 font-bold text-accent"
-                      : "flex items-center gap-1 font-bold text-red-400"
-                }
-              >
-                <DeltaIcon className="h-3 w-3" />
-                {delta > 0 ? "+" : ""}
-                {Math.round(delta)}%
+          <li key={r.muscle}>
+            <div className="mb-1.5 flex items-baseline justify-between gap-3">
+              <span className="text-[15px] font-semibold">{r.label}</span>
+              <span className="flex items-baseline gap-2">
+                <span
+                  className={
+                    r.prevSets === 0
+                      ? "text-[13px] font-semibold text-protein"
+                      : delta > 0
+                        ? "text-[13px] font-semibold text-train"
+                        : "text-[13px] font-semibold text-muted"
+                  }
+                >
+                  {r.prevSets === 0 ? (
+                    t(locale, "progress.new_label")
+                  ) : delta === 0 ? (
+                    "="
+                  ) : (
+                    <bdi dir="ltr">{`${delta > 0 ? "+" : "−"}${Math.abs(delta)}`}</bdi>
+                  )}
+                </span>
+                <span className="flex items-baseline gap-1 text-ink">
+                  <span className="font-num text-[17px] font-bold">{r.recentSets}</span>
+                  <span className="text-[11px] font-bold uppercase text-muted">{t(locale, "progress.sets_unit")}</span>
+                </span>
               </span>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <div className="h-2.5 overflow-hidden rounded-full bg-white/5">
-                <div
-                  className="h-full rounded-full bg-accent"
-                  style={{ width: `${Math.max((r.recentKg / max) * 100, r.recentKg > 0 ? 2 : 0)}%` }}
-                />
-              </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
-                <div
-                  className="h-full rounded-full bg-white/20"
-                  style={{ width: `${Math.max((r.prevKg / max) * 100, r.prevKg > 0 ? 2 : 0)}%` }}
-                />
-              </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
+              <div
+                className="h-full rounded-full bg-train"
+                style={{ width: `${Math.max((r.recentSets / max) * 100, r.recentSets > 0 ? 3 : 0)}%` }}
+              />
             </div>
-          </div>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 }

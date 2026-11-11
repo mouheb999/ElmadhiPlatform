@@ -1,7 +1,10 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/current-user";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { LoginForm } from "./login-form";
+import { isAppShell } from "@/lib/app-shell";
 
 export default async function LoginPage({
   searchParams,
@@ -9,6 +12,26 @@ export default async function LoginPage({
   searchParams: Promise<{ plan?: string }>;
 }) {
   const locale = await getLocale();
+
+  /**
+   * Inside the app, a signed-in visitor never sees this form.
+   *
+   * The proxy already points the shell's start URL at /dashboard when somebody
+   * is signed in, so in the ordinary cold start this never fires. It is here
+   * for the other ways in — a notification deep link, a stale entry in the
+   * WebView's history, a `?app=1` arriving on a path the matcher does not
+   * cover — where the result would otherwise be an app that boots to a sign-in
+   * screen for a user who is already signed in.
+   *
+   * Scoped to app mode on purpose. On the web a signed-in person reaching
+   * /login is usually doing it deliberately (a bookmark, switching accounts),
+   * and bouncing them is a behaviour change to a funnel that works; here there
+   * is no second account and no bookmark bar. `isAppShell` is a cached cookie
+   * read, so the web pays a cookie lookup and no more.
+   */
+  if (await isAppShell()) {
+    if (await getCurrentUser()) redirect("/dashboard");
+  }
 
   /**
    * What they are here to buy, when they came from the checkout screen.
@@ -23,7 +46,22 @@ export default async function LoginPage({
    */
   const { plan: planId } = await searchParams;
   let plan: { tier: string; months: number; price_tnd: number } | null = null;
-  if (planId) {
+  /**
+   * Never inside the Android app.
+   *
+   * This block exists to restate a purchase in progress, and in the app there
+   * is no purchase in progress: /checkout is closed there, so the only way a
+   * `?plan=` gets this far is a stale link or a hand-typed one. Rendering it
+   * anyway would put a price in dinars on the app's opening screen — the one
+   * thing the whole app-mode surface exists to avoid — and promise a checkout
+   * step that the next tap cannot deliver.
+   *
+   * Skipping the lookup rather than blanking the price in the form keeps it in
+   * one place: with `plan` null the journey bar, the plan line and the price all
+   * fall away together, which is the correct screen for somebody who is simply
+   * signing in.
+   */
+  if (planId && !(await isAppShell())) {
     const supabase = await createClient();
     const { data } = await supabase
       .from("subscription_plans")

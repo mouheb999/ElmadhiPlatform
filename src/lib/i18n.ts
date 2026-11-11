@@ -140,6 +140,45 @@ const STRINGS = {
   "lock.cta": { en: "See plans", tn: "شاهد العروض" },
   "lock.not_now": { en: "Not now", tn: "ليس الآن" },
 
+  // ---- the same walls, as the Android app states them ----
+  // Google Play does not allow an app to sell a subscription through an outside
+  // payment flow, so inside the app there are no prices, no plan names carrying
+  // a price and no route to /checkout. These replace the three strings that
+  // would otherwise point at one: the title, the body and the CTA.
+  //
+  // They are also simply more honest there. On the web "See plans" leads to
+  // plans; in the app the way in genuinely is to talk to somebody, because an
+  // account is activated by hand after a transfer.
+  "lock.title_app": { en: "For members", tn: "للأعضاء" },
+  "lock.cta_app": { en: "Contact us", tn: "راسلنا" },
+  // One per feature, mirroring LOCK_REASON. Same sentence shape as the web's,
+  // with "part of the full plan" — which advertises something the app cannot
+  // sell — replaced by "for members", which is simply true.
+  "lock.session_app": {
+    en: "Recording your sets and reps is for members.",
+    tn: "تسجيل المجموعات والتكرارات للأعضاء.",
+  },
+  "lock.meal_log_app": {
+    en: "The food diary is for members.",
+    tn: "يوميات الطعام للأعضاء.",
+  },
+  "lock.checkin_app": {
+    en: "The morning check-in is for members.",
+    tn: "تسجيل الصباح للأعضاء.",
+  },
+  "lock.progress_app": {
+    en: "Progress charts are for members.",
+    tn: "رسوم التقدّم للأعضاء.",
+  },
+  "lock.ai_app": {
+    en: "The AI calorie camera is for members.",
+    tn: "كاميرا السعرات للأعضاء.",
+  },
+  "lock.qa_app": {
+    en: "Asking the coach is for members.",
+    tn: "سؤال المدرّب للأعضاء.",
+  },
+
   // ---- AI walkthrough, shown to anyone not on Premium ----
   "ai.how_title": { en: "How it works", tn: "كيف تعمل" },
   "ai.how_1": { en: "Photograph your meal", tn: "صوّر وجبتك" },
@@ -167,6 +206,13 @@ const STRINGS = {
   "up.body": {
     en: "Your program and your macros are free to keep. A subscription adds the daily side:",
     tn: "برنامجك وماكروزك يبقيان مجاناً. الاشتراك يضيف الجانب اليومي:",
+  },
+  // The app's wording of the same card — see the lock.*_app block above for
+  // why it names no price and asks them to get in touch instead.
+  "up.title_app": { en: "Members get the daily side", tn: "الأعضاء يحصلون على الجانب اليومي" },
+  "up.body_app": {
+    en: "Your program and your macros are yours to keep. Contact us to unlock the rest:",
+    tn: "برنامجك وماكروزك يبقيان ليك. راسلنا باش نفتحو لك الباقي:",
   },
   "up.i1": { en: "Log your sets, reps and weights", tn: "سجّل مجموعاتك وتكراراتك وأوزانك" },
   "up.i2": { en: "Food diary against your macros", tn: "يوميات طعام مقابل ماكروزك" },
@@ -752,6 +798,47 @@ const STRINGS = {
   "nav.ai": { en: "AI", tn: "ذكاء" },
   "nav.qa": { en: "Q&A", tn: "أسئلة" },
   "nav.profile": { en: "Profile", tn: "حسابي" },
+  // The bottom bar's own labels. "Today" rather than "Home" because the tab
+  // leads to the daily loop, not to a landing page — and the screen it opens
+  // calls itself Today.
+  "nav.today": { en: "Today", tn: "اليوم" },
+  // Shown by the offline banner. Deliberately about the consequence rather than
+  // the cause: "no connection" tells somebody mid-set nothing useful, and the
+  // session outbox genuinely does keep their logs and send them later.
+  "offline.banner": {
+    en: "Offline — your logs will sync when you're back",
+    tn: "بلا إنترنت — تسجيلاتك تتسنكرن كي ترجع الشبكة",
+  },
+  "nav.food": { en: "Food", tn: "الأكل" },
+  "nav.progress": { en: "Progress", tn: "التقدّم" },
+  "nav.scan": { en: "Scan a meal", tn: "صوّر وجبة" },
+  "nav.scan_short": { en: "Scan", tn: "صوّر" },
+  "home.activity": { en: "Activity", tn: "النشاط" },
+  // ---- the redesigned Today screen ----
+  // Short, sentence-case labels: the redesign retired the ALL-CAPS kickers.
+  "home.training": { en: "Training", tn: "التمرين" },
+  "home.food": { en: "Food", tn: "الأكل" },
+  "home.protein": { en: "Protein", tn: "البروتين" },
+  "home.carbs": { en: "Carbs", tn: "النشويات" },
+  "home.fat": { en: "Fat", tn: "الدهون" },
+  "home.kcal": { en: "kcal", tn: "سعرة" },
+  "home.g": { en: "g", tn: "غ" },
+  "home.in_progress": { en: "In progress", tn: "جارية" },
+  "home.up_next": { en: "In this session", tn: "في هالحصة" },
+  "home.kcal_left": { en: "kcal left", tn: "سعرة متبقية" },
+  "home.kcal_over": { en: "kcal over", tn: "سعرة زايدة" },
+  "home.of_target": { en: "of {n}", tn: "من {n}" },
+  "home.diary": { en: "Diary", tn: "اليوميات" },
+  "home.weight": { en: "Weight", tn: "الوزن" },
+  "home.weight_change": { en: "over your last {n} weigh-ins", tn: "في آخر {n} تسجيلات" },
+  "home.weight_empty": {
+    en: "Log your weight in the morning check-in to see your trend here.",
+    tn: "سجّل وزنك في تسجيل الصباح باش تشوف تطوّرك هنا.",
+  },
+  "home.see_progress": { en: "Progress", tn: "التقدّم" },
+  "home.log": { en: "Log", tn: "سجّل" },
+  "home.cancel": { en: "Cancel", tn: "إلغاء" },
+  "home.sleep_h": { en: "h sleep", tn: "س نوم" },
 
   // ---- dashboard ----
   "dashboard.greeting": { en: "Welcome back", tn: "أهلاً بك" },
@@ -987,6 +1074,56 @@ const STRINGS = {
   "workout.continue_day": { en: "Continue workout", tn: "أكمل الحصة" },
   "workout.day_done": { en: "Completed", tn: "اكتملت" },
   "workout.locked_until_monday": { en: "Locked until Monday", tn: "مقفلة حتى الاثنين" },
+  // ---- delete account + privacy ----
+  "account.delete_title": { en: "Delete account", tn: "حذف الحساب" },
+  "account.delete_intro": {
+    en: "This permanently deletes your HYPE FITNESS account and everything in it. It can't be undone.",
+    tn: "هذا يحذف حسابك في HYPE FITNESS وكل ما فيه نهائياً، ولا يمكن التراجع عنه.",
+  },
+  "account.delete_what": { en: "What gets deleted", tn: "ما الذي سيُحذف" },
+  "account.delete_item_profile": { en: "Your profile, email and phone number", tn: "ملفك الشخصي وبريدك ورقم هاتفك" },
+  "account.delete_item_training": {
+    en: "Your workout program, sessions and progress",
+    tn: "برنامج تمارينك وحصصك وتقدّمك",
+  },
+  "account.delete_item_food": { en: "Your meal plan, food diary and check-ins", tn: "خطة أكلك ويوميات الأكل وتسجيلاتك اليومية" },
+  "account.delete_item_messages": {
+    en: "Your questions, support messages and payment receipts",
+    tn: "أسئلتك ورسائل الدعم ووصولات الدفع",
+  },
+  "account.delete_when": {
+    en: "It happens straight away and you are signed out.",
+    tn: "يتم ذلك فوراً ويتم تسجيل خروجك.",
+  },
+  "account.delete_sub_warning": {
+    en: "Your subscription ends with your account. The time left on it, until {date}, is lost.",
+    tn: "ينتهي اشتراكك مع حسابك، وتضيع المدة المتبقية منه حتى {date}.",
+  },
+  "account.delete_button": { en: "Delete my account", tn: "احذف حسابي" },
+  "account.delete_confirm_title": { en: "Delete your account?", tn: "حذف حسابك؟" },
+  "account.delete_confirm_body": {
+    en: "Everything listed is removed right away. This can't be undone.",
+    tn: "يُحذف كل ما ذُكر فوراً، ولا يمكن التراجع عن ذلك.",
+  },
+  "account.delete_confirm_yes": { en: "Delete permanently", tn: "احذف نهائياً" },
+  "account.deleting": { en: "Deleting…", tn: "جارٍ الحذف…" },
+  "account.delete_failed": {
+    en: "Your account could not be deleted and is still active. Please try again.",
+    tn: "تعذّر حذف حسابك وما زال نشطاً. حاول مرة أخرى.",
+  },
+  "account.delete_admin": {
+    en: "Admin accounts can't be deleted here. Ask another admin to remove your admin rights first.",
+    tn: "لا يمكن حذف حسابات المشرفين من هنا. اطلب من مشرف آخر إزالة صلاحياتك أولاً.",
+  },
+  "account.deleted_title": { en: "Your account has been deleted", tn: "تم حذف حسابك" },
+  "account.deleted_body": {
+    en: "Your account and its data have been removed. Thank you for training with HYPE FITNESS.",
+    tn: "تم حذف حسابك وبياناته. شكراً لأنك تمرّنت مع HYPE FITNESS.",
+  },
+  "settings.privacy": { en: "Privacy policy", tn: "سياسة الخصوصية" },
+  "workout.week_done": { en: "{done} of {total} done this week", tn: "{done} من {total} مكتملة هذا الأسبوع" },
+  "workout.fewer_sets": { en: "One set fewer", tn: "مجموعة أقل" },
+  "workout.more_sets": { en: "One set more", tn: "مجموعة أكثر" },
 
   // ---- workout session mode ----
   "session.kg": { en: "kg", tn: "كغ" },
@@ -1099,30 +1236,11 @@ const STRINGS = {
 
   // ---- progress page ----
   "progress.title": { en: "Progress", tn: "التقدّم" },
-  "progress.subtitle": {
-    en: "What your logging says about you.",
-    tn: "ما تقوله أرقامك عنك.",
-  },
   "progress.weight_title": { en: "Body weight", tn: "وزن الجسم" },
-  "progress.strength_title": { en: "Strength", tn: "القوة" },
-  "progress.volume_week": { en: "Weekly volume (kg)", tn: "الحجم في الأسبوع (كغ)" },
-  "progress.consistency_title": { en: "Consistency", tn: "الانتظام" },
-  "progress.muscles_title": { en: "By muscle group", tn: "حسب العضلة" },
-  "progress.muscles_sub": {
-    en: "Volume, last 4 weeks vs the 4 before",
-    tn: "الحجم، آخر 4 أسابيع مقابل الـ4 التي قبلها",
-  },
-  "progress.top_exercises": { en: "Top exercises", tn: "أهم التمارين" },
   "progress.range_30": { en: "30 days", tn: "30 يوماً" },
   "progress.range_90": { en: "90 days", tn: "90 يوماً" },
-  "progress.trend_up": { en: "trending up", tn: "في صعود" },
-  "progress.trend_down": { en: "trending down", tn: "في نزول" },
-  "progress.trend_flat": { en: "steady", tn: "ثابت" },
   "progress.sessions_label": { en: "sessions", tn: "حصص" },
   "progress.week_streak": { en: "week streak", tn: "أسبوع متتالٍ" },
-  "progress.this_week": { en: "this week", tn: "هذا الأسبوع" },
-  "progress.prior_label": { en: "before", tn: "قبل" },
-  "progress.recent_label": { en: "recent", tn: "مؤخراً" },
   "progress.empty": {
     en: "Log a few workouts and check-ins to see your progress here.",
     tn: "سجّل بضع حصص وتسجيلات صباح لترى تقدّمك هنا.",
@@ -1131,6 +1249,53 @@ const STRINGS = {
     en: "Log your weight in the morning check-in to see the trend.",
     tn: "سجّل وزنك في تسجيل الصباح لترى المنحنى.",
   },
+  "progress.eyebrow": { en: "Last 12 weeks", tn: "آخر 12 أسبوعاً" },
+  "progress.per_week_title": { en: "Workouts per week", tn: "الحصص في الأسبوع" },
+  "progress.per_week_explain": {
+    en: "Each bar is one week. Reach the dashed line and that week hits your goal.",
+    tn: "كل عمود أسبوع. إذا وصل إلى الخط المتقطّع، فقد حقّقت هدفك في ذلك الأسبوع.",
+  },
+  "progress.of_goal": { en: "of {n} this week", tn: "من {n} هذا الأسبوع" },
+  "progress.goal_met": { en: "Goal met in {hit} of the last {n} weeks", tn: "حقّقت هدفك في {hit} من آخر {n} أسابيع" },
+  "progress.first_week": { en: "Your first full week is under way.", tn: "أسبوعك الكامل الأول جارٍ." },
+  "progress.goal_line": { en: "Goal", tn: "الهدف" },
+  "progress.now_short": { en: "Now", tn: "الآن" },
+  "progress.weight_explain": {
+    en: "Dots are your daily weigh-ins. The line is the 7-day average, which smooths out day-to-day swings.",
+    tn: "النقاط هي وزنك اليومي، والخط هو معدّل 7 أيام الذي يخفّف تقلّبات كل يوم.",
+  },
+  "progress.weight_down": { en: "Down {n} kg since {date}", tn: "نقص {n} كغ منذ {date}" },
+  "progress.weight_up": { en: "Up {n} kg since {date}", tn: "زاد {n} كغ منذ {date}" },
+  "progress.weight_need_more": {
+    en: "Weigh in on a few more mornings and your trend appears here.",
+    tn: "سجّل وزنك في بضعة صباحات أخرى ليظهر منحناك هنا.",
+  },
+  "progress.weight_steady": { en: "Steady since {date}", tn: "ثابت منذ {date}" },
+  "progress.legend_daily": { en: "Daily weigh-in", tn: "الوزن اليومي" },
+  "progress.legend_avg": { en: "7-day average", tn: "معدّل 7 أيام" },
+  "progress.volume_title": { en: "Total weight lifted", tn: "مجموع الوزن المرفوع" },
+  "progress.volume_explain": {
+    en: "Weight × reps, added up over every set you log in a week. Higher means more work done.",
+    tn: "الوزن × التكرارات، مجموع كل المجموعات التي تسجّلها في الأسبوع. كلما ارتفع، زاد العمل الذي أنجزته.",
+  },
+  "progress.so_far": { en: "this week so far", tn: "هذا الأسبوع إلى الآن" },
+  "progress.last_week_n": { en: "Last week {n} kg", tn: "الأسبوع الماضي {n} كغ" },
+  "progress.best_week_n": { en: "Best week {n} kg", tn: "أفضل أسبوع {n} كغ" },
+  "progress.lifts_title": { en: "Heaviest lifts", tn: "أثقل الأوزان" },
+  "progress.lifts_explain": {
+    en: "Your heaviest set each week, on the exercises you train most.",
+    tn: "أثقل مجموعة لك كل أسبوع، في التمارين التي تتمرّن عليها أكثر.",
+  },
+  "progress.started_at": { en: "Started at {n} kg", tn: "بدأت بـ {n} كغ" },
+  "progress.first_logged": { en: "First week logged", tn: "أول أسبوع مسجّل" },
+  "progress.same": { en: "Same", tn: "نفس الوزن" },
+  "progress.sets_title": { en: "Sets per muscle", tn: "المجموعات لكل عضلة" },
+  "progress.sets_explain": {
+    en: "Last 4 weeks. The change compares with the 4 weeks before.",
+    tn: "آخر 4 أسابيع. الفرق مقارنةً بالأسابيع الأربعة التي قبلها.",
+  },
+  "progress.sets_unit": { en: "sets", tn: "مجموعات" },
+  "progress.new_label": { en: "New", tn: "جديد" },
   "progress.empty_strength": {
     en: "Finish a few workouts to see your strength build up.",
     tn: "أنهِ بضع حصص لترى قوّتك وهي تتقدّم.",
@@ -1197,8 +1362,6 @@ const STRINGS = {
   "nutrition.tab_plan": { en: "Plan", tn: "البرنامج" },
 
   // ---- food diary ----
-  "diary.title": { en: "Food diary", tn: "يوميات الطعام" },
-  "diary.subtitle": { en: "What you actually ate today.", tn: "ما أكلته فعلاً اليوم." },
   "diary.today_target": { en: "Today", tn: "اليوم" },
   "diary.no_target": {
     en: "Set up your diet first to get daily targets.",
@@ -1464,6 +1627,8 @@ const STRINGS = {
     tn: "املأ الإطار بالصحن. لا يُرسل إلا ما تراه هنا.",
   },
   "ai.gallery": { en: "Gallery", tn: "الصور" },
+  "ai.scan_food": { en: "Scan food", tn: "صوّر الأكل" },
+  "ai.flash": { en: "Flash", tn: "الفلاش" },
   "ai.close_camera": { en: "Close camera", tn: "أغلق الكاميرا" },
   "ai.analyzing_title": { en: "Reading your plate", tn: "يقرأ صحنك" },
   "ai.analyzing_1": { en: "Looking at the photo", tn: "ينظر في الصورة" },

@@ -4,26 +4,41 @@
 
 @layer base {
   :root {
-    --bg: #0f0f0f;
-    --surface: #202020;
-    --accent: #c0da1b;
-    --accent-hover: #7d8e10;
-    --ink: #f8f8f8;
-    --muted: rgba(248, 248, 248, 0.65);
-    --hairline: rgba(255, 255, 255, 0.08);
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-2: #2c2c2e;
+    --accent: #a8ff00;
+    --accent-hover: #93e000;
+    --ink: #ffffff;
+    --muted: #98989f;
+    --hairline: rgba(255, 255, 255, 0.09);
 
-    /* Which face headings, buttons and nav labels use. */
-    --font-brand: var(--font-saira);
+    /* The coaching-loop palette; see tailwind.config.ts for why each exists. */
+    --train: #a8ff00;
+    --fuel: #ff8a3d;
+    --protein: #2dd9c0;
+    --sleep: #7d7aff;
+    --body: #9d86e0;
+    --learn: #ffc53d;
+    --danger: #ff453a;
+
+    /* The UI face (body, headings, buttons) and the face for big figures. */
+    --font-ui: var(--font-inter);
+    --font-num: var(--font-saira);
+    /* Kept for anything still reading the old name. */
+    --font-brand: var(--font-num);
   }
 
   /*
-   * The Arabic UI stays entirely on Cairo. Saira carries no Arabic, so relying on
-   * glyph fallback alone would still hand it every Latin run inside Arabic copy —
-   * an exercise name like "Pull", a unit, a number — and those would render in a
-   * different face from the sentence around them. Swapping the variable keeps one
-   * typeface per locale instead.
+   * The Arabic UI stays entirely on Cairo. Neither Inter nor Saira carries
+   * Arabic, so relying on glyph fallback alone would still hand them every Latin
+   * run inside Arabic copy — an exercise name like "Pull", a unit, a number — and
+   * those would render in a different face from the sentence around them.
+   * Swapping the variables keeps one typeface per locale instead.
    */
   html:lang(ar) {
+    --font-ui: var(--font-cairo);
+    --font-num: var(--font-cairo);
     --font-brand: var(--font-cairo);
   }
 
@@ -33,6 +48,22 @@
 
   html {
     scroll-behavior: smooth;
+
+    /*
+     * Stop the whole page rubber-banding past its ends.
+     *
+     * In a WebView this is one of the loudest tells that the thing is a web
+     * page: drag down at the top of a native screen and nothing happens, drag
+     * down here and the entire app peeled away from a grey void. `contain` also
+     * blocks the overscroll from chaining to the WebView's own pull-to-refresh,
+     * so a slightly enthusiastic swipe on the dashboard can no longer reload
+     * the app.
+     *
+     * `contain`, not `none`: scroll containers inside the page (the exercise
+     * picker, the add-food sheet) keep their own bounce, which is correct —
+     * that one reads as native.
+     */
+    overscroll-behavior-y: contain;
   }
 
   body {
@@ -40,6 +71,31 @@
     color: var(--ink);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+
+    /*
+     * The grey flash on tap. Chrome on Android paints a translucent highlight
+     * over any tapped link or button, and against this palette it reads as a
+     * rendering glitch rather than feedback. Every control in the product
+     * already has its own `active:` state — the bottom nav scales, buttons
+     * lift — so the highlight is pure noise on top of better feedback.
+     */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /*
+   * Typing must stay typeable.
+   *
+   * `user-select: none` on an ancestor is inherited, and the chrome classes
+   * below put it on the header and the nav. Nothing with an input lives inside
+   * either today, but this is cheap insurance against the day one does — a
+   * field you cannot select text in is a genuinely broken field, and it would
+   * be a confusing bug to track down.
+   */
+  input,
+  textarea,
+  [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   /*
@@ -81,7 +137,7 @@
   }
 
   ::selection {
-    background: rgba(192, 218, 27, 0.3);
+    background: rgba(168, 255, 0, 0.3);
     color: var(--ink);
   }
 }
@@ -96,20 +152,79 @@
   .glow-accent {
     background: radial-gradient(
       60% 60% at 50% 40%,
-      rgba(192, 218, 27, 0.18) 0%,
-      rgba(192, 218, 27, 0) 70%
+      rgba(168, 255, 0, 0.18) 0%,
+      rgba(168, 255, 0, 0) 70%
     );
   }
 
-  .surface-card {
+  /*
+   * The card: flat #1C1C1E on the black page, 22px corners. Nothing else.
+   *
+   * An earlier pass gave cards a lit gradient, a rim highlight and a drop
+   * shadow. It read as a 3D effect and was taken out: the reference design
+   * gets all of its depth from one thing, the contrast between a pure black
+   * page and a flat dark-grey card.
+   */
+  .card-surface {
+    border-radius: 22px;
     background-color: var(--surface);
-    border: 1px solid var(--hairline);
-    border-radius: 28px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  }
+  /* The old name, kept so nothing that reaches for it falls back to flat. */
+  .surface-card {
+    @apply card-surface;
   }
 }
 
 @layer utilities {
+  /*
+   * The press response every tappable card and button shares: a quick shrink
+   * on touch and a springy return. It is the single cheapest thing that makes
+   * a web view feel like a native app, because native controls all do it and
+   * web pages almost never do.
+   */
+  .press {
+    transition:
+      transform 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 0.2s ease,
+      opacity 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
+  /* Big figures: tabular so a changing number doesn't jitter its neighbours. */
+  .font-num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Horizontal shelves scroll by touch; the scrollbar is web furniture. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /*
+   * For chrome — the header, the bottom nav — as opposed to content.
+   *
+   * Two properties, both about long-press. `user-select: none` stops the text
+   * selection handles coming up over a tab label or the logo; the callout
+   * suppression stops Chrome's "Open in new tab / Copy link address" sheet
+   * appearing over the navigation. Both are what a native app does, and neither
+   * belongs on anything inside <main>: a user who wants to copy a number off
+   * their own meal plan should be able to.
+   *
+   * Applied as one class rather than Tailwind's `select-none` so the pair
+   * cannot drift apart, and so the intent — "this is chrome" — is named.
+   */
+  .app-chrome {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -120,5 +235,84 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* ------------------------------------------------------------------------
+ * Screen transitions (React <ViewTransition>, see RouteTransition).
+ *
+ * Two motions, chosen by what the navigation means:
+ *
+ *   - Switching tabs is moving sideways between equals, so it crossfades —
+ *     quick, and with no direction, because no tab is "after" another.
+ *   - Drilling into something (a session, an answer) is going deeper, so it
+ *     slides in from the trailing edge; coming back slides the other way. In
+ *     Arabic the trailing edge is the left, so the direction flips with dir.
+ *
+ * The header and the tab bar are pinned out of both: one fixed reference is
+ * what tells the eye that the content moved, not the whole screen.
+ * ---------------------------------------------------------------------- */
+::view-transition-old(.tab-fade) {
+  animation: 120ms ease-in both hype-fade reverse;
+}
+::view-transition-new(.tab-fade) {
+  animation: 200ms ease-out 60ms both hype-fade;
+}
+
+::view-transition-old(.nav-forward) {
+  --hype-slide: -48px;
+  animation: 140ms ease-in both hype-fade reverse, 380ms cubic-bezier(0.32, 0.72, 0, 1) both hype-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --hype-slide: 48px;
+  animation: 220ms ease-out 120ms both hype-fade, 380ms cubic-bezier(0.32, 0.72, 0, 1) both hype-slide;
+}
+::view-transition-old(.nav-back) {
+  --hype-slide: 48px;
+  animation: 140ms ease-in both hype-fade reverse, 380ms cubic-bezier(0.32, 0.72, 0, 1) both hype-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --hype-slide: -48px;
+  animation: 220ms ease-out 120ms both hype-fade, 380ms cubic-bezier(0.32, 0.72, 0, 1) both hype-slide;
+}
+html[dir="rtl"]::view-transition-old(.nav-forward),
+html[dir="rtl"]::view-transition-new(.nav-back) {
+  --hype-slide: 48px;
+}
+html[dir="rtl"]::view-transition-new(.nav-forward),
+html[dir="rtl"]::view-transition-old(.nav-back) {
+  --hype-slide: -48px;
+}
+
+@keyframes hype-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes hype-slide {
+  from { translate: var(--hype-slide) 0; }
+  to { translate: 0 0; }
+}
+
+::view-transition-group(app-header),
+::view-transition-group(app-tabbar) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(app-header),
+::view-transition-old(app-tabbar) {
+  display: none;
+}
+::view-transition-new(app-header),
+::view-transition-new(app-tabbar) {
+  animation: none;
+}
+
+/* Slides are the motion most likely to bother someone; crossfades are not. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
   }
 }

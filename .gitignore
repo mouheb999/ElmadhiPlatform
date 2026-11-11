@@ -51,3 +51,24 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# android shell (TWA): signing material and generated Gradle project.
+# The upload keystore cannot be regenerated — losing it ends the Play listing.
+# See android-twa/README.md. Also covered by android-twa/.gitignore; repeated
+# here so a keystore left anywhere in the repo is still caught.
+*.keystore
+*.jks
+*.p12
+*.pepk
+keystore.properties
+/android-twa/.bubblewrap/
+/android-twa/app/
+/android-twa/*.aab
+/android-twa/*.apk
+
+# iPhone app (Capacitor): Apple signing material and API keys. A leaked
+# App Store Connect key (.p8) can upload builds as you. See ios/README.md.
+*.p8
+*.mobileprovision
+*.cer
+*.certSigningRequest

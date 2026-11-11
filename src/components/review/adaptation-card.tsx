@@ -51,7 +51,7 @@ export function AdaptationCard({
     <div className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent/10 p-5">
       <div className="flex items-center gap-2">
         <Sparkles className="h-5 w-5 text-accent" />
-        <span className="text-sm font-bold uppercase tracking-wider text-accent">
+        <span className="text-sm font-bold tracking-normalr text-accent">
           {t(locale, "adapt.card_title")}
         </span>
       </div>
@@ -75,7 +75,7 @@ export function AdaptationCard({
         {t(locale, "adapt.protein_note")}
       </p>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {applied ? (
         <div className="flex items-center gap-2 text-sm font-bold text-accent">

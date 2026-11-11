@@ -38,7 +38,7 @@ export function LanguageSwitcher({
     <div
       dir="ltr"
       className={cn(
-        "inline-flex items-center gap-0.5 rounded-full border border-hairline bg-surface p-0.5",
+        "inline-flex items-center gap-0.5 rounded-full bg-surface p-0.5",
         isPending && "opacity-60",
         className,
       )}

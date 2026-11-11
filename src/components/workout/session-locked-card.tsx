@@ -53,7 +53,7 @@ export function SessionLockedCard({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-hairline bg-surface p-4">
+    <div className="rounded-2xl bg-surface p-4">
       <div className="text-2xl font-extrabold tabular-nums">{value}</div>
       <div className="text-xs text-muted">{label}</div>
     </div>

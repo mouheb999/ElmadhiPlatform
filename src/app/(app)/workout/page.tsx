@@ -12,15 +12,18 @@ export const dynamic = "force-dynamic";
 function ProgramSkeleton() {
   return (
     <div className="flex flex-col gap-5" aria-hidden>
-      <div className="flex gap-2 overflow-hidden">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="h-9 w-24 shrink-0 animate-pulse rounded-full bg-surface" />
-        ))}
+      <div className="flex flex-col gap-3.5">
+        <div className="h-[62px] w-48 animate-pulse rounded-2xl bg-surface" />
+        <div className="flex gap-2 overflow-hidden">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-10 w-24 shrink-0 animate-pulse rounded-full bg-surface" />
+          ))}
+        </div>
       </div>
-      <div className="mx-auto h-12 w-44 animate-pulse rounded-full bg-surface" />
+      <div className="h-14 w-full animate-pulse rounded-full bg-surface" />
       <div className="flex flex-col gap-3">
         {[0, 1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-24 w-full animate-pulse rounded-2xl bg-surface" />
+          <div key={i} className="h-[136px] w-full animate-pulse rounded-[22px] bg-surface" />
         ))}
       </div>
     </div>

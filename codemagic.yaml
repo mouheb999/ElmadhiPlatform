@@ -1,0 +1,45 @@
+# Codemagic builds for the iPhone app (Capacitor). See ios/README.md.
+#
+# ios-simulator needs no Apple Developer account: it builds an unsigned
+# simulator app that Codemagic's App Preview runs in the browser. Use it to
+# check the shell before paying for signing and TestFlight.
+#
+# Set CAP_SERVER_URL in Codemagic (app → Environment variables), in a group
+# named app_config, to the site the app should load — a Vercel preview of this
+# branch while testing. Unset, it loads https://hypefitness.club. Codemagic
+# only passes UI variables to groups the workflow lists below.
+workflows:
+  ios-simulator:
+    name: iOS simulator (no signing)
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      groups:
+        - app_config
+      # Capacitor 8's CLI requires Node 22.
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        # The lockfile was written by npm 11, and older npm reads one of its
+        # peer-dependency entries (@swc/helpers, wanted by both Next and
+        # @serwist/turbopack at different versions) as missing. Same npm as
+        # the machine that wrote it, so `npm ci` sees what it saw.
+        script: |
+          npm install -g npm@11.14.1
+          npm ci
+      - name: Copy config and web assets into the iOS project
+        script: npx cap sync ios
+      - name: Build for the simulator
+        script: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath build/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+    artifacts:
+      - build/ios/Build/Products/Debug-iphonesimulator/App.app

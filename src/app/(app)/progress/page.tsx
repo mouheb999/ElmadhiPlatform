@@ -1,24 +1,39 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Flame } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { pick, t, type StringKey } from "@/lib/i18n";
 import { tunisDateKey, tunisDaysAgoKey, tunisWeekKey, tunisWeekStartUtc } from "@/lib/dates";
-import { WeightTrendChart, type WeightPoint } from "@/components/progress/weight-trend-chart";
-import { WeeklyVolumeChart, type VolumeWeek } from "@/components/progress/weekly-volume-chart";
-import { ConsistencyGrid, type ConsistencyWeek } from "@/components/progress/consistency-grid";
+import { WeightTrendChart, shortDate, type WeightPoint } from "@/components/progress/weight-trend-chart";
+import { WeeklyBars } from "@/components/progress/weekly-bars";
 import { MuscleProgress, type MuscleRow } from "@/components/progress/muscle-progress";
 import { ExerciseTrends, type ExerciseTrend } from "@/components/progress/exercise-trends";
+import { CardTitleRow } from "@/components/shared/card-title-row";
+import { PageHeader } from "@/components/shared/page-header";
+import { chipClass } from "@/components/ui/chip";
 
 export const dynamic = "force-dynamic";
 
 const WEEKS_SHOWN = 12;
 
+const fmt = new Intl.NumberFormat("en-US");
+
 /**
- * The progress dashboard: weight trend, strength (weekly volume + top
- * exercises), consistency, and per-muscle volume. Server-rendered, three
- * indexed queries, all aggregation in TS — no client chart runtime.
+ * The progress screen, built to be read by someone who is not a coach.
+ *
+ * Every card follows one pattern: a title, the number that answers it in
+ * large type and in its colour, one sentence saying what that number means
+ * in words, then the chart for anyone who wants the history, with a line
+ * explaining how to read it. Nothing is left as a bare figure.
+ *
+ * Ordered by how often each should change what you do: did I train enough,
+ * where is my weight going, am I doing more work, am I getting stronger, and
+ * what am I training.
+ *
+ * Server-rendered, three indexed queries, all aggregation in TS — no client
+ * chart runtime.
  */
 export default async function ProgressPage({
   searchParams,
@@ -101,34 +116,39 @@ export default async function ProgressPage({
     if (!wk) continue;
     volumeByWeek.set(wk, (volumeByWeek.get(wk) ?? 0) + (set.weight_kg ?? 0) * set.reps);
   }
+  const weekLabel = (key: string) => shortDate(locale, key);
+  const last = weekKeys.length - 1;
 
-  const fmtWeek = (key: string) => {
-    const d = new Date(`${key}T00:00:00Z`);
-    return `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
-  };
-  const volumeWeeks: VolumeWeek[] = weekKeys.map((key, i) => ({
-    label: fmtWeek(key),
-    volumeKg: Math.round(volumeByWeek.get(key) ?? 0),
-    isCurrent: i === weekKeys.length - 1,
-  }));
-
-  // ---- Consistency ----
+  // ---- Workouts per week ----
   const target = trainingProfile?.days_per_week ?? 0;
-  const consistencyWeeks: ConsistencyWeek[] = weekKeys.map((key, i) => ({
-    label: fmtWeek(key),
-    done: sessionsByWeek.get(key) ?? 0,
-    target: Math.max(target, 1),
-    isCurrent: i === weekKeys.length - 1,
-  }));
+  const sessionWeeks = weekKeys.map((key) => ({ label: weekLabel(key), value: sessionsByWeek.get(key) ?? 0 }));
+  const sessionsNow = sessionWeeks[last].value;
+  // "Goal met in X of the last N weeks" counts only finished weeks, and only
+  // from the first week anything was logged — a member who joined three weeks
+  // ago is not marked down for the nine weeks before they existed.
+  const firstActive = sessionWeeks.findIndex((w) => w.value > 0);
+  const finishedWeeks = firstActive === -1 || firstActive >= last ? [] : sessionWeeks.slice(firstActive, last);
+  const weeksHit = target > 0 ? finishedWeeks.filter((w) => w.value >= target).length : 0;
   let weekStreak = 0;
-  for (let i = weekKeys.length - 1; i >= 0; i--) {
-    const done = sessionsByWeek.get(weekKeys[i]) ?? 0;
-    if (done >= Math.max(target, 1)) weekStreak += 1;
-    else if (i === weekKeys.length - 1) continue; // current week may be mid-flight
+  for (let i = last; i >= 0; i--) {
+    const done = sessionWeeks[i].value;
+    if (target > 0 && done >= target) weekStreak += 1;
+    else if (i === last) continue; // this week may still be under way
     else break;
   }
 
-  // ---- Per-muscle: last 4 weeks vs the 4 before ----
+  // ---- Total weight lifted ----
+  const volumeWeeks = weekKeys.map((key) => ({
+    label: weekLabel(key),
+    value: Math.round(volumeByWeek.get(key) ?? 0),
+  }));
+  const volumeNow = volumeWeeks[last].value;
+  const volumeLastWeek = volumeWeeks[last - 1]?.value ?? 0;
+  const volumeBest = Math.max(...volumeWeeks.map((w) => w.value));
+  const compactKg = (n: number) =>
+    n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+
+  // ---- Sets per muscle: last 4 weeks vs the 4 before ----
   const recentWeeks = new Set(weekKeys.slice(-4));
   const priorWeeks = new Set(weekKeys.slice(-8, -4));
   const byMuscle = new Map<string, { recent: number; prev: number }>();
@@ -137,22 +157,21 @@ export default async function ProgressPage({
     const wk = weekOfSession.get(set.session_id);
     if (!muscle || !wk) continue;
     const bucket = byMuscle.get(muscle) ?? { recent: 0, prev: 0 };
-    const vol = (set.weight_kg ?? 0) * set.reps;
-    if (recentWeeks.has(wk)) bucket.recent += vol;
-    else if (priorWeeks.has(wk)) bucket.prev += vol;
+    if (recentWeeks.has(wk)) bucket.recent += 1;
+    else if (priorWeeks.has(wk)) bucket.prev += 1;
     byMuscle.set(muscle, bucket);
   }
   const muscleRows: MuscleRow[] = [...byMuscle.entries()]
-    .filter(([, v]) => v.recent > 0 || v.prev > 0)
+    .filter(([, v]) => v.recent > 0)
     .map(([muscle, v]) => ({
       muscle,
       label: t(locale, `muscle.${muscle}` as StringKey),
-      recentKg: Math.round(v.recent),
-      prevKg: Math.round(v.prev),
+      recentSets: v.recent,
+      prevSets: v.prev,
     }))
-    .sort((a, b) => b.recentKg - a.recentKg);
+    .sort((a, b) => b.recentSets - a.recentSets);
 
-  // ---- Top exercises: weekly best weight for the 4 most-trained ----
+  // ---- Heaviest lifts: weekly best weight for the 4 most-trained ----
   const setCountByExercise = new Map<string, number>();
   for (const set of sets) {
     if (set.weight_kg === null) continue;
@@ -175,94 +194,193 @@ export default async function ProgressPage({
       name: pick(locale, own[0]?.exercises?.name_en, own[0]?.exercises?.name_ar),
       points: weekKeys
         .filter((key) => maxByWeek.has(key))
-        .map((key) => ({ label: fmtWeek(key), kg: maxByWeek.get(key)! })),
+        .map((key) => ({ label: weekLabel(key), kg: maxByWeek.get(key)! })),
     };
   });
+
+  // ---- Weight headline ----
+  const kg = t(locale, "session.kg");
+  const latestWeight = weightPoints.length > 0 ? weightPoints[weightPoints.length - 1].kg : null;
+  let weightSentence: string | null = null;
+  if (weightPoints.length >= 2) {
+    const change = Math.round((weightPoints[weightPoints.length - 1].kg - weightPoints[0].kg) * 10) / 10;
+    const since = shortDate(locale, weightPoints[0].date);
+    const key: StringKey =
+      Math.abs(change) < 0.3 ? "progress.weight_steady" : change < 0 ? "progress.weight_down" : "progress.weight_up";
+    weightSentence = t(locale, key).replace("{n}", Math.abs(change).toFixed(1)).replace("{date}", since);
+  }
 
   const hasAnyData = weightPoints.length > 0 || sessionIds.length > 0;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "progress.title")}</h1>
-        <p className="mt-1 text-sm text-muted">{t(locale, "progress.subtitle")}</p>
-      </div>
+    <div className="flex flex-col gap-5 pb-4">
+      <PageHeader eyebrow={t(locale, "progress.eyebrow")} title={t(locale, "progress.title")} />
 
       {!hasAnyData && (
-        <p className="rounded-2xl border border-hairline bg-surface px-4 py-6 text-center text-sm text-muted">
-          {t(locale, "progress.empty")}
-        </p>
+        <p className="card-surface px-5 py-6 text-center text-[15px] text-muted">{t(locale, "progress.empty")}</p>
       )}
 
-      <Section
+      {/* 1. Did I train enough? */}
+      <Card
+        title={t(locale, "progress.per_week_title")}
+        trailing={
+          weekStreak > 1 ? (
+            <span className="flex items-center gap-1 text-[13px] font-semibold text-train">
+              <Flame className="h-4 w-4" />
+              <span className="font-num">{weekStreak}</span> {t(locale, "progress.week_streak")}
+            </span>
+          ) : undefined
+        }
+      >
+        <Headline
+          tone="text-train"
+          value={target > 0 ? `${sessionsNow}/${target}` : String(sessionsNow)}
+          unit={t(locale, "progress.sessions_label")}
+          sentence={
+            finishedWeeks.length > 0 && target > 0
+              ? t(locale, "progress.goal_met")
+                  .replace("{hit}", String(weeksHit))
+                  .replace("{n}", String(finishedWeeks.length))
+              : t(locale, "progress.first_week")
+          }
+        />
+        <WeeklyBars
+          weeks={sessionWeeks}
+          colour="var(--train)"
+          target={target > 0 ? target : undefined}
+          targetLabel={t(locale, "progress.goal_line")}
+          nowLabel={t(locale, "progress.now_short")}
+          labelAll
+          ariaLabel={t(locale, "progress.per_week_title")}
+        />
+        <Explain>{t(locale, "progress.per_week_explain")}</Explain>
+      </Card>
+
+      {/* 2. Where is my weight going? */}
+      <Card
         title={t(locale, "progress.weight_title")}
-        action={
+        trailing={
           <div className="flex gap-1.5">
-            <RangePill href="/progress?range=30" active={range === 30} label={t(locale, "progress.range_30")} />
-            <RangePill href="/progress?range=90" active={range === 90} label={t(locale, "progress.range_90")} />
+            <Link href="/progress?range=30" scroll={false} className={chipClass(range === 30, "sm")}>
+              {t(locale, "progress.range_30")}
+            </Link>
+            <Link href="/progress?range=90" scroll={false} className={chipClass(range === 90, "sm")}>
+              {t(locale, "progress.range_90")}
+            </Link>
           </div>
         }
       >
+        {latestWeight !== null && (
+          <Headline tone="text-body" value={latestWeight.toFixed(1)} unit={kg} sentence={weightSentence} />
+        )}
         <WeightTrendChart locale={locale} points={weightPoints} />
-      </Section>
+        {weightPoints.length >= 2 && <Explain>{t(locale, "progress.weight_explain")}</Explain>}
+      </Card>
 
-      <Section title={t(locale, "progress.strength_title")} subtitle={t(locale, "progress.volume_week")}>
-        <WeeklyVolumeChart locale={locale} weeks={volumeWeeks} />
-      </Section>
+      {/* 3. Am I doing more work? */}
+      <Card title={t(locale, "progress.volume_title")}>
+        {volumeBest > 0 ? (
+          <>
+            <Headline
+              tone="text-train"
+              value={fmt.format(volumeNow)}
+              unit={kg}
+              caption={t(locale, "progress.so_far")}
+              sentence={[
+                volumeLastWeek > 0
+                  ? t(locale, "progress.last_week_n").replace("{n}", fmt.format(volumeLastWeek))
+                  : null,
+                // Only when it is a different week from both figures already
+                // shown; otherwise it repeats one of them.
+                volumeBest > Math.max(volumeNow, volumeLastWeek)
+                  ? t(locale, "progress.best_week_n").replace("{n}", fmt.format(volumeBest))
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            />
+            <WeeklyBars
+              weeks={volumeWeeks}
+              colour="var(--train)"
+              nowLabel={t(locale, "progress.now_short")}
+              format={compactKg}
+              ariaLabel={t(locale, "progress.volume_title")}
+            />
+            <Explain>{t(locale, "progress.volume_explain")}</Explain>
+          </>
+        ) : (
+          <p className="py-4 text-center text-[15px] text-muted">{t(locale, "progress.empty_strength")}</p>
+        )}
+      </Card>
 
+      {/* 4. Am I getting stronger? */}
       {exerciseTrends.length > 0 && (
-        <Section title={t(locale, "progress.top_exercises")}>
+        <Card title={t(locale, "progress.lifts_title")}>
+          <Explain>{t(locale, "progress.lifts_explain")}</Explain>
           <ExerciseTrends locale={locale} exercises={exerciseTrends} />
-        </Section>
+        </Card>
       )}
 
-      <Section title={t(locale, "progress.consistency_title")}>
-        <ConsistencyGrid locale={locale} weeks={consistencyWeeks} weekStreak={weekStreak} />
-      </Section>
-
-      <Section title={t(locale, "progress.muscles_title")} subtitle={t(locale, "progress.muscles_sub")}>
+      {/* 5. What am I training? */}
+      <Card title={t(locale, "progress.sets_title")}>
+        <Explain>{t(locale, "progress.sets_explain")}</Explain>
         <MuscleProgress locale={locale} rows={muscleRows} />
-      </Section>
+      </Card>
     </div>
   );
 }
 
-function Section({
+/** A Progress card: Today's card and title row, content stacked below. */
+function Card({
   title,
-  subtitle,
-  action,
+  trailing,
   children,
 }: {
   title: string;
-  subtitle?: string;
-  action?: React.ReactNode;
+  trailing?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-hairline bg-surface p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-extrabold uppercase tracking-wider">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
-        </div>
-        {action}
-      </div>
+    <section aria-label={title} className="card-surface flex flex-col gap-4 p-5">
+      <CardTitleRow title={title} trailing={trailing} />
       {children}
     </section>
   );
 }
 
-function RangePill({ href, active, label }: { href: string; active: boolean; label: string }) {
+/**
+ * The answer to a card's question: the figure large and in its colour, its
+ * unit in small capitals, an optional caption beside it, and one sentence
+ * underneath that says what it means.
+ */
+function Headline({
+  tone,
+  value,
+  unit,
+  caption,
+  sentence,
+}: {
+  tone: string;
+  value: string;
+  unit: string;
+  caption?: string;
+  sentence?: string | null;
+}) {
   return (
-    <Link
-      href={href}
-      className={
-        active
-          ? "rounded-full bg-accent px-3 py-1 text-xs font-bold text-bg"
-          : "rounded-full border border-hairline px-3 py-1 text-xs font-bold text-muted hover:text-ink"
-      }
-    >
-      {label}
-    </Link>
+    <div className="-mt-1">
+      <div className="flex flex-wrap items-baseline gap-x-2">
+        <span className={`flex items-baseline gap-1 ${tone}`}>
+          <span className="font-num text-[34px] font-bold leading-none">{value}</span>
+          <span className="text-[15px] font-bold uppercase">{unit}</span>
+        </span>
+        {caption && <span className="text-[15px] text-muted">{caption}</span>}
+      </div>
+      {sentence && <p className="mt-1.5 text-[15px] font-medium text-ink">{sentence}</p>}
+    </div>
   );
+}
+
+/** How to read the chart, in one plain sentence. */
+function Explain({ children }: { children: React.ReactNode }) {
+  return <p className="-mt-1 text-[13px] leading-snug text-muted">{children}</p>;
 }

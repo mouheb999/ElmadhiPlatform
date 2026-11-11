@@ -7,11 +7,10 @@ const Card = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "border border-hairline bg-surface text-ink shadow-card",
-      "rounded-card",
-      className,
-    )}
+    // The shared card material (globals.css `.card-surface`): a lit gradient,
+    // a highlight on the top rim and a soft lift — depth, without the borders
+    // and lime glows the old cards used to stand out.
+    className={cn("card-surface text-ink", className)}
     {...props}
   />
 ));
@@ -35,7 +34,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("text-xl font-extrabold leading-tight tracking-tight", className)}
+    className={cn("text-lg font-bold leading-snug tracking-tight", className)}
     {...props}
   />
 ));

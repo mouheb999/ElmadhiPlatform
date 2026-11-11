@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <title>HYPE FITNESS</title>
+    <!--
+      Shown by the iPhone app (capacitor.config.ts → server.errorPath) when
+      the site cannot be reached. Bundled inside the app, so it must stand on
+      its own: no network fonts, no scripts from the site. The same words as
+      the web app's /~offline page, in both languages, because the app cannot
+      know the reader's language without the server.
+    -->
+    <style>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; height: 100%; background: #000; color: #fff; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 28px; padding: calc(40px + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom));
+        box-sizing: border-box; text-align: center;
+      }
+      img { width: 132px; height: auto; }
+      .card { background: #1c1c1e; border-radius: 22px; padding: 22px 24px; width: 100%; max-width: 340px; box-sizing: border-box; }
+      h1 { font-size: 22px; margin: 0 0 6px; font-weight: 800; }
+      p { margin: 0; color: #98989f; font-size: 15px; line-height: 1.4; }
+      hr { border: 0; border-top: 0.5px solid rgba(255,255,255,0.09); margin: 18px 0; }
+      button {
+        appearance: none; border: 0; border-radius: 999px; background: #a8ff00; color: #000;
+        font: 600 17px -apple-system, system-ui, sans-serif; height: 56px; width: 100%; max-width: 340px;
+      }
+      button:active { transform: scale(0.97); }
+    </style>
+  </head>
+  <body>
+    <img src="logo.png" alt="HYPE FITNESS" />
+    <div class="card">
+      <div dir="rtl">
+        <h1>ما فماش اتصال</h1>
+        <p>ثبّت في الإنترنت متاعك وعاود جرّب.</p>
+      </div>
+      <hr />
+      <div dir="ltr">
+        <h1>No connection</h1>
+        <p>Check your internet and try again.</p>
+      </div>
+    </div>
+    <button type="button" id="retry">إعادة المحاولة · Try again</button>
+    <script>
+      // Capacitor serves this page from the app bundle, so "reload" would just
+      // reload this file. Go back to the site the app is configured to load.
+      document.getElementById("retry").addEventListener("click", function () {
+        var url = (window.Capacitor && window.Capacitor.getServerUrl && window.Capacitor.getServerUrl()) || "https://hypefitness.club";
+        window.location.href = url;
+      });
+    </script>
+  </body>
+</html>

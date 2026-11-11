@@ -105,7 +105,7 @@ export function QuestionWizard<A extends Record<string, unknown>>({
         {step.render({ answers, setAnswer })}
       </div>
 
-      {error && <p className="text-center text-sm text-red-400">{error}</p>}
+      {error && <p className="text-center text-sm text-danger">{error}</p>}
 
       <div className="flex items-center justify-between gap-3">
         <Button type="button" variant="ghost" onClick={goBack} disabled={safeIndex === 0 || isSubmitting}>

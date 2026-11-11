@@ -10,8 +10,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         type={type}
         ref={ref}
         className={cn(
-          "flex h-12 w-full rounded-2xl border border-hairline bg-surface px-4 text-base text-ink",
-          "placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+          // 17px text: native body size, and at 16px or more no mobile browser
+          // zooms the page when the field takes focus.
+          "flex h-[52px] w-full rounded-[14px] border-0 bg-surface px-4 text-[17px] text-ink",
+          "placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
           "disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}

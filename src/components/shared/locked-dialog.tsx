@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Lock, X } from "lucide-react";
 import { t, type Locale } from "@/lib/i18n";
 import { type LockedFeature } from "@/lib/access";
-import { LOCK_REASON } from "@/components/shared/locked";
+import { lockCopy } from "@/components/shared/locked";
 
 /**
  * The upsell as a dismissible dialog, for controls that sit inside a screen a
@@ -24,12 +24,16 @@ import { LOCK_REASON } from "@/components/shared/locked";
 export function LockedDialog({
   locale,
   feature,
+  appShell = false,
   onClose,
 }: {
   locale: Locale;
   feature: LockedFeature;
+  /** The app's wording and destination — see `lockCopy`. */
+  appShell?: boolean;
   onClose: () => void;
 }) {
+  const copy = lockCopy(feature, appShell);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export function LockedDialog({
         aria-labelledby="locked-dialog-title"
         // Clicks inside must not reach the backdrop's dismiss handler.
         onClick={(e) => e.stopPropagation()}
-        className="relative flex w-full max-w-sm flex-col gap-3 rounded-3xl border border-hairline bg-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
+        className="card-surface relative flex w-full max-w-sm flex-col gap-3 p-6"
       >
         <button
           ref={closeRef}
@@ -75,21 +79,21 @@ export function LockedDialog({
           <X className="h-4 w-4" />
         </button>
 
-        <span className="flex w-max items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+        <span className="flex w-max items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold tracking-normalr text-accent">
           <Lock className="h-3 w-3" />
-          {t(locale, "lock.title")}
+          {t(locale, copy.title)}
         </span>
 
         <h2 id="locked-dialog-title" className="text-lg font-extrabold leading-snug">
-          {t(locale, LOCK_REASON[feature])}
+          {t(locale, copy.body)}
         </h2>
-        <p className="text-sm text-muted">{t(locale, "lock.free_note")}</p>
+        {copy.note && <p className="text-sm text-muted">{t(locale, copy.note)}</p>}
 
         <Link
-          href={`/checkout?from=${feature}`}
+          href={copy.href}
           className="mt-2 rounded-full bg-accent px-5 py-3 text-center font-display font-bold text-bg transition-transform hover:-translate-y-0.5"
         >
-          {t(locale, "lock.cta")}
+          {t(locale, copy.cta)}
         </Link>
         <button
           type="button"

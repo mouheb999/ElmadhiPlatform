@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Camera, ListChecks, NotebookPen, Sparkles } from "lucide-react";
+import { Camera, ListChecks, NotebookPen } from "lucide-react";
 import { getLocale } from "@/lib/i18n-server";
 import { hasPremiumAccess } from "@/lib/subscription-server";
 import { t, type StringKey, type Locale } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { CalorieAiClient } from "@/components/ai/calorie-ai-client";
+import { PageHeader } from "@/components/shared/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -50,42 +51,31 @@ export default async function AiCaloriePage() {
 
 function AiWalkthrough({ locale }: { locale: Locale }) {
   return (
-    <div className="flex flex-col gap-6 py-4">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div className="grid h-20 w-20 place-items-center rounded-full bg-accent/15">
-          <Sparkles className="h-10 w-10 text-accent" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "ai.title")}</h1>
-          <p className="mx-auto mt-2 max-w-xs text-muted">{t(locale, "ai.subtitle")}</p>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6 pb-4">
+      <PageHeader eyebrow={t(locale, "ai.title")} title={t(locale, "nav.scan")} />
 
-      <div className="flex flex-col gap-3">
-        <p className="px-1 text-xs font-bold uppercase tracking-wide text-muted">
-          {t(locale, "ai.how_title")}
-        </p>
-        {STEPS.map(({ icon: Icon, title, body }, index) => (
-          <div
-            key={title}
-            className="flex items-start gap-3 rounded-2xl border border-hairline bg-surface p-4"
-          >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
-              <Icon className="h-5 w-5" />
-            </span>
-            <div className="flex flex-col gap-1">
-              <p className="font-bold">
-                <span className="text-muted tabular-nums">{index + 1}. </span>
-                {t(locale, title)}
-              </p>
-              <p className="text-xs leading-relaxed text-muted">{t(locale, body)}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* One card for the three steps, rows divided by hairlines — the way
+          Today groups a list, instead of three loose boxes. */}
+      <section className="card-surface flex flex-col gap-1 p-5">
+        <h2 className="text-[20px] font-semibold leading-tight tracking-[-0.01em]">{t(locale, "ai.how_title")}</h2>
+        <p className="text-[15px] text-muted">{t(locale, "ai.subtitle")}</p>
+        <ol className="mt-3 flex flex-col divide-y divide-hairline">
+          {STEPS.map(({ icon: Icon, title, body }) => (
+            <li key={title} className="flex items-start gap-3 py-3.5 first:pt-1 last:pb-0">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-accent/15 text-accent">
+                <Icon className="h-5 w-5" />
+              </span>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[15px] font-semibold">{t(locale, title)}</p>
+                <p className="text-[13px] leading-snug text-muted">{t(locale, body)}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-accent/25 bg-accent/[0.06] p-5">
-        <p className="text-sm font-bold">{t(locale, "ai.premium_only")}</p>
+      <div className="card-surface flex flex-col gap-4 p-5">
+        <p className="text-[15px] font-semibold">{t(locale, "ai.premium_only")}</p>
         <Button asChild size="lg" className="w-full">
           <Link href="/checkout?from=ai">{t(locale, "ai.premium_cta")}</Link>
         </Button>

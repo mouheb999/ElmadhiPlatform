@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Camera,
@@ -12,12 +13,17 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
+  ScanLine,
   Trash2,
   X,
+  Zap,
+  ZapOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DecimalInput, Input } from "@/components/ui/input";
 import { cn, parseDecimal } from "@/lib/utils";
+import { chipClass } from "@/components/ui/chip";
+import { PageHeader } from "@/components/shared/page-header";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { estimateMealAction, logEstimate } from "@/app/actions/ai-estimate";
 import { clamp, type EstimatedItem } from "@/lib/ai/estimate-shape";
@@ -123,6 +129,9 @@ export function cameraErrorKey(error: unknown): StringKey {
 
 type CameraState = "idle" | "starting" | "live";
 
+/** Each macro's colour, the same one it wears on Today and in the diary. */
+const MACRO_TONE = { proteinG: "text-protein", carbsG: "text-fuel", fatG: "text-sleep" } as const;
+
 export function CalorieAiClient({
   locale,
   preview,
@@ -153,8 +162,15 @@ export function CalorieAiClient({
     onLog: () => void;
   };
 }) {
+  const router = useRouter();
   const [photo, setPhoto] = useState<Photo | null>(null);
-  const [camera, setCamera] = useState<CameraState>("idle");
+  // The screen IS the camera: it opens straight into the viewfinder, so the
+  // first paint is the black "starting" frame rather than a card to tap. The
+  // checkout preview starts idle — a marketing page must never ask for the
+  // camera on arrival.
+  const [camera, setCamera] = useState<CameraState>(preview ? "idle" : "starting");
+  /** Torch state, and whether this camera has one at all (most Android rear cameras do). */
+  const [torch, setTorch] = useState<{ supported: boolean; on: boolean }>({ supported: false, on: false });
   /** True once the stream reports real dimensions — capture needs them. */
   const [videoReady, setVideoReady] = useState(false);
   const [notes, setNotes] = useState("");
@@ -174,6 +190,27 @@ export function CalorieAiClient({
     streamRef.current = null;
     setCamera("idle");
     setVideoReady(false);
+    setTorch({ supported: false, on: false });
+  }
+
+  async function toggleTorch() {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track) return;
+    const next = !torch.on;
+    try {
+      // `torch` is a Chrome constraint not yet in the DOM typings.
+      await track.applyConstraints({ advanced: [{ torch: next } as MediaTrackConstraintSet] });
+      setTorch({ supported: true, on: next });
+    } catch {
+      setTorch({ supported: false, on: false });
+    }
+  }
+
+  /** The X in the viewfinder leaves the scanner, the way a camera app closes. */
+  function closeScanner() {
+    stopCamera();
+    if (window.history.length > 1) router.back();
+    else router.push("/dashboard");
   }
 
   // Never leave the camera running when navigating away. Touches only the ref,
@@ -208,7 +245,7 @@ export function CalorieAiClient({
     void video.play().catch(() => {});
   }, [camera]);
 
-  async function openCamera() {
+  async function openCamera(isCancelled: () => boolean = () => false) {
     setError(null);
     setPhoto(null);
     setVideoReady(false);
@@ -237,9 +274,19 @@ export function CalorieAiClient({
         video: { facingMode: "environment", width: { ideal: 1280 } },
         audio: false,
       });
+      // The screen was left (or, in development, Strict Mode re-ran the
+      // mount) while the permission prompt was up. Without this the stream
+      // would be orphaned with the camera light still on.
+      if (isCancelled()) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
+      const caps = stream.getVideoTracks()[0]?.getCapabilities?.() as { torch?: boolean } | undefined;
+      setTorch({ supported: !!caps?.torch, on: false });
       setCamera("live");
     } catch (cameraError) {
+      if (isCancelled()) return;
       streamRef.current = null;
       setCamera("idle");
       // Say what went wrong instead of silently opening the file picker — a
@@ -249,11 +296,33 @@ export function CalorieAiClient({
     }
   }
 
+  // Straight into the viewfinder on arrival. The cancel flag covers leaving
+  // the screen before the permission prompt is answered.
+  useEffect(() => {
+    if (preview) return;
+    let cancelled = false;
+    // Starting a camera is syncing with an external system — what effects
+    // are for. Its state updates land after the permission prompt resolves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void openCamera(() => cancelled);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on mount
+  }, []);
+
+  /**
+   * The shutter is the whole action: it captures and starts the estimate in
+   * one press, as camera-first food scanners do. The old flow made you take
+   * the photo, then find and press "Estimate calories" underneath it.
+   */
   function capture() {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return;
-    setPhoto(captureVisibleRegion(video));
+    const shot = captureVisibleRegion(video);
+    setPhoto(shot);
     stopCamera();
+    estimate(shot);
   }
 
   async function onPickFile(file: File | undefined) {
@@ -269,6 +338,7 @@ export function CalorieAiClient({
       // hide the photo the user just chose behind a live camera feed.
       stopCamera();
       setPhoto(picked);
+      estimate(picked);
     } catch {
       setError(t(locale, "ai.camera_error"));
     }
@@ -284,8 +354,9 @@ export function CalorieAiClient({
     else void openCamera();
   }
 
-  function estimate() {
-    if (!photo) return;
+  /** Takes the photo explicitly: it runs in the same tick as setPhoto. */
+  function estimate(shot: Photo | null = photo) {
+    if (!shot) return;
     setError(null);
 
     if (preview) {
@@ -302,8 +373,8 @@ export function CalorieAiClient({
     startTransition(async () => {
       const result = await estimateMealAction({
         description: notes,
-        imageBase64: photo.base64,
-        imageMediaType: photo.mediaType,
+        imageBase64: shot.base64,
+        imageMediaType: shot.mediaType,
       });
       if (!result.ok) {
         setError(result.error);
@@ -399,13 +470,13 @@ export function CalorieAiClient({
           <CheckCircle2 className="h-10 w-10 text-accent" />
         </div>
         <div>
-          <h1 className="text-2xl font-extrabold">{t(locale, "ai.logged_title")}</h1>
-          <p className="mt-1 text-muted">{t(locale, "ai.logged_sub")}</p>
+          <h1 className="text-[28px] font-extrabold tracking-[-0.02em]">{t(locale, "ai.logged_title")}</h1>
+          <p className="mt-1 text-[15px] text-muted">{t(locale, "ai.logged_sub")}</p>
         </div>
         <Button asChild className="w-full max-w-sm">
           <Link href="/diet?view=today">{t(locale, "ai.open_diary")}</Link>
         </Button>
-        <button type="button" onClick={reset} className="text-sm font-bold text-accent hover:underline">
+        <button type="button" onClick={reset} className="press text-[15px] font-semibold text-accent">
           {t(locale, "ai.again")}
         </button>
       </div>
@@ -414,16 +485,10 @@ export function CalorieAiClient({
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <h1 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight">
-          <Sparkles className="h-6 w-6 text-accent" />
-          {t(locale, "ai.title")}
-        </h1>
-        <p className="text-muted">{t(locale, "ai.subtitle")}</p>
-      </div>
+      <PageHeader eyebrow={t(locale, "ai.title")} title={t(locale, "nav.scan")} />
 
       {/* ---- Camera / photo ---- */}
-      <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+      <div className="card-surface flex flex-col gap-3 p-4">
         {/* No `capture` attribute: this input is the gallery, and the live
             camera has its own path through `openCamera`. `capture` made every
             "pick a photo" button launch the camera app instead of the picker,
@@ -443,7 +508,7 @@ export function CalorieAiClient({
         />
 
         {photo ? (
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl border border-hairline bg-black">
+          <div className="relative aspect-[4/3] overflow-hidden rounded-[18px] bg-black">
             {/* eslint-disable-next-line @next/next/no-img-element -- in-memory data URL, never persisted */}
             <img src={photo.previewUrl} alt="Meal" className="h-full w-full object-cover" />
             <button
@@ -458,15 +523,17 @@ export function CalorieAiClient({
         ) : (
           <button
             type="button"
-            onClick={openCamera}
-            className="group flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-accent/40 bg-gradient-to-b from-accent/10 to-accent/[0.02] py-12 transition-colors hover:border-accent/70 hover:from-accent/15"
+            onClick={() => void openCamera()}
+            // A viewfinder-shaped panel with the shutter in the middle: the
+            // one thing on the screen to press, in the brand colour.
+            className="press flex flex-col items-center justify-center gap-3 rounded-[18px] bg-surface2 px-6 py-11"
           >
-            <span className="grid h-16 w-16 place-items-center rounded-full bg-accent/15 text-accent transition-transform group-hover:scale-105">
-              <Camera className="h-8 w-8" />
+            <span className="grid h-[68px] w-[68px] place-items-center rounded-full bg-accent text-bg">
+              <Camera className="h-8 w-8" strokeWidth={2.2} />
             </span>
-            <span className="font-bold text-accent">{t(locale, "ai.open_camera")}</span>
-            <span className="max-w-[16rem] text-center text-xs text-muted">
-              {t(locale, "ai.no_save_note")}
+            <span className="text-[17px] font-semibold text-ink">{t(locale, "ai.open_camera")}</span>
+            <span className="max-w-[17rem] text-center text-[13px] leading-snug text-muted">
+              {t(locale, "ai.subtitle")} {t(locale, "ai.no_save_note")}
             </span>
           </button>
         )}
@@ -475,9 +542,9 @@ export function CalorieAiClient({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold text-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="press flex h-11 items-center justify-center gap-2 rounded-full bg-surface2 text-[15px] font-semibold text-ink"
           >
-            <ImageIcon className="h-4 w-4" />
+            <ImageIcon className="h-[18px] w-[18px]" />
             {t(locale, "ai.pick_instead")}
           </button>
         )}
@@ -486,26 +553,27 @@ export function CalorieAiClient({
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder={t(locale, "ai.notes_ph")}
+          className="bg-surface2"
         />
 
         {error && (
-          <div className="flex items-start gap-2.5 rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+          <div className="flex items-start gap-2.5 rounded-2xl bg-danger/[0.12] px-4 py-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
             <div className="flex flex-1 flex-col gap-2">
               <p className="text-sm">{error}</p>
               {showIdleState && (
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={openCamera}
-                    className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+                    onClick={() => void openCamera()}
+                    className={chipClass(false, "sm")}
                   >
                     {t(locale, "ai.camera_retry")}
                   </button>
                   <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="rounded-full border border-hairline px-3 py-1.5 text-xs font-bold transition-colors hover:bg-white/5"
+                    className={chipClass(false, "sm")}
                   >
                     {t(locale, "ai.pick_instead")}
                   </button>
@@ -515,7 +583,7 @@ export function CalorieAiClient({
           </div>
         )}
 
-        <Button onClick={estimate} disabled={isPending || !photo}>
+        <Button onClick={() => estimate()} disabled={isPending || !photo}>
           {isPending && !items ? t(locale, "ai.estimating") : t(locale, "ai.estimate_cta")}
         </Button>
       </div>
@@ -526,27 +594,25 @@ export function CalorieAiClient({
           {/* The answer, before the working. The total used to sit under the
               item list, so the one number the user opened the camera for was
               the last thing they reached. */}
-          <div className="flex flex-col gap-4 rounded-3xl border border-accent/25 bg-gradient-to-b from-accent/[0.10] to-accent/[0.02] p-5">
+          <div className="card-surface flex flex-col gap-4 p-5">
             <div className="flex items-center gap-4">
               {photo && (
                 // eslint-disable-next-line @next/next/no-img-element -- in-memory data URL
                 <img
                   src={photo.previewUrl}
                   alt=""
-                  className="h-16 w-16 shrink-0 rounded-2xl border border-white/10 object-cover"
+                  className="h-[72px] w-[72px] shrink-0 rounded-[16px] object-cover"
                 />
               )}
               <div className="flex min-w-0 flex-col">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
-                  {t(locale, "ai.total")}
-                </span>
-                <span className="flex items-baseline gap-1.5 tabular-nums">
-                  <span className="font-display text-4xl font-extrabold leading-none text-accent">
+                <span className="text-[15px] font-semibold text-ink">{t(locale, "ai.total")}</span>
+                <span className="flex items-baseline gap-1 text-fuel">
+                  <span className="font-num text-[34px] font-bold leading-none">
                     {Math.round(totals.calories)}
                   </span>
-                  <span className="text-sm font-bold text-muted">kcal</span>
+                  <span className="text-[15px] font-bold uppercase">{t(locale, "home.kcal")}</span>
                 </span>
-                <span className="mt-1 text-xs text-muted">
+                <span className="mt-1 text-[13px] text-muted">
                   {items.length === 1
                     ? t(locale, "ai.one_item_found")
                     : t(locale, "ai.items_found").replace("{n}", String(items.length))}
@@ -554,60 +620,63 @@ export function CalorieAiClient({
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            {/* Set like Today's legend: the name in white, the figure in the
+                macro's colour — protein aqua, carbs orange, fat purple, the
+                same three colours the macros wear everywhere. */}
+            <dl className="grid grid-cols-3 gap-2 border-t border-hairline pt-4">
               {macroFields.map((macro) => (
-                <div
-                  key={macro.key}
-                  className="flex flex-col items-center gap-0.5 rounded-2xl bg-black/25 px-2 py-2.5"
-                >
-                  <span className="text-center text-[10px] font-bold uppercase tracking-wide text-muted">
-                    {macro.label}
-                  </span>
-                  <span className="text-sm font-extrabold tabular-nums">
-                    {Math.round(totals[macro.key])} {t(locale, "ai.grams")}
-                  </span>
+                <div key={macro.key} className="min-w-0">
+                  <dt className="truncate text-[13px] font-semibold text-ink">{macro.label}</dt>
+                  <dd className={cn("flex items-baseline gap-0.5", MACRO_TONE[macro.key])}>
+                    <span className="font-num text-[22px] font-bold leading-tight">
+                      {Math.round(totals[macro.key])}
+                    </span>
+                    <span className="text-[13px] font-bold uppercase">{t(locale, "ai.grams")}</span>
+                  </dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </div>
 
           <div>
-            <h2 className="font-bold">{t(locale, "ai.results_title")}</h2>
+            <h2 className="text-[20px] font-semibold leading-tight tracking-[-0.01em]">
+              {t(locale, "ai.results_title")}
+            </h2>
             {/* Says out loud what the portion field now does, so nobody edits
                 the grams and wonders why the macros "didn't listen". */}
-            <p className="mt-0.5 text-xs text-muted">{t(locale, "ai.qty_sync_hint")}</p>
+            <p className="mt-1 text-[13px] text-muted">{t(locale, "ai.qty_sync_hint")}</p>
           </div>
 
           {simulated && (
-            <p className="rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+            <p className="rounded-2xl bg-learn/[0.12] px-4 py-3 text-[15px]">
               {t(locale, "ai.simulated_note")}
             </p>
           )}
 
           {items.map((item) => (
-            <div key={item.id} className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+            <div key={item.id} className="card-surface flex flex-col gap-3 p-4">
               <div className="flex items-center gap-2">
                 <Input
                   value={item.name}
                   onChange={(e) =>
                     updateItem(item.id, (current) => ({ ...current, name: e.target.value }))
                   }
-                  className="h-11 flex-1 text-sm font-semibold"
+                  className="h-11 flex-1 bg-surface2 text-[15px] font-semibold"
                 />
                 <button
                   type="button"
                   onClick={() => removeItem(item.id)}
                   aria-label={t(locale, "ai.remove_item")}
                   title={t(locale, "ai.remove_item")}
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline text-muted transition-colors hover:border-red-500/40 hover:text-red-400"
+                  className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface2 text-muted hover:text-danger"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
 
               {/* Portion — the one control everything else follows. */}
-              <div className="flex flex-col gap-2 rounded-xl border border-accent/25 bg-accent/[0.06] p-3">
-                <span className="text-[11px] font-bold text-muted">{t(locale, "ai.quantity")}</span>
+              <div className="flex flex-col gap-2">
+                <span className="text-[13px] font-semibold text-muted">{t(locale, "ai.quantity")}</span>
                 <div className="flex items-center gap-2">
                   <StepButton
                     icon="minus"
@@ -620,7 +689,7 @@ export function CalorieAiClient({
                     max={MAX_VALUE.quantityG}
                     unit={t(locale, "ai.grams")}
                     onValue={(value) => setQuantity(item.id, value)}
-                    className="h-11 flex-1 text-center text-base font-bold"
+                    className="h-11 flex-1 bg-surface2 text-center text-[17px] font-bold"
                   />
                   <StepButton
                     icon="plus"
@@ -639,7 +708,7 @@ export function CalorieAiClient({
                     max={MAX_VALUE.calories}
                     unit="kcal"
                     onValue={(value) => setNutrient(item.id, "calories", value)}
-                    className="h-11 font-bold"
+                    className="h-11 bg-surface2 font-bold"
                   />
                 </FieldBox>
 
@@ -651,7 +720,7 @@ export function CalorieAiClient({
                         max={MAX_VALUE[macro.key]}
                         unit={t(locale, "ai.grams")}
                         onValue={(value) => setNutrient(item.id, macro.key, value)}
-                        className="h-11"
+                        className="h-11 bg-surface2"
                       />
                     </FieldBox>
                   ))}
@@ -666,7 +735,7 @@ export function CalorieAiClient({
                   <div
                     className={cn(
                       "h-full rounded-full transition-all duration-500",
-                      item.confidence >= 0.7 ? "bg-accent" : item.confidence >= 0.4 ? "bg-amber-400" : "bg-red-400",
+                      item.confidence >= 0.7 ? "bg-accent" : item.confidence >= 0.4 ? "bg-learn" : "bg-danger",
                     )}
                     style={{ width: `${Math.round(item.confidence * 100)}%` }}
                   />
@@ -677,8 +746,8 @@ export function CalorieAiClient({
                     item.confidence >= 0.7
                       ? "text-muted"
                       : item.confidence >= 0.4
-                        ? "text-amber-300"
-                        : "text-red-300",
+                        ? "text-learn"
+                        : "text-danger",
                   )}
                 >
                   {t(
@@ -695,17 +764,14 @@ export function CalorieAiClient({
           ))}
 
           <div className="flex flex-col gap-1">
-            <span className="text-xs font-bold text-muted">{t(locale, "ai.slot_label")}</span>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <span className="text-[13px] font-semibold text-muted">{t(locale, "ai.slot_label")}</span>
+            <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
               {SLOTS.map((s) => (
                 <button
                   key={s.key}
                   type="button"
                   onClick={() => setSlot(s.key)}
-                  className={cn(
-                    "shrink-0 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                    slot === s.key ? "bg-accent text-bg" : "border border-hairline text-muted hover:text-ink",
-                  )}
+                  className={chipClass(slot === s.key)}
                 >
                   {locale === "tn" ? s.ar : s.en}
                 </button>
@@ -730,8 +796,10 @@ export function CalorieAiClient({
           videoReady={videoReady}
           onReady={() => setVideoReady(true)}
           onCapture={capture}
-          onClose={stopCamera}
+          onClose={closeScanner}
           onPickFile={() => fileRef.current?.click()}
+          torch={torch}
+          onToggleTorch={toggleTorch}
         />
       )}
 
@@ -758,6 +826,8 @@ function CameraOverlay({
   onCapture,
   onClose,
   onPickFile,
+  torch,
+  onToggleTorch,
 }: {
   locale: Locale;
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -766,6 +836,8 @@ function CameraOverlay({
   onCapture: () => void;
   onClose: () => void;
   onPickFile: () => void;
+  torch: { supported: boolean; on: boolean };
+  onToggleTorch: () => void;
 }) {
   return (
     <div className="fixed inset-0 z-[60] bg-black">
@@ -804,56 +876,87 @@ function CameraOverlay({
             className="pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[76vw] max-w-[420px] -translate-x-1/2 -translate-y-1/2"
           >
             {[
-              "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-2xl",
-              "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-2xl",
-              "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-2xl",
-              "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-2xl",
+              "left-0 top-0 border-l-[3px] border-t-[3px] rounded-tl-[22px]",
+              "right-0 top-0 border-r-[3px] border-t-[3px] rounded-tr-[22px]",
+              "left-0 bottom-0 border-l-[3px] border-b-[3px] rounded-bl-[22px]",
+              "right-0 bottom-0 border-r-[3px] border-b-[3px] rounded-br-[22px]",
             ].map((corner) => (
-              <span key={corner} className={cn("absolute h-10 w-10 border-white/85", corner)} />
+              <span key={corner} className={cn("absolute h-12 w-12 border-white", corner)} />
             ))}
           </div>
 
-          <p className="pointer-events-none absolute inset-x-0 top-[calc(4.5rem+env(safe-area-inset-top))] mx-auto max-w-[17rem] text-center text-xs font-semibold leading-relaxed text-white/85 drop-shadow">
+          <p className="pointer-events-none absolute inset-x-0 top-[calc(5rem+env(safe-area-inset-top))] mx-auto max-w-[17rem] text-center text-[13px] font-semibold leading-snug text-white/90 drop-shadow">
             {t(locale, "ai.frame_hint")}
           </p>
         </>
       )}
 
+      {/* Close at the start corner, as camera apps place it. */}
       <button
         type="button"
         onClick={onClose}
         aria-label={t(locale, "ai.close_camera")}
-        className="absolute end-4 top-[calc(1rem+env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-black/45 text-white backdrop-blur-md transition-colors hover:bg-black/70"
+        className="press absolute start-4 top-[calc(1rem+env(safe-area-inset-top))] grid h-11 w-11 place-items-center rounded-full bg-white/20 text-white backdrop-blur-md"
       >
-        <X className="h-5 w-5" />
+        <X className="h-5 w-5" strokeWidth={2.4} />
       </button>
 
-      {/* Gallery on one side, shutter centred, an empty cell on the other so
-          the shutter sits on the true centre line rather than near it. */}
-      <div className="absolute inset-x-0 bottom-[calc(2rem+env(safe-area-inset-bottom))] grid grid-cols-3 items-center px-8">
-        <button
-          type="button"
-          onClick={onPickFile}
-          aria-label={t(locale, "ai.gallery")}
-          className="grid h-12 w-12 place-items-center justify-self-start rounded-2xl bg-white/15 text-white backdrop-blur-md transition-colors hover:bg-white/25"
-        >
-          <ImageIcon className="h-5 w-5" />
-        </button>
+      <div className="absolute inset-x-0 bottom-[calc(1.75rem+env(safe-area-inset-bottom))] flex flex-col items-center gap-6 px-6">
+        {/* Mode pill: scanning a plate is the mode you are in; the gallery is
+            the other way in. A frosted capsule over the picture, the active
+            mode in a white segment. */}
+        <div className="flex items-center gap-1 rounded-full bg-white/80 p-1 text-black backdrop-blur-xl">
+          <span className="flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-[14px] font-semibold shadow-sm">
+            <ScanLine className="h-[18px] w-[18px]" strokeWidth={2.2} />
+            {t(locale, "ai.scan_food")}
+          </span>
+          <button
+            type="button"
+            onClick={onPickFile}
+            aria-label={t(locale, "ai.gallery")}
+            className="press grid h-9 w-12 place-items-center rounded-full text-black/70"
+          >
+            <ImageIcon className="h-[18px] w-[18px]" strokeWidth={2.2} />
+          </button>
+        </div>
 
-        <button
-          type="button"
-          onClick={onCapture}
-          disabled={!videoReady}
-          aria-label={t(locale, "ai.capture")}
-          className={cn(
-            "grid h-20 w-20 place-items-center justify-self-center rounded-full ring-4 ring-white/90 transition-transform",
-            videoReady ? "active:scale-90" : "cursor-not-allowed opacity-40",
+        {/* Torch on one side, the shutter on the true centre line, an empty
+            cell opposite so it does not drift off centre. */}
+        <div className="grid w-full max-w-sm grid-cols-3 items-center">
+          {torch.supported ? (
+            <button
+              type="button"
+              onClick={onToggleTorch}
+              aria-label={t(locale, "ai.flash")}
+              aria-pressed={torch.on}
+              className={cn(
+                "press grid h-11 w-11 place-items-center justify-self-center rounded-full backdrop-blur-md",
+                torch.on ? "bg-white text-black" : "bg-white/20 text-white",
+              )}
+            >
+              {torch.on ? <Zap className="h-5 w-5" /> : <ZapOff className="h-5 w-5" />}
+            </button>
+          ) : (
+            <span aria-hidden />
           )}
-        >
-          <span className="h-[3.75rem] w-[3.75rem] rounded-full bg-white shadow-[0_0_28px_rgba(255,255,255,0.45)]" />
-        </button>
 
-        <span aria-hidden />
+          {/* A plain white shutter inside a white ring — nothing on it, so it
+              reads as the one button that takes the picture. */}
+          <button
+            type="button"
+            onClick={onCapture}
+            disabled={!videoReady}
+            aria-label={t(locale, "ai.capture")}
+            className={cn(
+              "grid h-[78px] w-[78px] place-items-center justify-self-center rounded-full border-[4px] border-white transition-transform",
+              videoReady ? "active:scale-90" : "cursor-not-allowed opacity-40",
+            )}
+          >
+            <span className="h-[62px] w-[62px] rounded-full bg-white" />
+          </button>
+
+          <span aria-hidden />
+        </div>
       </div>
     </div>
   );
@@ -926,7 +1029,7 @@ function AnalysisOverlay({ locale, previewUrl }: { locale: Locale; previewUrl: s
         <div className="flex w-full max-w-xs flex-col gap-2">
           <div className="h-2 overflow-hidden rounded-full bg-white/10">
             <div
-              className="h-full rounded-full bg-accent shadow-[0_0_16px_rgba(192,218,27,0.5)] transition-[width] duration-200 ease-out"
+              className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -947,7 +1050,7 @@ function AnalysisOverlay({ locale, previewUrl }: { locale: Locale; previewUrl: s
 function FieldBox({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-bold text-muted">{label}</span>
+      <span className="text-[13px] font-semibold text-muted">{label}</span>
       {children}
     </label>
   );
@@ -972,7 +1075,7 @@ function StepButton({
       disabled={disabled}
       aria-label={label}
       title={label}
-      className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-hairline bg-surface text-ink transition-colors hover:border-accent/60 hover:text-accent active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+      className="press grid h-11 w-11 shrink-0 place-items-center rounded-full bg-surface2 text-ink disabled:cursor-not-allowed disabled:opacity-40"
     >
       <Icon className="h-4 w-4" />
     </button>

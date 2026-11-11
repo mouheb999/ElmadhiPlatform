@@ -47,7 +47,7 @@ export function PhoneForm({ locale, next }: { locale: Locale; next: string }) {
   }
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+    <main className="flex min-h-dvh flex-col items-center justify-center px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]">
       <div className="mb-8">
         <Logo />
       </div>

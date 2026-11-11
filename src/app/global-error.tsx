@@ -25,7 +25,7 @@ export default function GlobalError({
           gap: "1.25rem",
           padding: "2rem",
           textAlign: "center",
-          background: "#0f0f0f",
+          background: "#000000",
           color: "#f8f8f8",
           fontFamily:
             "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif",
@@ -51,8 +51,8 @@ export default function GlobalError({
           style={{
             border: "none",
             borderRadius: "9999px",
-            background: "#c0da1b",
-            color: "#0f0f0f",
+            background: "#A8FF00",
+            color: "#000000",
             fontWeight: 700,
             fontSize: "1rem",
             padding: "0.9rem 2rem",

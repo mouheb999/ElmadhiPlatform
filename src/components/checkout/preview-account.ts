@@ -380,7 +380,7 @@ export const SAMPLE_PLATE = `data:image/svg+xml;utf8,${encodeURIComponent(
     <rect width="400" height="400" fill="#17180F"/>
     <circle cx="200" cy="205" r="150" fill="#202020"/>
     <circle cx="200" cy="205" r="132" fill="#252622"/>
-    <path d="M110 190a62 46 0 0 1 124 0 62 46 0 0 1-124 0z" fill="#C0DA1B" opacity="0.85"/>
+    <path d="M110 190a62 46 0 0 1 124 0 62 46 0 0 1-124 0z" fill="#A8FF00" opacity="0.85"/>
     <path d="M140 168h64M140 186h64M140 204h48" stroke="#17180F" stroke-width="5" stroke-linecap="round" opacity="0.5"/>
     <ellipse cx="258" cy="236" rx="64" ry="48" fill="#F8F8F8" opacity="0.9"/>
     <circle cx="238" cy="228" r="4" fill="#DDDDD2"/><circle cx="256" cy="220" r="4" fill="#DDDDD2"/>

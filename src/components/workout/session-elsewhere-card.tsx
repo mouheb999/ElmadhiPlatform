@@ -64,13 +64,13 @@ export function SessionElsewhereCard({
           type="button"
           onClick={discard}
           disabled={pending}
-          className="flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-red-400 disabled:opacity-50"
+          className="flex items-center gap-2 text-sm font-bold text-muted transition-colors hover:text-danger disabled:opacity-50"
         >
           <Trash2 className="h-4 w-4" />
           {t(locale, "session.discard")}
         </button>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

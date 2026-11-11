@@ -95,18 +95,20 @@ export function CardioCard({
     );
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface/40 p-4">
-      <div className="flex items-center gap-2">
-        <Footprints className="h-4 w-4 text-accent" />
-        <span className="font-display text-sm font-bold">{t(locale, "cardio.title")}</span>
+    <section className="card-surface flex flex-col gap-3 p-5">
+      <div className="flex items-center gap-2.5">
+        <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-train/15 text-train">
+          <Footprints className="h-[18px] w-[18px]" />
+        </span>
+        <h2 className="text-[20px] font-semibold leading-tight tracking-[-0.01em]">{t(locale, "cardio.title")}</h2>
       </div>
 
       {cardio ? (
         <>
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-col">
-              <span className="text-sm font-bold">{t(locale, "cardio.speed_walking")}</span>
-              <span className="text-xs text-muted">{t(locale, "cardio.intensity")}</span>
+              <span className="text-[15px] font-semibold">{t(locale, "cardio.speed_walking")}</span>
+              <span className="text-[13px] text-muted">{t(locale, "cardio.intensity")}</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -114,19 +116,20 @@ export function CardioCard({
                 aria-label={t(locale, "cardio.less")}
                 disabled={!editable || isPending || minutes <= MIN_CARDIO_MINUTES}
                 onClick={() => save(minutes - 5)}
-                className="grid h-8 w-8 place-items-center rounded-full border border-hairline font-bold disabled:opacity-40"
+                className="press grid h-10 w-10 place-items-center rounded-full bg-surface2 text-[18px] font-bold disabled:opacity-35"
               >
                 −
               </button>
-              <span className="w-16 text-center text-sm font-extrabold tabular-nums">
-                {minutes} {t(locale, "cardio.min")}
+              <span className="flex w-[4.5rem] items-baseline justify-center gap-1 text-train">
+                <span className="font-num text-[22px] font-bold leading-none">{minutes}</span>
+                <span className="text-[13px] font-bold uppercase">{t(locale, "cardio.min")}</span>
               </span>
               <button
                 type="button"
                 aria-label={t(locale, "cardio.more")}
                 disabled={!editable || isPending || minutes >= MAX_CARDIO_MINUTES}
                 onClick={() => save(minutes + 5)}
-                className="grid h-8 w-8 place-items-center rounded-full border border-hairline font-bold disabled:opacity-40"
+                className="press grid h-10 w-10 place-items-center rounded-full bg-surface2 text-[18px] font-bold disabled:opacity-35"
               >
                 +
               </button>
@@ -138,7 +141,7 @@ export function CardioCard({
               type="button"
               onClick={remove}
               disabled={isPending}
-              className="flex items-center gap-1 self-start text-xs font-bold text-muted hover:text-ink"
+              className="press flex items-center gap-1 self-start text-[13px] font-semibold text-muted hover:text-ink"
             >
               <X className="h-3.5 w-3.5" />
               {t(locale, "cardio.remove")}
@@ -157,25 +160,25 @@ export function CardioCard({
       {placement === "discouraged" && (
         <p
           className={cn(
-            "flex items-start gap-1.5 rounded-xl bg-amber-500/10 p-2.5",
-            "text-[11px] leading-relaxed text-amber-200",
+            "flex items-start gap-1.5 rounded-[14px] bg-learn/[0.12] p-3",
+            "text-[13px] leading-snug text-ink",
           )}
         >
-          <Info className="mt-px h-3.5 w-3.5 shrink-0" />
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-learn" />
           {t(locale, "cardio.avoid_legs")}
         </p>
       )}
 
       {/* The sentence the sheet asks for, verbatim in intent: cardio is here
           for the heart, and it changes neither the food nor the workout. */}
-      <p className="text-[11px] leading-relaxed text-muted">{t(locale, "cardio.why")}</p>
-      <p className="text-[11px] leading-relaxed text-muted">{scheduleLabel}</p>
+      <p className="text-[13px] leading-snug text-muted">{t(locale, "cardio.why")}</p>
+      <p className="text-[13px] leading-snug text-muted">{scheduleLabel}</p>
 
       {error && (
-        <p className="text-xs text-red-500" role="alert">
+        <p className="text-[13px] text-danger" role="alert">
           {error}
         </p>
       )}
-    </div>
+    </section>
   );
 }

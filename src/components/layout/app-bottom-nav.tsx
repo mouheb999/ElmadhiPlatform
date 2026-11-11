@@ -2,82 +2,101 @@
 
 import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Dumbbell, Utensils, Sparkles, MessageCircleQuestion, User } from "lucide-react";
+import { Home, Dumbbell, Utensils, TrendingUp, ScanLine } from "lucide-react";
 import type { ComponentType } from "react";
 import { cn } from "@/lib/utils";
-import { type Locale, t } from "@/lib/i18n";
+import { type Locale, type StringKey, t } from "@/lib/i18n";
 
-const TABS = [
-  { href: "/dashboard", label: "nav.home", icon: Home },
+type Tab = {
+  href: string;
+  label: StringKey;
+  icon: ComponentType<{ className?: string; strokeWidth?: number }>;
+  /** Drawn inside a filled disc — the one action in a bar of places. */
+  disc?: boolean;
+};
+
+/** Order mirrors automatically in RTL. */
+const TABS: Tab[] = [
+  { href: "/dashboard", label: "nav.today", icon: Home },
   { href: "/workout", label: "nav.workouts", icon: Dumbbell },
-  { href: "/diet", label: "nav.nutrition", icon: Utensils },
-  { href: "/ai", label: "nav.ai", icon: Sparkles },
-  { href: "/qa", label: "nav.qa", icon: MessageCircleQuestion },
-  { href: "/settings", label: "nav.profile", icon: User },
-] as const;
+  // A scan frame rather than a camera: the tab opens straight into the
+  // viewfinder, and this is the same mark its "Scan food" mode wears.
+  { href: "/ai", label: "nav.scan_short", icon: ScanLine, disc: true },
+  { href: "/diet", label: "nav.food", icon: Utensils },
+  { href: "/progress", label: "nav.progress", icon: TrendingUp },
+];
 
 /**
- * The tab's visual body. Rendered as a descendant of <Link> so it can read
- * `useLinkStatus()` — the instant `pending` flag lights the tapped tab up the
- * moment it's pressed, before the destination's server render returns, so the
- * nav never feels frozen even while the section is loading.
+ * One tab. A descendant of <Link> so it can read `useLinkStatus()`: the tapped
+ * tab lights up the instant it is pressed, before the next screen's server
+ * render returns, so the bar never feels like it ignored the tap.
  */
-function TabButton({
-  Icon,
-  active,
-}: {
-  Icon: ComponentType<{ className?: string }>;
-  active: boolean;
-}) {
+function TabBody({ tab, active, locale }: { tab: Tab; active: boolean; locale: Locale }) {
   const { pending } = useLinkStatus();
+  const lit = active || pending;
+  const Icon = tab.icon;
   return (
     <span
       className={cn(
-        "grid h-11 w-11 place-items-center rounded-full transition-all duration-200",
-        active
-          ? "bg-accent text-bg shadow-[0_6px_16px_-4px_rgba(192,218,27,0.6)]"
-          : pending
-            ? "bg-white/10 text-ink"
-            : "text-muted",
+        "flex h-14 flex-col items-center justify-center gap-[3px] rounded-[26px] text-[11px] font-semibold transition-colors duration-300",
+        // The selected tab sits in a darker pill inside the capsule.
+        active ? "bg-[#131313]" : "bg-transparent",
+        lit ? "text-accent" : "text-ink",
       )}
     >
-      <Icon className={cn("h-5 w-5 transition-transform", pending && !active && "animate-pulse")} />
+      {tab.disc ? (
+        <span
+          className={cn(
+            "grid h-[26px] w-[26px] place-items-center rounded-full transition-colors duration-300",
+            lit ? "bg-accent text-bg" : "bg-ink text-bg",
+          )}
+        >
+          <Icon className="h-[15px] w-[15px]" strokeWidth={2.4} />
+        </span>
+      ) : (
+        <Icon className={cn("h-[25px] w-[25px]", pending && !active && "animate-pulse")} strokeWidth={active ? 2.2 : 1.9} />
+      )}
+      {t(locale, tab.label)}
     </span>
   );
 }
 
-/** Floating glass pill nav — an inset bar with depth, not a full-bleed strip. */
+/**
+ * The tab bar: a floating capsule, matched to the reference design's colours.
+ *
+ * The capsule is #2A2A2A — translucent over a blur, so content scrolling under
+ * it tints it — with a barely-there rim. The selected tab sits in a darker
+ * #131313 pill inside it, with its icon and label in lime; every other tab is
+ * plain white. Scan keeps its place in the middle, its camera in a white disc,
+ * so it reads as the bar's one action without breaking the row.
+ *
+ * Every tab tags its navigation `tab`, which RouteTransition turns into a
+ * crossfade — moving sideways between equals, no direction implied.
+ */
 export function AppBottomNav({ locale }: { locale: Locale }) {
   const pathname = usePathname();
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-40 flex justify-center px-4"
       aria-label="Primary"
+      // Pinned out of screen transitions so the bar stays still while the
+      // content behind it changes; see ::view-transition-group(app-tabbar).
+      style={{ viewTransitionName: "app-tabbar" }}
+      className="app-chrome fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+10px)] z-40 mx-auto grid max-w-md grid-cols-5 gap-0.5 rounded-[32px] border-[0.5px] border-white/[0.06] bg-[rgba(42,42,42,0.86)] p-1.5 backdrop-blur-2xl backdrop-saturate-[1.6]"
     >
-      <div className="flex items-center gap-1 rounded-full border border-white/10 bg-surface/85 p-1.5 shadow-[0_16px_30px_-16px_rgba(0,0,0,0.6)] backdrop-blur-lg">
-        {TABS.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
-          return (
-            <Link
-              key={href}
-              href={href}
-              // Prefetching is safe here and it is what makes a tap feel
-              // instant. Every tab is `force-dynamic`, and Next only prefetches
-              // a dynamic route down to its first loading boundary — the page
-              // segment itself is always refetched on click, so today's logs,
-              // targets and sessions are never served stale. What gets warmed
-              // is the route's JS chunk and the skeleton, which is exactly the
-              // part the user was waiting on before.
-              aria-current={active ? "page" : undefined}
-              aria-label={t(locale, label)}
-              className="rounded-full outline-none transition-transform active:scale-90"
-            >
-              <TabButton Icon={Icon} active={active} />
-            </Link>
-          );
-        })}
-      </div>
+      {TABS.map((tab) => (
+        <Link
+          key={tab.href}
+          href={tab.href}
+          transitionTypes={["tab"]}
+          aria-current={isActive(tab.href) ? "page" : undefined}
+          aria-label={tab.disc ? t(locale, "nav.scan") : t(locale, tab.label)}
+          className="press rounded-[26px] outline-none"
+        >
+          <TabBody tab={tab} active={isActive(tab.href)} locale={locale} />
+        </Link>
+      ))}
     </nav>
   );
 }

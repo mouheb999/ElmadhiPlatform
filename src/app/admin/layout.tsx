@@ -28,7 +28,10 @@ export default async function AdminLayout({
     .is("admin_seen_at", null);
 
   return (
-    <main dir={dir(locale)} className="container-page flex flex-col gap-8 py-10">
+    <main
+      dir={dir(locale)}
+      className="container-page flex flex-col gap-8 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]"
+    >
       {/* items-start is load-bearing: stacked, the cross axis is horizontal, and a
           stretched flex item would pull the logo to full width and distort it. */}
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">

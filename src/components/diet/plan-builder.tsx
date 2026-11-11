@@ -375,7 +375,7 @@ export function PlanBuilder({
           )}
 
           <div className="flex flex-col gap-2">
-            <p className="text-xs font-bold uppercase tracking-wide text-muted">
+            <p className="text-xs font-bold tracking-normal text-muted">
               {t(locale, "cd.meals_count")}
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -447,7 +447,7 @@ export function PlanBuilder({
           )}
 
           {error && (
-            <p className="text-sm text-red-500" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {error}
             </p>
           )}
@@ -513,7 +513,7 @@ function MealDraftEditor({
         return (
           <div
             key={item.foodRef}
-            className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface p-3"
+            className="flex items-center gap-3 rounded-2xl bg-surface p-3"
           >
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="flex items-center gap-2">
@@ -550,7 +550,7 @@ function MealDraftEditor({
               type="button"
               onClick={() => onRemove(item.foodRef)}
               aria-label={t(locale, "cw.remove")}
-              className="shrink-0 text-muted hover:text-red-400"
+              className="shrink-0 text-muted hover:text-danger"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -626,7 +626,7 @@ function NumberField({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-[11px] font-bold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-[11px] font-bold tracking-normal text-muted">{label}</span>
       <Input
         type="number"
         inputMode="numeric"
@@ -653,7 +653,7 @@ function ChoiceGroup({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-xs font-bold uppercase tracking-wide text-muted">{label}</span>
+      <span className="text-xs font-bold tracking-normal text-muted">{label}</span>
       <div className={cn(inline ? "flex flex-wrap gap-2" : "flex flex-col gap-1.5")}>
         {options.map((option) => (
           <button
@@ -688,7 +688,7 @@ function StepBar({
 }) {
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-center text-xs font-bold uppercase tracking-wide text-muted">
+      <p className="text-center text-xs font-bold tracking-normal text-muted">
         {t(locale, "co.step")} {step} {t(locale, "co.of")} {labels.length} ·{" "}
         {t(locale, labels[step - 1])}
       </p>

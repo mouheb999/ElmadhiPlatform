@@ -7,7 +7,15 @@ import {
   verifyGateTicket,
 } from "@/lib/paywall-gate";
 import { isSubscriptionActive } from "@/lib/subscription";
-import { featureForPath, isPaidPath } from "@/lib/access";
+import {
+  APP_SHELL_COOKIE,
+  APP_SHELL_COOKIE_OPTIONS,
+  APP_SHELL_QUERY,
+  featureForPath,
+  isAppShellSignal,
+  isBlockedInApp,
+  isPaidPath,
+} from "@/lib/access";
 
 // Which routes cost money lives in lib/access, because the client components
 // that grey out a locked control need the same answer.
@@ -23,6 +31,17 @@ import { featureForPath, isPaidPath } from "@/lib/access";
 // sign-out button, so gating it strands a locked-out account in its own
 // session). The (app) layout still requires a signed-in user, and RLS still
 // scopes every row to its owner.
+//
+// The Android app — a Trusted Web Activity, so real Chrome with a cookie
+// rather than a WebView with its own user agent — is the one caller that does
+// not follow the paragraph above.
+// It cannot: /checkout is where an unpaid web user is sent, and /checkout is
+// the single screen Google Play will not let the app contain. So requests
+// carrying the shell's user agent are routed on the reverse-trial surface
+// instead — plan readable, recording and tracking behind a card that asks for
+// access rather than for money — and the marketing routes are closed to them
+// outright. Everything below is shared; `appShell` only ever changes which
+// destination a redirect picks, never who may read what.
 
 // Renamed from `middleware` per Next.js 16 deprecation (middleware -> proxy).
 export async function proxy(request: NextRequest) {
@@ -30,7 +49,78 @@ export async function proxy(request: NextRequest) {
     await updateSession(request);
   const { pathname } = request.nextUrl;
 
-  const isPaid = isPaidPath(pathname);
+  /**
+   * The shell announcing itself: `/login?app=1`, its start URL.
+   *
+   * Answered with a redirect carrying the cookie, and the redirect is the
+   * point rather than a tidying-up: a cookie set on a response is not on the
+   * *request* that set it, so without the extra hop the very first render
+   * after launch would still look like the web to `isAppShell()`. One 307 at
+   * cold start buys "every render sees the cookie", which is a far easier rule
+   * to hold than "every render after the first". It also keeps the flag out of
+   * the address bar and out of history.
+   *
+   * Where it lands depends on who is holding the phone, because the start URL
+   * cannot know. /login is the right destination exactly once — the first
+   * launch after install. Every launch after that is by somebody already
+   * signed in, and sending them to a sign-in form they have no business
+   * filling in is the single most confusing thing a cold start could do. So a
+   * signed-in launch goes to /dashboard, where the gate below then applies
+   * normally: active accounts get the app, unpaid ones get the free surface,
+   * since /dashboard is not a paid path in app mode.
+   *
+   * `indeterminate` — Supabase unreachable rather than signed out — goes to
+   * /dashboard too. The (app) layout redirects to /login itself if there is
+   * genuinely nobody there, so the worst case is one extra hop, whereas
+   * treating a network blip as a sign-out would show a signed-in user a login
+   * form on every cold start with bad reception.
+   *
+   * This now runs after `updateSession` rather than before it. It used to go
+   * first, to avoid paying for a session refresh the redirect would discard —
+   * but the verdict it discarded is precisely the one needed to choose a
+   * destination, so the refresh is no longer wasted.
+   *
+   * No loop is possible: the flag is deleted on the way out.
+   */
+  if (request.nextUrl.searchParams.get(APP_SHELL_QUERY) === "1") {
+    const url = request.nextUrl.clone();
+    url.searchParams.delete(APP_SHELL_QUERY);
+    if (url.pathname === "/login" && (user || indeterminate)) {
+      url.pathname = "/dashboard";
+    }
+    const marked = NextResponse.redirect(url);
+    marked.cookies.set(APP_SHELL_COOKIE, "1", APP_SHELL_COOKIE_OPTIONS);
+    return marked;
+  }
+
+  // Is this the Android app rather than a browser? The cookie above is the
+  // real signal; the user agent is the Capacitor-era fallback. See lib/access
+  // for why this is a routing hint and not a security boundary.
+  const appShell = isAppShellSignal({
+    cookie: request.cookies.get(APP_SHELL_COOKIE)?.value,
+    userAgent: request.headers.get("user-agent"),
+  });
+
+  // The app shows neither the marketing site nor the till.
+  //
+  // This runs before the subscription gate below, and it has to. /checkout sits
+  // in that gate's always-free list and is where it sends anybody unpaid — so
+  // left to fall through, an unpaid app user would be pushed to /checkout by
+  // the paywall and pulled back out of it by this block, forever. Ordering is
+  // what makes it a policy instead of a loop.
+  if (appShell && isBlockedInApp(pathname)) {
+    const url = request.nextUrl.clone();
+    url.search = "";
+    // `indeterminate` means Supabase was unreachable, not that this user is
+    // signed out (see updateSession) — bouncing them to /login over a network
+    // blip would sign them out of the app for no reason. /dashboard is the safe
+    // destination in both cases: if there is genuinely nobody signed in, the
+    // (app) layout redirects to /login on its own.
+    url.pathname = user || indeterminate ? "/dashboard" : "/login";
+    return NextResponse.redirect(url);
+  }
+
+  const isPaid = isPaidPath(pathname, { appShell });
   const isCheckout =
     pathname === "/checkout" || pathname.startsWith("/checkout/");
 
@@ -139,12 +229,27 @@ export async function proxy(request: NextRequest) {
   // and the real boundary can never disagree about who is paid up.
   if (!isSubscriptionActive(profile)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/checkout";
     url.search = "";
-    // What they reached for, so checkout opens by naming it. Same vocabulary
+    // What they reached for, so the destination can name it. Same vocabulary
     // the in-app upgrade cards use, not the raw path.
     const feature = featureForPath(pathname);
-    if (feature) url.searchParams.set("from", feature);
+    if (appShell) {
+      // There is no /checkout in the app, so an unpaid tap goes home carrying
+      // what it was reaching for. A different parameter name than the web's
+      // `from=` on purpose: they address different readers. `from` opens a
+      // sales page about that feature; `locked` is a request for access, and
+      // the screen it drives points at /support rather than at a price.
+      //
+      // Nothing reads `locked` yet. That is deliberate for this step — an
+      // unrecognised query parameter renders the dashboard exactly as it does
+      // today, so this redirect is already correct and already loop-free
+      // before the free-mode screens exist to interpret it.
+      url.pathname = "/dashboard";
+      if (feature) url.searchParams.set("locked", feature);
+    } else {
+      url.pathname = "/checkout";
+      if (feature) url.searchParams.set("from", feature);
+    }
     const redirectResponse = NextResponse.redirect(url);
     // Never leave a stale pass behind on a user who just lost access.
     redirectResponse.cookies.delete(GATE_COOKIE);
@@ -177,5 +282,47 @@ export const config = {
     // PROTECTED_PREFIXES, so the gate never runs here and the redirect to it
     // cannot loop.
     "/phone/:path*",
+
+    // The marketing surface, matched *only* when the request came from the app.
+    //
+    // A plain "/" and "/start" in this list would work, and would also undo the
+    // reason they were left out: these are the pages paid ads point at, and
+    // every click would start paying for an auth round-trip it has no use for
+    // (see the note at the top of start/page.tsx). `has` keeps that true for
+    // browsers — a web visitor never enters the proxy here at all — while the
+    // app, which needs the redirect, is the only caller that does.
+    //
+    // Two entries per path rather than one, because `has` is an AND of its
+    // conditions while separate entries are an OR, and the app can identify
+    // itself either way: by cookie (the TWA) or by user agent (the Capacitor
+    // fallback). A cookie condition with no `value` matches on presence alone.
+    //
+    // All of it is spelled out literally rather than built from the constants
+    // in lib/access, because matcher values must be statically analysable at
+    // build time — a variable here is not an error, it is silently ignored,
+    // which would quietly serve the marketing page inside the app. The user
+    // agent pattern is additionally anchored at both ends by Next (`new
+    // RegExp("^" + value + "$")`), hence the surrounding `.*` around a string
+    // that has a browser's worth of tokens either side of it.
+    { source: "/", has: [{ type: "cookie", key: "elmadhi_app" }] },
+    {
+      source: "/",
+      has: [
+        { type: "header", key: "user-agent", value: ".*HypeFitnessApp.*" },
+      ],
+    },
+    { source: "/start/:path*", has: [{ type: "cookie", key: "elmadhi_app" }] },
+    {
+      source: "/start/:path*",
+      has: [
+        { type: "header", key: "user-agent", value: ".*HypeFitnessApp.*" },
+      ],
+    },
+
+    // The shell's start URL. /login is otherwise deliberately outside the
+    // matcher — it has no session to refresh and nothing to gate — and it only
+    // needs to be here for the one request that carries `?app=1`, so that the
+    // flag can be exchanged for the cookie.
+    { source: "/login", has: [{ type: "query", key: "app", value: "1" }] },
   ],
 };

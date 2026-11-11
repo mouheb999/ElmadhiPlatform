@@ -3,22 +3,34 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
+/**
+ * Full pills, 56px tall — the shape native fitness apps give their primary
+ * actions — with no glow and no hover lift.
+ *
+ * The old primary carried a lime drop-glow and every button rose on hover.
+ * On a phone there is no hover, and a glow on every call to action is how a
+ * screen ends up with nothing standing out. What replaces both is the shared
+ * `press` response: a quick shrink under the finger, which is what native
+ * controls do and what makes a tap feel acknowledged.
+ *
+ * `secondary` is now a filled grey rather than an outline: a hairline outline
+ * on near-black reads as a disabled control, and filled tints are how native
+ * dark-mode apps mark the second choice.
+ */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-display text-base font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
+  "press inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-display text-[17px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        primary:
-          "bg-accent text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] hover:bg-accent-hover hover:-translate-y-0.5",
-        secondary:
-          "border border-white/15 bg-transparent text-ink hover:bg-white/5 hover:-translate-y-0.5",
+        primary: "bg-accent text-bg hover:bg-accent-hover",
+        secondary: "bg-surface2 text-ink hover:bg-[#3A3A3C]",
         ghost: "bg-transparent text-ink hover:bg-white/5",
       },
       size: {
         default: "h-14 px-7",
-        sm: "h-11 px-5 text-sm",
-        lg: "h-16 px-9 text-lg",
-        icon: "h-11 w-11",
+        sm: "h-10 px-4 text-[15px]",
+        lg: "h-14 px-8",
+        icon: "h-11 w-11 rounded-full",
       },
     },
     defaultVariants: {

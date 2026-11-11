@@ -203,7 +203,7 @@ export default async function WeeklyReviewPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-hairline bg-surface p-4">
+          <div key={stat.label} className="rounded-2xl bg-surface p-4">
             <stat.icon className="h-4 w-4 text-muted" />
             <div className="mt-2 text-xl font-extrabold tabular-nums">{stat.value}</div>
             <div className="text-xs text-muted">{stat.label}</div>
@@ -213,7 +213,7 @@ export default async function WeeklyReviewPage() {
 
       <Link
         href="/progress"
-        className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface px-4 py-3 transition-colors hover:bg-white/5"
+        className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 transition-colors hover:bg-white/5"
       >
         <span className="text-sm font-bold">{t(locale, "progress.title")}</span>
         <ArrowRight className="h-4 w-4 shrink-0 text-accent rtl:rotate-180" />
@@ -235,8 +235,8 @@ export default async function WeeklyReviewPage() {
         />
       )}
 
-      <div className="flex flex-col gap-3 rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/[0.08] via-surface to-surface p-6">
-        <span className="w-max rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
+      <div className="flex flex-col gap-3 rounded-3xl border border-accent/25 bg-surface p-6">
+        <span className="w-max rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold tracking-normalr text-accent">
           {t(locale, "review.coach_title")}
         </span>
         <ul className="flex flex-col gap-2">
@@ -258,7 +258,7 @@ export default async function WeeklyReviewPage() {
             <Link
               key={card.id}
               href={`/qa/${card.id}`}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface px-4 py-3 transition-colors hover:bg-white/5"
+              className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3 transition-colors hover:bg-white/5"
             >
               <span className="text-sm font-semibold">{pick(locale, card.questionEn, card.questionAr)}</span>
               <ArrowRight className="h-4 w-4 shrink-0 text-accent rtl:rotate-180" />

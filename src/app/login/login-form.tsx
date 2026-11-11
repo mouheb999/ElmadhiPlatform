@@ -187,7 +187,7 @@ export function LoginForm({
 
   if (showAdminChoice) {
     return (
-      <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+      <main className="flex min-h-dvh flex-col items-center justify-center px-4 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]">
         <div className="mb-8">
           <Logo />
         </div>
@@ -221,9 +221,18 @@ export function LoginForm({
     );
   }
 
+  /*
+   * The sign-in screen, drawn the way a native app draws one: the brand at the
+   * top, a large title, the fields on the page itself — not boxed into a card,
+   * which is a web-form convention — then the primary action in lime and
+   * Google as the white button under it.
+   *
+   * The logo is the one thing deliberately unchanged: the redesign reframes
+   * the brand, it does not touch it.
+   */
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
-      <div className="mb-8">
+    <main className="flex min-h-dvh flex-col items-center justify-center px-6 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]">
+      <div className="mb-10">
         <Logo />
       </div>
 
@@ -238,11 +247,11 @@ export function LoginForm({
         </div>
       )}
 
-      <Card className="w-full max-w-sm">
+      <div className="w-full max-w-sm">
         {/* The purchase, restated above the form, so this reads as the next
             step in something they already decided rather than a gate. */}
         {plan && mode === "signup" && (
-          <div className="flex items-center justify-between gap-3 border-b border-hairline px-6 py-4">
+          <div className="mb-7 flex items-center justify-between gap-3 rounded-2xl bg-surface px-5 py-4">
             <span className="flex flex-col">
               <span className="text-xs text-muted">{t(locale, "plans.your_choice")}</span>
               {/* One offer now, so the term is the whole description of what
@@ -258,20 +267,20 @@ export function LoginForm({
             </span>
           </div>
         )}
-        <CardHeader>
-          <CardTitle>
+        <div className="mb-7">
+          <h1 className="text-[30px] font-extrabold leading-tight tracking-[-0.025em]">
             {mode === "signin"
               ? t(locale, "login.signin_title")
               : t(locale, "login.signup_title")}
-          </CardTitle>
-          <CardDescription>
+          </h1>
+          <p className="mt-2 text-base leading-relaxed text-muted">
             {mode === "signin"
               ? t(locale, "login.signin_sub")
               : t(locale, "login.signup_sub")}
-          </CardDescription>
-        </CardHeader>
+          </p>
+        </div>
 
-        <CardContent className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {mode === "signup" && (
               <>
@@ -343,7 +352,7 @@ export function LoginForm({
             </div>
 
             {error && (
-              <p className="text-sm text-red-500" role="alert">
+              <p className="text-sm text-danger" role="alert">
                 {error}
               </p>
             )}
@@ -363,17 +372,19 @@ export function LoginForm({
           </form>
 
           <div className="flex items-center gap-3">
-            <span className="h-px flex-1 bg-hairline" />
-            <span className="text-xs text-muted">{t(locale, "login.or")}</span>
-            <span className="h-px flex-1 bg-hairline" />
+            <span className="h-[0.5px] flex-1 bg-white/[0.12]" />
+            <span className="text-[13px] text-subtle">{t(locale, "login.or")}</span>
+            <span className="h-[0.5px] flex-1 bg-white/[0.12]" />
           </div>
 
+          {/* White, the way native apps present a third-party sign-in. A filled
+              grey would read as a lesser option; this is an equal one. */}
           <Button
             type="button"
             variant="secondary"
             disabled={isPending}
             onClick={handleGoogle}
-            className="w-full"
+            className="w-full bg-ink text-bg hover:bg-white"
           >
             {t(locale, "login.google")}
           </Button>
@@ -390,7 +401,7 @@ export function LoginForm({
                 {t(locale, "login.no_account")}{" "}
                 <button
                   type="button"
-                  className="font-semibold text-accent"
+                  className="font-bold text-ink"
                   onClick={() => {
                     setMode("signup");
                     setError(null);
@@ -405,7 +416,7 @@ export function LoginForm({
                 {t(locale, "login.have_account")}{" "}
                 <button
                   type="button"
-                  className="font-semibold text-accent"
+                  className="font-bold text-ink"
                   onClick={() => {
                     setMode("signin");
                     setError(null);
@@ -417,8 +428,8 @@ export function LoginForm({
               </>
             )}
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </main>
   );
 }

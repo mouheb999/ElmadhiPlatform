@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requirePlanUser } from "@/lib/subscription-server";
+import { requireOnboardingUser, requirePlanUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -199,7 +199,9 @@ async function buildAndSaveMealPlan(
  */
 export async function submitDietQuestions(answers: DietAnswers): Promise<ActionResult<{ dietProfileId: string }>> {
   const supabase = await createClient();
-  const { user, denied } = await requirePlanUser();
+  // See `submitWorkoutQuestions`: unpaid in the app, because an account created
+  // there has never seen /start. Bounded by the same monthly redo quota.
+  const { user, denied } = await requireOnboardingUser();
   if (!user) return fail(denied);
 
   /**

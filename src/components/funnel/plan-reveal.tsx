@@ -326,7 +326,7 @@ export function PlanReveal({
         <button
           type="button"
           onClick={onContinue}
-          className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent font-display text-base font-bold text-bg shadow-[0_12px_32px_-8px_rgba(192,218,27,0.5)] transition-transform active:scale-[0.98]"
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent font-display text-base font-bold text-bg shadow-[0_12px_32px_-8px_rgba(168,255,0,0.5)] transition-transform active:scale-[0.98]"
         >
           <Lock className="h-[18px] w-[18px]" />
           {t(locale, "fn.r_cta")}

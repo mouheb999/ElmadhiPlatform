@@ -592,7 +592,7 @@ export function SessionClient({
           <StatTile label={t(locale, "session.stat_minutes")} value={String(summary.minutes)} />
         </div>
         {summary.cardio && (
-          <div className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-4 text-start">
+          <div className="w-full max-w-sm rounded-2xl bg-surface p-4 text-start">
             <div className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2 text-sm font-bold">
                 <Footprints className="h-4 w-4 text-accent" />
@@ -664,7 +664,7 @@ export function SessionClient({
           <div
             key={ex.rowId}
             className={cn(
-              "flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4",
+              "flex flex-col gap-3 rounded-2xl bg-surface p-4",
               isSkipped && "opacity-50",
             )}
           >
@@ -737,7 +737,7 @@ export function SessionClient({
                   className={cn(
                     "shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
                     armedSkip === ex.rowId
-                      ? "border-red-500/60 bg-red-500/10 text-red-400"
+                      ? "border-red-500/60 bg-red-500/10 text-danger"
                       : "border-hairline text-muted hover:text-ink",
                   )}
                 >
@@ -751,7 +751,7 @@ export function SessionClient({
             {!isSkipped && (
               <>
                 <div
-                  className="grid items-center gap-2 text-center text-[11px] font-bold uppercase tracking-wide text-muted"
+                  className="grid items-center gap-2 text-center text-[11px] font-bold tracking-normal text-muted"
                   style={{ gridTemplateColumns: gridCols }}
                 >
                   <span>#</span>
@@ -932,7 +932,7 @@ function OrphanSetsCard({ locale, sets }: { locale: Locale; sets: ServerSet[] })
     grouped.set(s.exerciseId, g);
   }
   return (
-    <div className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-sm text-muted">
+    <div className="rounded-2xl bg-surface px-4 py-3 text-sm text-muted">
       <div className="font-bold text-ink">{t(locale, "session.already_logged")}</div>
       <ul className="mt-1">
         {[...grouped.values()].map((g) => (
@@ -953,7 +953,7 @@ function FieldToggle({ label, active, onClick }: { label: string; active: boolea
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide transition-colors",
+        "rounded-full border px-3 py-1.5 text-[11px] font-bold tracking-normal transition-colors",
         active ? "border-accent/60 bg-accent/10 text-accent" : "border-hairline text-muted hover:text-ink",
       )}
     >
@@ -964,7 +964,7 @@ function FieldToggle({ label, active, onClick }: { label: string; active: boolea
 
 function StatTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-hairline bg-surface p-4">
+    <div className="rounded-2xl bg-surface p-4">
       <div className="text-2xl font-extrabold tabular-nums">{value}</div>
       <div className="text-xs text-muted">{label}</div>
     </div>
@@ -998,7 +998,7 @@ function CardioLogBlock({
   const burn = estimateBurn({ metValue: CARDIO_MET, weightKg, minutes: logged ? minutes : draft });
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
+    <div className="flex flex-col gap-3 rounded-2xl bg-surface p-4">
       <div className="flex items-center gap-2">
         <Footprints className="h-4 w-4 text-accent" />
         <span className="font-bold">{t(locale, "cardio.log_title")}</span>

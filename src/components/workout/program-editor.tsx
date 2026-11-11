@@ -12,6 +12,8 @@ import { ExercisePicker, type PickableExercise } from "@/components/workout/exer
 import { Button } from "@/components/ui/button";
 import { WarningBanner } from "@/components/shared/warning-banner";
 import { LockedDialog } from "@/components/shared/locked-dialog";
+import { PageHeader } from "@/components/shared/page-header";
+import { chipClass } from "@/components/ui/chip";
 import { validateProgram } from "@/lib/algorithms/validation";
 import { MAX_EXERCISES_PER_DAY as MAX_PER_DAY } from "@/lib/program-limits";
 import {
@@ -50,6 +52,7 @@ export function ProgramEditor({
   catalog,
   experience,
   locked = false,
+  appShell = false,
 }: {
   locale: Locale;
   programId: string;
@@ -61,6 +64,13 @@ export function ProgramEditor({
   experience: string | null;
   /** Free account: the program is readable, but training against it is not. */
   locked?: boolean;
+  /**
+   * Inside the Android app: the wall above says "members only" and points at
+   * /support instead of naming a price. Threaded from the server rather than
+   * sniffed from `navigator.userAgent` here, which would differ between the
+   * server render and the client's and tear the hydration.
+   */
+  appShell?: boolean;
 }) {
   const [days, setDays] = useState(initialDays);
   const [activeDay, setActiveDay] = useState(0);
@@ -185,13 +195,23 @@ export function ProgramEditor({
   const dayIsDone = currentDay
     ? (dayStatus[currentDay.id] ?? { state: "available" }).state === "completed"
     : false;
+  const doneThisWeek = days.filter((d) => dayStatus[d.id]?.state === "completed").length;
 
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3.5">
+        <PageHeader
+          eyebrow={t(locale, "workout.week_done")
+            .replace("{done}", String(doneThisWeek))
+            .replace("{total}", String(days.length))}
+          title={t(locale, "nav.workouts")}
+        />
+
       {showLock && (
         <LockedDialog
           locale={locale}
           feature="session"
+          appShell={appShell}
           onClose={() => setShowLock(false)}
         />
       )}
@@ -200,34 +220,37 @@ export function ProgramEditor({
         <WarningBanner key={w.type} message={pick(locale, w.message.en, w.message.ar)} />
       ))}
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4" role="tablist">
         {days.map((day, i) => {
           const status = dayStatus[day.id] ?? { state: "available" };
           return (
             <button
               key={day.id}
               type="button"
+              role="tab"
+              aria-selected={activeDay === i}
               onClick={() => setActiveDay(i)}
-              className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold transition-colors",
-                activeDay === i ? "bg-accent text-bg" : "border border-hairline text-muted hover:text-ink",
-              )}
+              className={chipClass(activeDay === i)}
             >
               {day.dayName}
               {status.state === "completed" && (
-                <Check className={cn("h-3.5 w-3.5", activeDay === i ? "text-bg" : "text-accent")} />
+                <Check
+                  className={cn("h-4 w-4", activeDay === i ? "text-bg" : "text-train")}
+                  strokeWidth={2.8}
+                />
               )}
               {status.state === "in_progress" && (
                 <span
                   className={cn(
                     "h-2 w-2 animate-pulse rounded-full",
-                    activeDay === i ? "bg-bg" : "bg-accent",
+                    activeDay === i ? "bg-bg" : "bg-train",
                   )}
                 />
               )}
             </button>
           );
         })}
+      </div>
       </div>
 
       {days[activeDay] && (
@@ -257,7 +280,7 @@ export function ProgramEditor({
         ))}
 
         {error && (
-          <p className="text-sm text-red-500" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {error}
           </p>
         )}
@@ -327,33 +350,33 @@ function DayAction({
 }) {
   if (status.state === "completed") {
     return (
-      <div className="rounded-2xl border border-accent/30 bg-accent/5 p-4">
-        <div className="flex items-center gap-2 font-bold text-accent">
-          <CheckCircle2 className="h-5 w-5" />
+      <section className="card-surface p-5">
+        <div className="flex items-center gap-2 text-[20px] font-semibold leading-tight tracking-[-0.01em] text-train">
+          <CheckCircle2 className="h-[22px] w-[22px]" />
           {t(locale, "workout.day_done")}
         </div>
-        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+        <div className="mt-4 grid grid-cols-4 gap-2 border-t border-hairline pt-4">
           <MiniStat value={String(status.stats.setCount)} label={t(locale, "session.stat_sets")} />
           <MiniStat value={String(status.stats.volumeKg)} label={t(locale, "session.stat_volume")} />
           <MiniStat value={String(status.stats.minutes)} label={t(locale, "session.stat_minutes")} />
           <MiniStat
             value={String(status.stats.prCount)}
             label={t(locale, "session.stat_prs")}
-            icon={status.stats.prCount > 0 ? <Trophy className="h-3 w-3 text-accent" /> : undefined}
+            icon={status.stats.prCount > 0 ? <Trophy className="h-4 w-4" /> : undefined}
           />
         </div>
         {status.cardio && (
-          <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-muted">
-            <Footprints className="h-3.5 w-3.5 text-accent" />
+          <p className="mt-4 flex items-center gap-1.5 text-[13px] font-semibold text-muted">
+            <Footprints className="h-4 w-4 text-train" />
             {t(locale, "cardio.speed_walking")} · {status.cardio.minutes} {t(locale, "cardio.min")} ·{" "}
             {status.cardio.caloriesBurned} {t(locale, "cardio.burned")}
           </p>
         )}
-        <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-muted">
-          <Lock className="h-3.5 w-3.5" />
+        <p className="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-muted">
+          <Lock className="h-4 w-4" />
           {t(locale, "workout.locked_until_monday")}
         </p>
-      </div>
+      </section>
     );
   }
 
@@ -362,7 +385,7 @@ function DayAction({
       ? t(locale, "workout.continue_day")
       : t(locale, "workout.start_day");
   const className =
-    "flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 font-display font-bold text-bg shadow-[0_10px_28px_rgba(192,218,27,0.25)] transition-transform hover:-translate-y-0.5";
+    "press flex h-14 items-center justify-center gap-2 rounded-full bg-accent px-6 text-[17px] font-semibold text-bg";
 
   // Reading the program is free; recording a session against it is not. Sending
   // an unpaid user to /checkout from here would throw away the screen they came
@@ -384,14 +407,15 @@ function DayAction({
   );
 }
 
+/** One figure of the finished session, set like Today's legend. */
 function MiniStat({ value, label, icon }: { value: string; label: string; icon?: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-surface px-1 py-2">
-      <div className="flex items-center justify-center gap-1 text-base font-extrabold tabular-nums">
+    <div className="min-w-0">
+      <div className="truncate text-[13px] font-semibold text-ink">{label}</div>
+      <div className="flex items-center gap-1 text-train">
         {icon}
-        {value}
+        <span className="font-num text-[22px] font-bold leading-tight">{value}</span>
       </div>
-      <div className="text-[10px] text-muted">{label}</div>
     </div>
   );
 }

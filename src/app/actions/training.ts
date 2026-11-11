@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requirePlanUser } from "@/lib/subscription-server";
+import { requireOnboardingUser, requirePlanUser } from "@/lib/subscription-server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { getRedoQuota, MONTHLY_REDO_LIMIT, REDO_QUOTA_ERROR } from "@/lib/plan-redo";
@@ -70,7 +70,11 @@ function schemeForReps(reps: string): { sets: number; restSeconds: number } {
  */
 export async function submitWorkoutQuestions(answers: WorkoutAnswers): Promise<ActionResult<{ programId: string }>> {
   const supabase = await createClient();
-  const { user, denied } = await requirePlanUser();
+  // `requireOnboardingUser`, not `requirePlanUser`: in the Android app /start
+  // is closed, so a new install has never answered these questions and must be
+  // able to answer them unpaid. The redo quota below still bounds it. See the
+  // guard in subscription-server.ts.
+  const { user, denied } = await requireOnboardingUser();
   if (!user) return fail(denied);
 
   const { data: previous } = await supabase

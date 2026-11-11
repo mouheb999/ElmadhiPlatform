@@ -13,37 +13,69 @@ const config: Config = {
     },
     extend: {
       colors: {
-        bg: "#0F0F0F",
-        surface: "#202020",
+        /*
+         * The dark palette of native fitness apps, sampled from reference
+         * screenshots rather than approximated: a pure black page, flat
+         * #1C1C1E cards, #2C2C2E for chips and controls inside them. No
+         * gradients, rims or shadows — the contrast between black and the card
+         * is the whole effect.
+         */
+        bg: "#000000",
+        surface: "#1C1C1E",
+        surface2: "#2C2C2E",
         accent: {
-          DEFAULT: "#C0DA1B",
-          hover: "#7D8E10",
+          DEFAULT: "#A8FF00",
+          hover: "#93E000",
         },
-        ink: "#F8F8F8",
-        muted: "rgba(248,248,248,0.65)",
-        hairline: "rgba(255,255,255,0.08)",
-        border: "rgba(255,255,255,0.08)",
-        background: "#0F0F0F",
-        foreground: "#F8F8F8",
-        ring: "#C0DA1B",
+        ink: "#FFFFFF",
+        // Solid greys, so a label reads the same on the page and on a card.
+        // Both pass 4.5:1 on #1C1C1E.
+        muted: "#98989F",
+        subtle: "#8E8E93",
+        hairline: "rgba(255,255,255,0.09)",
+        border: "rgba(255,255,255,0.09)",
+        /**
+         * One colour per part of the coaching loop: lime for training (the
+         * brand, the active tab and buttons), tangerine for food and
+         * calories, aqua for protein, purple for weight, gold for Q&A.
+         *
+         * Deliberately NOT Apple Fitness's pink and blue: with those next to
+         * the lime the app read as a copy of it. Tangerine is kept a step
+         * away from the error red below, because "over your calorie target"
+         * is drawn in that red right next to food numbers. Every colour here
+         * passes 4.5:1 as text on #1C1C1E.
+         */
+        train: "#A8FF00",
+        fuel: "#FF8A3D",
+        protein: "#2DD9C0",
+        sleep: "#7D7AFF",
+        body: "#9D86E0",
+        learn: "#FFC53D",
+        // Errors and "over target" get a red of their own.
+        danger: "#FF453A",
+        background: "#000000",
+        foreground: "#FFFFFF",
+        ring: "#A8FF00",
       },
       fontFamily: {
-        sans: ["var(--font-cairo)", "Cairo", "Tajawal", "system-ui", "sans-serif"],
-        // --font-brand is Saira in English and Cairo in Arabic; see globals.css.
-        display: [
-          "var(--font-brand)",
-          "var(--font-cairo)",
-          "Cairo",
-          "system-ui",
-          "sans-serif",
-        ],
+        // --font-ui is Inter in English and Cairo in Arabic; see globals.css.
+        sans: ["var(--font-ui)", "Inter", "Cairo", "system-ui", "sans-serif"],
+        // Headings and buttons share the UI face now — one family, many
+        // weights, the way native apps set type. Kept as its own token so the
+        // 60-odd `font-display` call sites did not all have to change.
+        display: ["var(--font-ui)", "Inter", "Cairo", "system-ui", "sans-serif"],
+        // Big figures: Saira in English, Cairo in Arabic.
+        num: ["var(--font-num)", "Saira", "Cairo", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        card: "28px",
+        card: "22px",
       },
       boxShadow: {
-        card: "0 10px 40px rgba(0,0,0,0.35)",
-        glow: "0 0 80px rgba(192,218,27,0.25)",
+        // Neutralised rather than deleted: a drop shadow is invisible on a near-
+        // black page and the lime glow was on everything, so nothing stood out.
+        // Depth now comes from the surface steps above.
+        card: "none",
+        glow: "none",
       },
       keyframes: {
         "fade-up": {

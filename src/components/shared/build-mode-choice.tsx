@@ -40,7 +40,7 @@ export function BuildModeChoice({
         href={guidedHref}
         className="relative flex flex-col gap-2 rounded-3xl border border-accent bg-accent/5 p-5 ring-1 ring-accent transition-transform hover:-translate-y-0.5"
       >
-        <span className="absolute -top-2.5 start-4 flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-bg">
+        <span className="absolute -top-2.5 start-4 flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold tracking-normal text-bg">
           <Sparkles className="h-3 w-3" />
           {t(locale, "build.recommended")}
         </span>
@@ -53,7 +53,7 @@ export function BuildModeChoice({
 
       <Link
         href={customHref}
-        className="flex flex-col gap-2 rounded-3xl border border-hairline bg-surface p-5 transition-colors hover:border-accent/50"
+        className="press card-surface flex flex-col gap-2 p-5"
       >
         <span className="flex items-center gap-2 font-display text-lg font-extrabold">
           <Wrench className="h-5 w-5 text-muted" />

@@ -8,6 +8,7 @@ import { tunisWeekStartUtc } from "@/lib/dates";
 import { filterSafeExercises, type ExerciseRow } from "@/lib/algorithms/exercise-substitution";
 import { resolveEquipmentValues } from "@/lib/algorithms/split-fill";
 import { LoadFailure } from "@/components/shared/load-failure";
+import { isAppShell } from "@/lib/app-shell";
 
 /**
  * The program screen's body, suspended by /workout so the tab bar and the
@@ -323,6 +324,7 @@ export async function ProgramView({ locale }: { locale: Locale }) {
       catalog={catalog}
       experience={trainingProfile.experience}
       locked={locked}
+      appShell={await isAppShell()}
     />
   );
 }

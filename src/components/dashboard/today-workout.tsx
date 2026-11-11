@@ -1,26 +1,47 @@
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle2, Dumbbell, Eye, Moon, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { t, type Locale } from "@/lib/i18n";
+import { pick, t, type Locale } from "@/lib/i18n";
+import { illustrationFor } from "@/lib/exercise-illustrations";
+import { CardTitleRow } from "@/components/shared/card-title-row";
 
 export type TodayWorkoutState = "none" | "ready" | "in_progress" | "done" | "rest";
+
+export type TodayExercise = {
+  nameEn: string;
+  nameAr: string | null;
+  sets: number;
+  repRange: string;
+};
 
 export type TodayWorkoutDay = {
   id: string;
   name: string;
   exerciseCount: number;
+  /**
+   * The day's exercises in program order, when the caller has them. With them
+   * the card leads with the first exercise's illustration and lists the rest;
+   * without them (the checkout preview's sample day) it is the compact card.
+   */
+  exercises?: TodayExercise[];
 };
 
 /**
- * The Today screen hero: what training looks like *today*, one tap away.
+ * Today's training, one tap away — the screen's main action.
  *
- * `locked` keeps the day and its exercise count visible and sends the button
- * into the program instead of into checkout. Reading today's exercises is free,
- * so the hero's job on an unpaid account is to get them looking at the thing
- * they built — not to interrupt with a price the moment they arrive. What they
- * cannot do is record a session against it, and the wall for that sits on the
- * session screen and in the summary card lower down, where it is answering a
- * question the user has actually asked by then.
+ * The card leads with the app's own exercise artwork: dark ground, the working
+ * muscles lit in the brand's lime. Those illustrations are on-brand already
+ * and Today never showed one; a session card that opens on the bench press
+ * you are about to do is the single biggest step from "a website with cards"
+ * to "a training app". The rest of the day's exercises sit underneath on a
+ * shelf that scrolls sideways.
+ *
+ * `locked` keeps the day and its exercises visible and sends the button into
+ * the program instead of the session. Reading today's exercises is free, so on
+ * an unpaid account the job here is to get them looking at what they built —
+ * the wall for recording a session sits on the session screen, where it is
+ * answering a question the user has actually asked by then.
  */
 export function TodayWorkout({
   locale,
@@ -33,88 +54,153 @@ export function TodayWorkout({
   day: TodayWorkoutDay | null;
   locked?: boolean;
 }) {
-  const startButton = (href: string, labelKey: "today.start_workout" | "today.continue_workout") =>
-    locked ? (
-      <Button asChild size="lg" className="mt-2 w-max">
-        <Link href="/workout">
-          <Eye className="h-5 w-5" />
-          {t(locale, "today.see_workout")}
-        </Link>
-      </Button>
-    ) : (
-      <Button asChild size="lg" className="mt-2 w-max">
-        <Link href={href}>
-          <Play className="h-5 w-5" />
-          {t(locale, labelKey)}
-        </Link>
-      </Button>
+  // The title sits inside the card, native-style, with the chevron disc
+  // leading to the full program.
+  const heading = (
+    <CardTitleRow
+      title={t(locale, "today.workout_title")}
+      href="/workout"
+      linkLabel={t(locale, "today.open_plan")}
+      trailing={
+        day && (state === "ready" || state === "in_progress") ? (
+          <span className="text-[15px] text-subtle">
+            {day.exerciseCount} {t(locale, "today.exercises")}
+          </span>
+        ) : null
+      }
+    />
+  );
+
+  if ((state === "ready" || state === "in_progress") && day) {
+    const exercises = day.exercises ?? [];
+    const lead = exercises[0];
+    const leadImage = lead ? illustrationFor(lead.nameEn) : null;
+    const leadName = lead ? pick(locale, lead.nameEn, lead.nameAr) : null;
+
+    return (
+      <section aria-label={t(locale, "today.workout_title")}>
+        <div className="card-surface overflow-hidden">
+          <div className="px-5 pb-4 pt-5">{heading}</div>
+          {leadImage ? (
+            // The illustrations are drawn on a #181818-ish ground; the frame
+            // matches it so the image has no visible edge inside the card.
+            <div className="relative h-48 bg-[#181818]">
+              <Image
+                src={leadImage}
+                alt={leadName ?? ""}
+                fill
+                priority
+                sizes="(max-width: 640px) 100vw, 640px"
+                className="object-cover"
+              />
+              {state === "in_progress" && (
+                <span className="absolute start-3 top-3 flex items-center gap-1.5 rounded-full bg-[rgba(0,0,0,0.55)] px-2.5 py-1 text-xs font-semibold backdrop-blur-md">
+                  <span className="h-[7px] w-[7px] animate-pulse rounded-full bg-train" />
+                  {t(locale, "home.in_progress")}
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 px-5">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-train/15 text-train">
+                <Dumbbell className="h-5 w-5" />
+              </span>
+              {state === "in_progress" && (
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-muted">
+                  <span className="h-[7px] w-[7px] animate-pulse rounded-full bg-train" />
+                  {t(locale, "home.in_progress")}
+                </span>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3 px-5 pb-5 pt-4">
+            <div>
+              {leadName && <p className="text-[13px] font-semibold text-subtle">{leadName}</p>}
+              <h3 className="text-balance text-[21px] font-bold leading-tight tracking-[-0.01em]">{day.name}</h3>
+            </div>
+            {locked ? (
+              <Button asChild className="w-full">
+                <Link href="/workout" transitionTypes={["tab"]}>
+                  <Eye />
+                  {t(locale, "today.see_workout")}
+                </Link>
+              </Button>
+            ) : (
+              <Button asChild className="w-full">
+                <Link href={`/workout/session/${day.id}`} transitionTypes={["nav-forward"]}>
+                  <Play className="fill-current" />
+                  {t(locale, state === "in_progress" ? "today.continue_workout" : "today.start_workout")}
+                </Link>
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {exercises.length > 1 && (
+          <div className="mt-5">
+            <h3 className="mb-2.5 text-[17px] font-semibold">{t(locale, "home.up_next")}</h3>
+            {/* Bleeds to the screen edges so a card can scroll off them, the
+                way a native shelf does; scroll-snap lands each card cleanly. */}
+            <ul className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4">
+              {exercises.map((exercise, i) => {
+                const src = illustrationFor(exercise.nameEn);
+                return (
+                  <li key={`${exercise.nameEn}-${i}`} className="w-[148px] shrink-0 snap-start">
+                    <div className="relative h-[100px] overflow-hidden rounded-2xl bg-[#181818]">
+                      {src && <Image src={src} alt="" fill sizes="148px" className="object-contain" />}
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm font-semibold leading-snug">
+                      {pick(locale, exercise.nameEn, exercise.nameAr)}
+                    </p>
+                    <p className="text-[13px] text-subtle" dir="ltr">
+                      {exercise.sets} × {exercise.repRange}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
     );
+  }
+
+  if (state === "done" || state === "rest") {
+    const done = state === "done";
+    return (
+      <section aria-label={t(locale, "today.workout_title")} className="card-surface flex flex-col gap-4 p-5">
+        {heading}
+        <div className="flex items-center gap-4">
+          <span
+            className={`grid h-12 w-12 shrink-0 place-items-center rounded-full ${done ? "bg-train/15 text-train" : "bg-sleep/15 text-sleep"}`}
+          >
+            {done ? <CheckCircle2 className="h-6 w-6" /> : <Moon className="h-6 w-6" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[17px] font-bold leading-snug">
+              {t(locale, done ? "today.workout_done" : "today.rest_day")}
+            </p>
+            <Link href="/workout" transitionTypes={["tab"]} className="press mt-0.5 inline-block text-[15px] text-muted">
+              {t(locale, "today.open_plan")}
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-accent/25 bg-gradient-to-br from-accent/[0.08] via-surface to-surface p-6">
-      <div className="glow-accent pointer-events-none absolute inset-0" />
-      <div className="relative flex flex-col gap-3">
-        <span className="w-max rounded-full bg-accent/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-accent">
-          {t(locale, "today.workout_title")}
-        </span>
-
-        {state === "ready" && day && (
-          <>
-            <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight">{day.name}</h1>
-            <p className="flex items-center gap-2 text-sm text-muted">
-              <Dumbbell className="h-4 w-4" />
-              {day.exerciseCount} {t(locale, "today.exercises")}
-            </p>
-            {startButton(`/workout/session/${day.id}`, "today.start_workout")}
-          </>
-        )}
-
-        {state === "in_progress" && day && (
-          <>
-            <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight">{day.name}</h1>
-            <p className="flex items-center gap-2 text-sm text-muted">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
-              {t(locale, "session.other_in_progress")}
-            </p>
-            {startButton(`/workout/session/${day.id}`, "today.continue_workout")}
-          </>
-        )}
-
-        {state === "done" && (
-          <>
-            <h1 className="flex items-center gap-2 text-2xl font-extrabold leading-tight tracking-tight">
-              <CheckCircle2 className="h-7 w-7 text-accent" />
-              {t(locale, "today.workout_done")}
-            </h1>
-            <Link href="/workout" className="text-sm font-bold text-accent hover:underline">
-              {t(locale, "today.open_plan")} →
-            </Link>
-          </>
-        )}
-
-        {state === "rest" && (
-          <>
-            <h1 className="flex items-center gap-2 text-2xl font-extrabold leading-tight tracking-tight">
-              <Moon className="h-6 w-6 text-accent" />
-              {t(locale, "today.rest_day")}
-            </h1>
-            <Link href="/workout" className="text-sm font-bold text-accent hover:underline">
-              {t(locale, "today.open_plan")} →
-            </Link>
-          </>
-        )}
-
-        {state === "none" && (
-          <>
-            <h1 className="text-balance text-2xl font-extrabold leading-tight tracking-tight">
-              {t(locale, "today.no_program")}
-            </h1>
-            <Button asChild size="lg" className="mt-2 w-max">
-              <Link href="/workout/questions">{t(locale, "today.build_program")} →</Link>
-            </Button>
-          </>
-        )}
+    <section aria-label={t(locale, "today.workout_title")}>
+      <div className="card-surface flex flex-col gap-4 p-5">
+        {heading}
+        <p className="text-balance text-[17px] font-bold leading-snug">{t(locale, "today.no_program")}</p>
+        <Button asChild className="w-full">
+          <Link href="/workout/questions" transitionTypes={["nav-forward"]}>
+            {t(locale, "today.build_program")}
+          </Link>
+        </Button>
       </div>
-    </div>
+    </section>
   );
 }
