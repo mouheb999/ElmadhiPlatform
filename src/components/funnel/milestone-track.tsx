@@ -4,6 +4,7 @@ import { Check, Flag, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t, weeksLabel, type Locale } from "@/lib/i18n";
 import type { TimelinePoint } from "@/lib/funnel/fitness-plan";
+import { stopReached } from "@/lib/journey";
 
 /**
  * The journey as dated stops, not a line chart.
@@ -35,6 +36,8 @@ export function MilestoneTrack({
   /** The stop where the weight they typed is reached, if it is on the track. */
   targetWeek,
   elapsedWeeks,
+  currentKg,
+  direction = "down",
 }: {
   locale: Locale;
   milestones: TimelinePoint[];
@@ -50,14 +53,24 @@ export function MilestoneTrack({
    * filled in, and the one they are walking towards is marked as next.
    */
   elapsedWeeks?: number;
+  /**
+   * Their latest weigh-in, in the app. When there is one, a stop is ticked
+   * because the scale reached it, not because its date went by: a milestone
+   * that fills itself in for somebody who has not moved is not a milestone.
+   * Without one the track falls back to the calendar, which is all it knows.
+   */
+  currentKg?: number | null;
+  /** Which way the plan moves the scale. Decides what "reached" means. */
+  direction?: "down" | "up" | "hold";
 }) {
   if (milestones.length < 2) return null;
 
   const start = milestones[0].kg;
   const inApp = elapsedWeeks !== undefined;
-  const nextWeek = inApp
-    ? (milestones.find((stop) => stop.week > elapsedWeeks)?.week ?? null)
-    : null;
+  const byScale = inApp && currentKg != null;
+  const reached = (stop: TimelinePoint): boolean =>
+    byScale ? stopReached(stop, currentKg, direction) : inApp && stop.week <= elapsedWeeks;
+  const nextWeek = inApp ? (milestones.find((stop) => !reached(stop))?.week ?? null) : null;
 
   /**
    * One decimal reads as a measurement; none reads as an estimate, which is
@@ -97,7 +110,7 @@ export function MilestoneTrack({
         const isToday = stop.week === 0;
         const isTarget = targetWeek != null && stop.week === targetWeek;
         const delta = stop.kg - start;
-        const isPassed = inApp && stop.week <= elapsedWeeks;
+        const isPassed = inApp && reached(stop);
         const isNext = inApp && stop.week === nextWeek;
         const isAhead = inApp && !isPassed && !isNext;
         const Icon = isToday ? MapPin : isTarget ? Flag : Check;
@@ -131,7 +144,7 @@ export function MilestoneTrack({
                   className={cn(
                     "w-0.5 flex-1",
                     inApp
-                      ? isPassed && nextWeek !== null && stop.week < nextWeek && !isNext
+                      ? isPassed
                         ? "bg-accent/70"
                         : "bg-white/10"
                       : "bg-gradient-to-b from-accent/50 to-accent/15",

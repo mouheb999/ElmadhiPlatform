@@ -336,7 +336,11 @@ export default async function DashboardPage({
           summary at the end. */}
       {paid && (
         <>
-          <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+          {/* The anchor the plan card on Progress links to when it needs a
+              weigh-in. The margin keeps the sticky header off it. */}
+          <div id="checkin" className="scroll-mt-24">
+            <CheckinCard locale={locale} todayCheckin={todayCheckin} lastWeightKg={lastWeightKg} />
+          </div>
           <ProgressTeaser locale={locale} points={teaserWeights} />
         </>
       )}

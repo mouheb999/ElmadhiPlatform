@@ -134,3 +134,108 @@ export async function loadJourney(
     targetKg: input.targetWeightKg,
   };
 }
+
+/**
+ * Where the member is against the plan, from their own weigh-ins.
+ *
+ * The timeline is a forecast; this is the scale answering it. Three numbers
+ * drive the card on Progress:
+ *
+ *   - `percent`      how much of the twelve-week change the scale has already
+ *                    delivered. This is what fills the bar, so the bar moves
+ *                    when they log a lower weight and not merely when a day
+ *                    passes. A calendar bar fills for someone who has done
+ *                    nothing; this one does not.
+ *   - `planPercent`  how much the plan expected by today — the marker on the
+ *                    same bar, so "am I keeping up" is something they can see.
+ *   - `status`       the same comparison in a word.
+ *
+ * Half a kilo either side of the plan counts as on track. Bodyweight moves
+ * that much between a morning and an evening, and a verdict that flips on
+ * water is a verdict nobody should be shown.
+ */
+export type JourneyStatus = "on_track" | "ahead" | "behind";
+
+export type JourneyProgress = {
+  /** The plan's weight for today, interpolated between its stops. */
+  expectedKg: number;
+  /** Signed change the plan aims for across the twelve weeks. */
+  goalDeltaKg: number;
+  /** Signed change the scale shows since the start. */
+  movedKg: number;
+  /** 0–100: the share of the twelve-week change already on the scale. */
+  percent: number;
+  /** 0–100: the share the plan expected by today. */
+  planPercent: number;
+  status: JourneyStatus;
+  /** How far from the plan, in kg, always positive. */
+  gapKg: number;
+};
+
+/** A weigh-in within this much of the plan is "on track". */
+export const ON_TRACK_KG = 0.5;
+
+const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
+
+/** The plan's weight `days` after the start, on a straight line between stops. */
+export function expectedKgAt(plan: FitnessPlan, days: number): number {
+  const stops = plan.timeline;
+  if (stops.length === 0) return 0;
+  const week = Math.max(0, days / 7);
+  const lastStop = stops[stops.length - 1];
+  if (week >= lastStop.week) return lastStop.kg;
+  for (let i = 1; i < stops.length; i++) {
+    const from = stops[i - 1];
+    const to = stops[i];
+    if (week <= to.week) {
+      const span = to.week - from.week || 1;
+      return from.kg + ((week - from.week) / span) * (to.kg - from.kg);
+    }
+  }
+  return lastStop.kg;
+}
+
+export function journeyProgress(journey: Journey, latestKg: number): JourneyProgress | null {
+  const { plan, startKg, elapsedDays } = journey;
+  const stops = plan.timeline;
+  if (plan.kind !== "scale" || stops.length < 2) return null;
+
+  const goalDeltaKg = stops[stops.length - 1].kg - startKg;
+  // No meaningful change planned: nothing for a bar to measure.
+  if (Math.abs(goalDeltaKg) < 0.5) return null;
+
+  const expectedKg = expectedKgAt(plan, elapsedDays);
+  const movedKg = latestKg - startKg;
+
+  // Positive when the scale is further along than the plan, whichever way the
+  // plan points: lighter than expected on a cut, heavier on a gain.
+  const towards = goalDeltaKg < 0 ? -1 : 1;
+  const lead = (latestKg - expectedKg) * towards;
+
+  return {
+    expectedKg,
+    goalDeltaKg,
+    movedKg,
+    percent: clampPercent((movedKg / goalDeltaKg) * 100),
+    planPercent: clampPercent(((expectedKg - startKg) / goalDeltaKg) * 100),
+    status: lead > ON_TRACK_KG ? "ahead" : lead < -ON_TRACK_KG ? "behind" : "on_track",
+    gapKg: Math.abs(lead),
+  };
+}
+
+/**
+ * Has the scale reached a stop on the track?
+ *
+ * Judged against the near edge of the stop's band, not its centre: the band is
+ * what the plan actually claims ("~85–86 kg"), so standing inside it is having
+ * arrived. The start is always reached.
+ */
+export function stopReached(
+  stop: { week: number; lowKg: number; highKg: number },
+  latestKg: number,
+  direction: "down" | "up" | "hold",
+): boolean {
+  if (stop.week === 0) return true;
+  if (direction === "up") return latestKg >= stop.lowKg;
+  return latestKg <= stop.highKg;
+}

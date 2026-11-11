@@ -217,14 +217,24 @@ export default async function ProgressPage({
 
   // The newest weigh-in in the last 90 days, whatever range the chart is on.
   const weighIns = (checkins ?? []).filter((c) => c.weight_kg !== null);
-  const newestKg = weighIns.length > 0 ? weighIns[weighIns.length - 1].weight_kg : null;
+  const newest = weighIns.length > 0 ? weighIns[weighIns.length - 1] : null;
+  const newestKg = newest?.weight_kg ?? null;
+  // Whole days between that weigh-in and today, both as Tunis calendar days.
+  const daysSinceWeighIn = newest
+    ? Math.max(0, Math.round((Date.parse(tunisDateKey()) - Date.parse(newest.checkin_date)) / 86_400_000))
+    : null;
 
   return (
     <div className="flex flex-col gap-5 pb-4">
       <PageHeader eyebrow={t(locale, "progress.eyebrow")} title={t(locale, "progress.title")} />
 
       {/* The plan, first and loud. Everything under it is the detail. */}
-      {journey && <JourneyCard locale={locale} journey={journey} latestKg={newestKg} />}
+      {journey && <JourneyCard
+          locale={locale}
+          journey={journey}
+          latestKg={newestKg}
+          daysSinceWeighIn={daysSinceWeighIn}
+        />}
 
       {!hasAnyData && !journey && (
         <p className="card-surface px-5 py-6 text-center text-[15px] text-muted">{t(locale, "progress.empty")}</p>
