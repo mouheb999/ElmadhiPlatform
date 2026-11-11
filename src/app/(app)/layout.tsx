@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 import { Logo } from "@/components/layout/logo";
 import { AppBottomNav } from "@/components/layout/app-bottom-nav";
 import { OfflineBanner } from "@/components/shared/offline-banner";
+import { TrialBanner } from "@/components/layout/trial-banner";
 import { RouteTransition } from "@/components/layout/route-transition";
 import { AdminCopyBar } from "@/components/admin/copy-bar";
 import { getSubscription } from "@/lib/subscription-server";
@@ -116,6 +117,12 @@ export default async function AppLayout({
       </header>
 
       <OfflineBanner locale={locale} />
+
+      {/* Suspended for the same reason as the unread dot: it reads a header to
+          learn whether this is the store app, and the shell does not wait. */}
+      <Suspense fallback={null}>
+        <TrialBanner locale={locale} subscription={subscription} />
+      </Suspense>
 
       <main className="container-page flex-1 pt-2 pb-[calc(env(safe-area-inset-bottom)+7.5rem)]">
         <RouteTransition>{children}</RouteTransition>

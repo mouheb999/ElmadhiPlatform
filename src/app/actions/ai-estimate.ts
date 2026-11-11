@@ -2,10 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requirePremiumUser } from "@/lib/subscription-server";
+import { getSubscription, requirePremiumUser } from "@/lib/subscription-server";
+import { hasPaidTerm } from "@/lib/subscription";
 import { estimateMeal, type MealEstimate, type EstimatedItem } from "@/lib/ai/meal-estimator";
 import { type MealSlot } from "@/app/actions/meal-logs";
-import { AI_ESTIMATE_LIMIT_REACHED, isQuotaError } from "@/lib/ai-quota";
+import {
+  AI_ESTIMATE_LIMIT_REACHED,
+  TRIAL_AI_LIMIT_REACHED,
+  TRIAL_DAILY_AI_ESTIMATE_LIMIT,
+  isQuotaError,
+} from "@/lib/ai-quota";
 import { tunisDateKey } from "@/lib/dates";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 
@@ -33,6 +39,20 @@ export async function estimateMealAction(input: {
     !["image/jpeg", "image/png", "image/webp"].includes(input.imageMediaType ?? "")
   ) {
     return fail("Unsupported image format.");
+  }
+
+  // An unpaid account — trial, or receipt under review — gets a smaller daily
+  // allowance. See TRIAL_DAILY_AI_ESTIMATE_LIMIT for why.
+  const subscription = await getSubscription();
+  if (!subscription.is_admin && !hasPaidTerm(subscription)) {
+    const since = new Date(Date.now() - 86_400_000).toISOString();
+    const { count } = await supabase
+      .from("events")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("event_type", "ai_estimate_requested")
+      .gte("created_at", since);
+    if ((count ?? 0) >= TRIAL_DAILY_AI_ESTIMATE_LIMIT) return fail(TRIAL_AI_LIMIT_REACHED);
   }
 
   // Reserve the call before spending anything on it. Migration 037 gates this

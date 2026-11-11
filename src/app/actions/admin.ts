@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { nextExpiry } from "@/lib/subscription";
+import { nextExpiry, revokeReceiptGrace } from "@/lib/subscription";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { sendMetaEvent } from "@/lib/meta/capi";
 
@@ -361,7 +361,7 @@ export async function rejectRequest(requestId: string): Promise<ActionResult> {
     // paperwork saying it was refused. Reversing a confirmed payment is what
     // "End subscription" on /admin/subscriptions is for.
     .neq("status", "confirmed")
-    .select("user_id")
+    .select("user_id, proof_path")
     .maybeSingle();
   if (error) return fail(error.message);
   if (!rejected) return fail("This payment was already confirmed — end the subscription instead.");
@@ -384,6 +384,34 @@ export async function rejectRequest(requestId: string): Promise<ActionResult> {
       .eq("id", rejected.user_id)
       .neq("payment_status", "active");
     if (profileError) return fail(profileError.message);
+
+    // Take back the window the receipt opened.
+    //
+    // Attaching a receipt lets the customer in for 48 hours on the strength of
+    // it (`openAccountOnReceipt`). Turning the receipt down has to close that
+    // door, or rejecting a fake screenshot would leave its sender using the
+    // product until the window ran out on its own. Whatever is left of the
+    // sign-up trial is theirs regardless and is kept — see revokeReceiptGrace.
+    //
+    // Only when there was a receipt: a request rejected without one never
+    // opened a window, and there is nothing to take back.
+    if (rejected.proof_path) {
+      const { data: owner } = await admin
+        .from("profiles")
+        .select("created_at, free_access_until")
+        .eq("id", rejected.user_id)
+        .maybeSingle();
+      if (owner?.free_access_until) {
+        const fallback = revokeReceiptGrace(owner.created_at);
+        if (new Date(owner.free_access_until) > fallback) {
+          const { error: revokeError } = await admin
+            .from("profiles")
+            .update({ free_access_until: fallback.toISOString() })
+            .eq("id", rejected.user_id);
+          if (revokeError) return fail(revokeError.message);
+        }
+      }
+    }
   }
 
   revalidatePath("/admin");

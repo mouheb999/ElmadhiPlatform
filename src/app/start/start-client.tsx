@@ -19,7 +19,7 @@ import {
 } from "@/components/funnel/interstitial";
 import { PlanReveal } from "@/components/funnel/plan-reveal";
 import { Logo } from "@/components/layout/logo";
-import { trackStep } from "@/lib/funnel/track";
+import { TRIAL_STARTED, trackStep } from "@/lib/funnel/track";
 import { inRange, isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
 import { captureAttribution, saveAnswers } from "@/lib/funnel/client-store";
 import { dir, t, type Locale, type StringKey } from "@/lib/i18n";
@@ -103,8 +103,11 @@ function firstUnanswered(screens: Screen[], answers: Partial<FunnelAnswers>): nu
 export function StartClient({
   locale,
   initialAnswers,
+  fromPerMonth,
 }: {
   locale: Locale;
+  /** The lowest monthly price on sale. See PlanReveal. */
+  fromPerMonth: number | null;
   /** The cookie from a previous visit, read on the server. See page.tsx. */
   initialAnswers: Partial<FunnelAnswers>;
 }) {
@@ -329,15 +332,24 @@ export function StartClient({
   }
 
   /**
-   * On to the price.
+   * On to the account — and through it, straight into the app.
    *
-   * No plan id and no account — /checkout opens on its own plan grid and asks
-   * for the account when one is chosen. What travels is the cookie, which is
-   * what lets checkout restate the plan they just watched get built.
+   * This used to go to /checkout: a price, then an account form, then a bank
+   * transfer, all before the product had been touched. 1,663 visitors reached
+   * this button between September and November and 4 of them ended up paying.
+   *
+   * Every new account now has a few days of the whole product (migration
+   * 058), so the next screen asks for a phone number and a password and the
+   * one after it is their own dashboard. The price is met later, by somebody
+   * who has logged meals against the plan they are looking at now. It is not
+   * hidden in the meantime: it is under the button they are about to press.
+   *
+   * What travels is the cookie — the answers ride into sign-up and pre-fill
+   * the questionnaire, so nothing here is asked twice.
    */
-  function toCheckout() {
-    trackStep("to_checkout", locale);
-    router.push("/checkout?from=funnel");
+  function toSignup() {
+    trackStep(TRIAL_STARTED, locale);
+    router.push("/login?mode=signup&next=%2Fdashboard");
   }
 
   // The progress bar counts questions answered, not screens seen: an
@@ -428,7 +440,8 @@ export function StartClient({
           <PlanReveal
             locale={locale}
             answers={answers}
-            onContinue={toCheckout}
+            fromPerMonth={fromPerMonth}
+            onContinue={toSignup}
             onFix={resume}
           />
         ) : (

@@ -26,3 +26,21 @@ export const AI_ESTIMATE_LIMIT_REACHED =
 export function isQuotaError(message: string | undefined | null): boolean {
   return !!message && message.includes(AI_ESTIMATE_QUOTA_ERROR);
 }
+
+/**
+ * The ceiling for an account that has not paid — on the sign-up trial, or let
+ * in while a receipt is checked.
+ *
+ * Every estimate is a metered vision-model call. A trial has to include the
+ * scan, because the scan is what the ads show; it does not have to include
+ * thirty of them a day for somebody who may never pay. Five is a day of meals
+ * and a snack, which is the whole experience.
+ *
+ * Counted over a rolling 24 hours in `estimateMealAction`, not in the database
+ * trigger: the trigger caps what any account can reserve, and this narrower
+ * limit only has to hold on the one path that reaches the provider.
+ */
+export const TRIAL_DAILY_AI_ESTIMATE_LIMIT = 5;
+
+/** What a trial account that has hit its ceiling is told. Matched by the UI. */
+export const TRIAL_AI_LIMIT_REACHED = "trial_ai_limit_reached";

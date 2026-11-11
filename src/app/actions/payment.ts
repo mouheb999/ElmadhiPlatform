@@ -6,7 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/current-user";
 import { notifyTelegram } from "@/lib/notify/telegram";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
-import { isSubscriptionActive } from "@/lib/subscription";
+import {
+  RECEIPT_GRACE_HOURS,
+  extendFreeAccess,
+  isSubscriptionActive,
+} from "@/lib/subscription";
 import { getPostHogClient } from "@/lib/posthog-server";
 import { readClientContext } from "@/lib/meta/capi";
 
@@ -277,6 +281,8 @@ export async function attachPaymentProof(
     if (removeError) console.error("[payment] stale proof not removed:", removeError);
   }
 
+  await openAccountOnReceipt(admin, user.id, request.id);
+
   // The receipt opens a conversation. Until now this step ended in a screen
   // that said "we're checking" and offered no way to say anything else — so a
   // transfer we couldn't match, or an amount that was short, had no route back
@@ -305,6 +311,60 @@ export async function attachPaymentProof(
   revalidatePath("/checkout");
   revalidatePath("/admin");
   return ok(undefined);
+}
+
+/**
+ * Let the customer in the moment a receipt is attached.
+ *
+ * A manual transfer is confirmed by a person, and a person is sometimes asleep.
+ * Until now the customer waited for them, locked out, having already paid: the
+ * average was 4.9 hours, and seven receipts were opened by an admin and never
+ * answered at all. Four of those arrived in the middle of the one ad campaign
+ * that was optimising for sales.
+ *
+ * So the order is reversed. Attaching a receipt opens the account for
+ * RECEIPT_GRACE_HOURS, and the check happens afterwards: confirming turns the
+ * window into the term they paid for, rejecting closes it (`rejectRequest`).
+ * The request itself stays `pending` — nothing here says the money arrived.
+ *
+ * What a screenshot of nothing buys is two days, once. An account that has
+ * already had a receipt turned down is not let in on the strength of another;
+ * it waits for a person, the way everybody used to.
+ *
+ * Best-effort: the receipt is attached and the admin has been told either way,
+ * so a failure here must not fail the upload. The customer simply lands on the
+ * old "we are checking" screen instead of the new one.
+ */
+async function openAccountOnReceipt(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  requestId: string,
+): Promise<void> {
+  try {
+    const { count: rejectedBefore } = await admin
+      .from("payment_requests")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "rejected")
+      .not("proof_path", "is", null)
+      .neq("id", requestId);
+    if ((rejectedBefore ?? 0) > 0) return;
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("free_access_until")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const until = extendFreeAccess(profile?.free_access_until, RECEIPT_GRACE_HOURS);
+    const { error } = await admin
+      .from("profiles")
+      .update({ free_access_until: until.toISOString() })
+      .eq("id", userId);
+    if (error) console.error("[payment] receipt grace not granted:", error.message);
+  } catch (err) {
+    console.error("[payment] receipt grace failed:", err);
+  }
 }
 
 /**
@@ -488,7 +548,7 @@ export async function isAccountActive(): Promise<boolean> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("payment_status, is_admin, plan_expires_at")
+    .select("payment_status, is_admin, plan_expires_at, free_access_until")
     .eq("id", user.id)
     .maybeSingle();
 

@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { isSubscriptionActive, nextExpiry, subscriptionStanding } from "./subscription";
+import {
+  RECEIPT_GRACE_HOURS,
+  TRIAL_DAYS,
+  extendFreeAccess,
+  freeAccessDaysLeft,
+  hasFreeAccess,
+  hasPaidTerm,
+  isPremiumActive,
+  isSubscriptionActive,
+  nextExpiry,
+  revokeReceiptGrace,
+  subscriptionStanding,
+} from "./subscription";
 
 const DAY = 86_400_000;
 const iso = (offsetDays: number) => new Date(Date.now() + offsetDays * DAY).toISOString();
@@ -116,5 +128,84 @@ describe("nextExpiry", () => {
   it("produces a term that the gate then accepts", () => {
     const expiry = nextExpiry(null, 1).toISOString();
     expect(isSubscriptionActive({ payment_status: "active", plan_expires_at: expiry })).toBe(true);
+  });
+});
+
+describe("the free-access window (migration 058)", () => {
+  it("lets an unpaid account through while the window is open", () => {
+    expect(isSubscriptionActive({ payment_status: "unpaid", free_access_until: iso(2) })).toBe(true);
+    expect(isSubscriptionActive({ payment_status: "pending", free_access_until: iso(1) })).toBe(true);
+  });
+
+  it("closes the moment the window does", () => {
+    const justNow = new Date(Date.now() - 1000).toISOString();
+    expect(isSubscriptionActive({ payment_status: "unpaid", free_access_until: justNow })).toBe(false);
+    expect(isSubscriptionActive({ payment_status: "unpaid", free_access_until: null })).toBe(false);
+  });
+
+  it("does not shorten a paid term that outlasts it", () => {
+    expect(
+      isSubscriptionActive({
+        payment_status: "active",
+        plan_expires_at: iso(30),
+        free_access_until: iso(-5),
+      }),
+    ).toBe(true);
+  });
+
+  it("includes the meal scan in a trial, but not for a lapsed Standard plan", () => {
+    expect(isPremiumActive({ payment_status: "unpaid", free_access_until: iso(2) })).toBe(true);
+    expect(isPremiumActive({ payment_status: "unpaid", free_access_until: iso(-1) })).toBe(false);
+    // A paying Standard subscriber is on the tier they bought, window or not.
+    expect(
+      isPremiumActive({
+        payment_status: "active",
+        plan_type: "standard",
+        plan_expires_at: iso(30),
+        free_access_until: iso(2),
+      }),
+    ).toBe(false);
+  });
+
+  it("tells a paid term apart from a window", () => {
+    expect(hasPaidTerm({ payment_status: "unpaid", free_access_until: iso(2) })).toBe(false);
+    expect(hasPaidTerm({ payment_status: "active", plan_expires_at: iso(2) })).toBe(true);
+    expect(hasFreeAccess({ free_access_until: iso(2) })).toBe(true);
+    expect(hasFreeAccess(null)).toBe(false);
+  });
+
+  it("counts days left, rounding up and never showing zero", () => {
+    expect(freeAccessDaysLeft({ free_access_until: iso(3) })).toBe(3);
+    expect(freeAccessDaysLeft({ free_access_until: iso(1.2) })).toBe(2);
+    expect(freeAccessDaysLeft({ free_access_until: iso(0.01) })).toBe(1);
+    expect(freeAccessDaysLeft({ free_access_until: iso(-1) })).toBeNull();
+    expect(freeAccessDaysLeft({})).toBeNull();
+  });
+
+  it("pushes the window out for a receipt without ever shortening it", () => {
+    const now = new Date("2026-11-11T10:00:00Z");
+    // No window, or a closed one: 48 hours from now.
+    expect(extendFreeAccess(null, RECEIPT_GRACE_HOURS, now).toISOString()).toBe(
+      "2026-11-13T10:00:00.000Z",
+    );
+    expect(extendFreeAccess("2026-11-01T00:00:00Z", RECEIPT_GRACE_HOURS, now).toISOString()).toBe(
+      "2026-11-13T10:00:00.000Z",
+    );
+    // Day one of a trial with nearly three days left keeps them.
+    expect(extendFreeAccess("2026-11-14T09:00:00Z", RECEIPT_GRACE_HOURS, now).toISOString()).toBe(
+      "2026-11-14T09:00:00.000Z",
+    );
+  });
+
+  it("falls back to the trial, not to nothing, when a receipt is turned down", () => {
+    const now = new Date("2026-11-11T10:00:00Z");
+    // Signed up yesterday: the trial still has two days, and they stay.
+    expect(revokeReceiptGrace("2026-11-10T10:00:00Z", now).toISOString()).toBe(
+      "2026-11-13T10:00:00.000Z",
+    );
+    // Signed up last month: the trial is long over, so access ends now.
+    expect(revokeReceiptGrace("2026-10-01T10:00:00Z", now).toISOString()).toBe(now.toISOString());
+    expect(revokeReceiptGrace(null, now).toISOString()).toBe(now.toISOString());
+    expect(TRIAL_DAYS).toBe(3);
   });
 });

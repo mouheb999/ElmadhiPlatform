@@ -1,9 +1,10 @@
 "use client";
 
-import { CalendarDays, Check, Dumbbell, Flame, Info, Lock, TrendingDown, TrendingUp } from "lucide-react";
+import { CalendarDays, Check, Dumbbell, Flame, Info, TrendingDown, TrendingUp, ArrowLeft, ArrowRight } from "lucide-react";
 import { MilestoneTrack } from "@/components/funnel/milestone-track";
 import { ProofPoints, Testimonials } from "@/components/funnel/proof";
-import { t, weeksLabel, type Locale, type StringKey } from "@/lib/i18n";
+import { TRIAL_DAYS } from "@/lib/subscription";
+import { dir, t, weeksLabel, type Locale, type StringKey } from "@/lib/i18n";
 import type { FunnelAnswers } from "@/lib/funnel/answers";
 import { calculateFitnessPlan } from "@/lib/funnel/fitness-plan";
 
@@ -35,17 +36,27 @@ const DAYS_LABEL: Record<string, StringKey> = {
 export function PlanReveal({
   locale,
   answers,
+  fromPerMonth,
   onContinue,
   onFix,
 }: {
   locale: Locale;
   answers: FunnelAnswers;
+  /**
+   * The lowest monthly price on sale, in dinars, or null if no plan could be
+   * read. Shown under the button so the price is not a surprise three days
+   * from now: 61% of visitors used to reach the price page and 10.7% acted on
+   * it, and part of that was meeting a number for the first time on screen 17.
+   */
+  fromPerMonth: number | null;
   onContinue: () => void;
   /** Back to the first unanswered question, when the answers do not add up. */
   onFix?: () => void;
 }) {
   const projection = calculateFitnessPlan(answers);
   const { targets } = projection;
+  // The arrow on the button points the way the reader is going.
+  const direction = dir(locale);
   const rateKg = Math.abs(projection.weeklyRateKg);
   const last = projection.timeline[projection.timeline.length - 1];
 
@@ -328,10 +339,26 @@ export function PlanReveal({
           onClick={onContinue}
           className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent font-display text-base font-bold text-bg shadow-[0_12px_32px_-8px_rgba(168,255,0,0.5)] transition-transform active:scale-[0.98]"
         >
-          <Lock className="h-[18px] w-[18px]" />
-          {t(locale, "fn.r_cta")}
+          {t(locale, "fn.r_cta_trial").replace("{days}", String(TRIAL_DAYS))}
+          {direction === "rtl" ? (
+            <ArrowLeft className="h-[18px] w-[18px]" />
+          ) : (
+            <ArrowRight className="h-[18px] w-[18px]" />
+          )}
         </button>
-        <p className="text-center text-[11.5px] text-muted">{t(locale, "fn.r_cta_sub")}</p>
+        {/* Three facts, in the order the reader asks them: does it cost
+            anything now, do I need a card, and what does it cost later. */}
+        <p className="text-center text-[11.5px] leading-relaxed text-muted">
+          {t(locale, "fn.r_cta_trial_sub")}
+          {fromPerMonth !== null && (
+            <>
+              {" "}
+              {t(locale, "fn.r_cta_then")}{" "}
+              <bdi className="font-bold text-ink">{fromPerMonth} DT</bdi>
+              {t(locale, "plans.per_month")}
+            </>
+          )}
+        </p>
       </div>
     </div>
   );

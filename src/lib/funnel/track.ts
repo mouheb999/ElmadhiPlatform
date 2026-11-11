@@ -40,6 +40,12 @@ import type { Locale } from "@/lib/i18n";
  * Every name must match the CHECK on `funnel_events.step` — lower-case,
  * digits and underscores, 40 characters or fewer.
  */
+/**
+ * The tap on the reveal that starts the free days. It replaced `to_checkout`
+ * when the funnel stopped leading with a price; old rows keep the old name, so
+ * a report across the change reads both as "left the reveal".
+ */
+export const TRIAL_STARTED = "trial_started";
 export const CHECKOUT_VIEWED = "checkout";
 export const PLAN_SELECTED = "plan_selected";
 export const SIGNUP_STARTED = "signup_started";

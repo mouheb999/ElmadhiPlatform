@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  contactEmail,
   formatPhone,
+  isPhoneLoginEmail,
   isValidPhone,
   normalizePhone,
+  parseLoginIdentifier,
+  phoneLoginEmail,
   whatsappLink,
 } from "./phone";
 
@@ -79,5 +83,36 @@ describe("isValidPhone / formatPhone", () => {
     expect(formatPhone("+21626341616")).toBe("+216 26 341 616");
     expect(formatPhone("+393931327449")).toBe("+393931327449");
     expect(formatPhone(null)).toBe("");
+  });
+});
+
+describe("phone-only accounts", () => {
+  it("files a number under a derived address, whatever shape it was typed in", () => {
+    expect(phoneLoginEmail("26 341 616")).toBe("21626341616@phone.hypefitness.club");
+    expect(phoneLoginEmail("+216 26 341 616")).toBe("21626341616@phone.hypefitness.club");
+    expect(phoneLoginEmail("0021626341616")).toBe("21626341616@phone.hypefitness.club");
+    expect(phoneLoginEmail("+33 6 12 34 56 78")).toBe("33612345678@phone.hypefitness.club");
+    expect(phoneLoginEmail("123")).toBeNull();
+    expect(phoneLoginEmail(null)).toBeNull();
+  });
+
+  it("never passes a derived address off as the customer's email", () => {
+    expect(isPhoneLoginEmail("21626341616@phone.hypefitness.club")).toBe(true);
+    expect(isPhoneLoginEmail("Someone@Phone.HypeFitness.club ")).toBe(true);
+    expect(isPhoneLoginEmail("someone@gmail.com")).toBe(false);
+    expect(contactEmail("21626341616@phone.hypefitness.club")).toBeNull();
+    expect(contactEmail("someone@gmail.com")).toBe("someone@gmail.com");
+    expect(contactEmail(null)).toBeNull();
+  });
+
+  it("reads the one sign-in field as an email or a number", () => {
+    expect(parseLoginIdentifier(" Someone@Gmail.com ")).toEqual({
+      kind: "email",
+      email: "someone@gmail.com",
+    });
+    expect(parseLoginIdentifier("26341616")).toEqual({ kind: "phone", phone: "+21626341616" });
+    expect(parseLoginIdentifier("026 341 616")).toEqual({ kind: "phone", phone: "+21626341616" });
+    expect(parseLoginIdentifier("hello")).toBeNull();
+    expect(parseLoginIdentifier("   ")).toBeNull();
   });
 });

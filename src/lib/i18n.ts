@@ -72,8 +72,14 @@ const STRINGS = {
   // One offer, four terms: the card copy is about the term, not about a tier.
   "plans.full_access": { en: "Full access", tn: "دخول كامل" },
   "plans.term_1": { en: "Full access. No commitment.", tn: "دخول كامل. بدون التزام." },
-  "plans.term_3": { en: "Better results. Less per month.", tn: "نتائج أفضل. أقلّ في الشهر." },
-  "plans.term_6": { en: "Most popular. Maximum value.", tn: "الأكثر طلباً. أفضل قيمة." },
+  "plans.term_3": {
+    en: "90 days. Long enough to see the result.",
+    tn: "90 يوماً. المدّة الكافية لترى النتيجة.",
+  },
+  "plans.term_6": {
+    en: "Lowest price per month.",
+    tn: "أقلّ سعر في الشهر.",
+  },
   "plans.term_12": { en: "Biggest savings. Longest progress.", tn: "أكبر توفير. أطول تقدّم." },
   "checkout.choose_method": {
     en: "Choose how you want to pay",
@@ -251,8 +257,8 @@ const STRINGS = {
   },
   "act.s1": { en: "Create your account", tn: "أنشئ حسابك" },
   "act.s1_body": {
-    en: "Name, phone, email, password — about a minute.",
-    tn: "الاسم، الهاتف، البريد، كلمة السر — حوالي دقيقة.",
+    en: "Phone number and a password. Ten seconds.",
+    tn: "رقم الهاتف وكلمة سر. عشر ثوانٍ.",
   },
   "act.s2": { en: "Choose how you want to pay", tn: "اختر طريقة دفعك" },
   "act.s2_body": {
@@ -266,8 +272,8 @@ const STRINGS = {
   },
   "act.s4": { en: "Your access opens", tn: "يُفتح حسابك" },
   "act.s4_body": {
-    en: "A person checks the transfer, usually within a few hours, and we message you on WhatsApp. Leave this page open and it unlocks itself.",
-    tn: "يتحقّق شخص من التحويل، عادةً في غضون ساعات، ونراسلك على واتساب. اترك هذه الصفحة مفتوحة وتُفتح وحدها.",
+    en: "The moment the receipt is attached. A person confirms the transfer afterwards, and you are already inside while they do.",
+    tn: "فور إرفاق الوصل. يتأكّد شخص من التحويل بعدها، وأنت داخل التطبيق في الأثناء.",
   },
 
   // ---- checkout, step by step ----
@@ -297,8 +303,8 @@ const STRINGS = {
   // The wait, stated where the decision is made rather than on the screen after
   // it. Real average today is about twelve hours.
   "co.promise": {
-    en: "We open your account within a few hours, and message you on WhatsApp the moment it's done.",
-    tn: "نفتح حسابك في غضون ساعات، ونراسلك على واتساب فور فتحه.",
+    en: "Your account opens the moment you attach the receipt. We confirm the transfer afterwards.",
+    tn: "حسابك يُفتح فور إرفاق الوصل. نتأكّد من التحويل بعدها.",
   },
   "co.next": { en: "Continue", tn: "تابع" },
   // The same button for somebody who has not made an account yet. It says what
@@ -306,8 +312,8 @@ const STRINGS = {
   // form reads as a bait-and-switch.
   "co.next_signup": { en: "Create my account", tn: "أنشئ حسابي" },
   "co.next_signup_why": {
-    en: "Takes a minute. We need it to open your plan and to reach you when your payment lands.",
-    tn: "دقيقة واحدة. نحتاجه لفتح برنامجك وللوصول إليك عند وصول الدفع.",
+    en: "A phone number and a password. Ten seconds.",
+    tn: "رقم هاتف وكلمة سر. عشر ثوانٍ.",
   },
   "co.back": { en: "Back", tn: "رجوع" },
   "co.you_pay": { en: "You pay", tn: "تدفع" },
@@ -699,8 +705,8 @@ const STRINGS = {
   "login.phone": { en: "WhatsApp number", tn: "رقم الواتساب" },
   "login.phone_ph": { en: "26 341 616", tn: "26 341 616" },
   "login.phone_hint": {
-    en: "So we can reach you about your account.",
-    tn: "لنتمكّن من التواصل معك بخصوص حسابك.",
+    en: "This is how you sign in, and how we reach you on WhatsApp.",
+    tn: "به تسجّل الدخول، وبه نراسلك على واتساب.",
   },
 
   // The /phone gate — shown once, to anyone who has no number on file. Google
@@ -2291,6 +2297,64 @@ const STRINGS = {
   "fn.r_cta_sub": { en: "Next: choose how long you want to train with us.", tn: "الخطوة التالية: اختر كم تريد أن تتمرّن معنا." },
   "fn.r_inside": { en: "What you get", tn: "ما الذي تحصل عليه" },
 
+  // ---- sign-in by phone, and the free days (migration 058) ----
+  "login.identifier": { en: "Phone number or email", tn: "رقم الهاتف أو البريد" },
+  "login.identifier_ph": { en: "26 341 616", tn: "26 341 616" },
+  "login.err_phone_taken": {
+    en: "That number already has an account. Sign in instead.",
+    tn: "هذا الرقم له حساب بالفعل. سجّل الدخول به.",
+  },
+  "login.trial_title": { en: "Start your {days} free days", tn: "ابدأ {days} أيام مجاناً" },
+  "login.trial_sub": {
+    en: "Your phone number and a password. That is the whole form.",
+    tn: "رقم هاتفك وكلمة سر. هذا كل شيء.",
+  },
+  "login.trial_p1": {
+    en: "The whole app for {days} days: your program, your meals, the photo scan.",
+    tn: "التطبيق كاملاً لمدّة {days} أيام: برنامجك، وجباتك، وتصوير الصحن.",
+  },
+  "login.trial_p2": {
+    en: "No card and no payment today.",
+    tn: "بدون بطاقة وبدون دفع اليوم.",
+  },
+  "login.trial_p3": {
+    en: "Nothing renews on its own. You decide after.",
+    tn: "لا شيء يتجدّد تلقائياً. القرار لك بعدها.",
+  },
+  "login.trial_cta": { en: "Start my {days} free days", tn: "ابدأ أيامي الـ{days} المجانية" },
+  "fn.r_cta_trial": { en: "Start my {days} free days", tn: "ابدأ أيامي الـ{days} المجانية" },
+  "fn.r_cta_trial_sub": {
+    en: "No card. Nothing to pay today.",
+    tn: "بدون بطاقة. لا تدفع شيئاً اليوم.",
+  },
+  "fn.r_cta_then": { en: "After that, from", tn: "بعدها، ابتداءً من" },
+  "plans.recommended": { en: "Recommended", tn: "ننصح به" },
+  "trial.label": { en: "Free access", tn: "دخول مجاني" },
+  "trial.left_one": { en: "last day", tn: "آخر يوم" },
+  "trial.left_many": { en: "{n} days left", tn: "باقي {n} أيام" },
+  "trial.subscribe": { en: "Subscribe", tn: "اشترك" },
+  "trial.finish_payment": { en: "Finish payment", tn: "أكمل الدفع" },
+  "trial.pay_early": {
+    en: "Subscribe now and your term starts today. Nothing you logged is lost.",
+    tn: "اشترك الآن وتبدأ مدّتك من اليوم. لا يضيع شيء ممّا سجّلته.",
+  },
+  "trial.back_to_app": { en: "Back to the app", tn: "ارجع للتطبيق" },
+  "trial.ended_title": { en: "Your free days are over", tn: "انتهت أيامك المجانية" },
+  "trial.ended_body": {
+    en: "Your plan and everything you logged are saved. Pick a term and you continue exactly where you stopped.",
+    tn: "برنامجك وكل ما سجّلته محفوظ. اختر مدّة وتواصل من حيث توقّفت.",
+  },
+  "trial.ai_limit": {
+    en: "You have used today's free scans. Subscribe for 30 a day, or log this one by hand.",
+    tn: "استعملت صور اليوم المجانية. اشترك لتحصل على 30 في اليوم، أو سجّل هذه الوجبة يدوياً.",
+  },
+  "co.open_title": { en: "Receipt received. You are in.", tn: "وصلنا الوصل. حسابك مفتوح." },
+  "co.open_body": {
+    en: "Your account is open now. We confirm the transfer within 48 hours and message you if anything is missing.",
+    tn: "حسابك مفتوح الآن. نتأكّد من التحويل خلال 48 ساعة ونراسلك إن نقص شيء.",
+  },
+  "co.open_cta": { en: "Open my app", tn: "افتح تطبيقي" },
+
   // ---- proof blocks, shared by /start and /checkout ----
   "proof.title": { en: "What people say", tn: "ماذا يقول الناس" },
 
@@ -2328,8 +2392,8 @@ const STRINGS = {
   "faq.title": { en: "Before you pay", tn: "قبل أن تدفع" },
   "faq.q_when": { en: "When do I get access?", tn: "متى يُفتح لي الحساب؟" },
   "faq.a_when": {
-    en: "As soon as a human checks the transfer — usually within a few hours, and the screen unlocks itself while you have it open.",
-    tn: "فور تأكّد شخص من التحويل — عادةً في غضون ساعات، والصفحة تُفتح وحدها وأنت فيها.",
+    en: "The moment you attach the receipt. We confirm the transfer within 48 hours, and you use the app in the meantime.",
+    tn: "فور إرفاق الوصل. نتأكّد من التحويل خلال 48 ساعة، وأنت تستعمل التطبيق في الأثناء.",
   },
   "faq.q_auto": { en: "Does it renew on its own?", tn: "هل يتجدّد تلقائياً؟" },
   "faq.a_auto": {

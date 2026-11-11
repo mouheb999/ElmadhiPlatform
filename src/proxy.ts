@@ -179,15 +179,22 @@ export async function proxy(request: NextRequest) {
     payment_status: string | null;
     is_admin: boolean | null;
     plan_expires_at: string | null;
+    free_access_until: string | null;
     phone: string | null;
   } | null = null;
 
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
-      .select("payment_status, is_admin, plan_expires_at, phone")
+      .select("payment_status, is_admin, plan_expires_at, free_access_until, phone")
       .eq("id", user.id)
       .maybeSingle();
+    // PostgREST reports a failed read in `error`, not by throwing — so without
+    // this a read that failed looked like "no profile" and sent every account,
+    // paying ones included, to /checkout. The case that matters most is this
+    // code running against a database that has not had migration 058 applied:
+    // the column in the select does not exist yet and the whole read fails.
+    if (error) throw error;
     profile = data;
   } catch (err) {
     // Same reasoning as `indeterminate` above: a database hiccup must not

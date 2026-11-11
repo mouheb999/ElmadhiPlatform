@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
+import { createClient } from "@/lib/supabase/server";
 import { StartClient } from "./start-client";
 
 /**
@@ -48,5 +49,31 @@ export default async function StartPage() {
    */
   const initialAnswers = parseFunnelAnswers(store.get(FUNNEL_COOKIE)?.value);
 
-  return <StartClient locale={locale} initialAnswers={initialAnswers} />;
+  /**
+   * The lowest monthly price on sale, for the line under the reveal's button.
+   *
+   * Read from the plans rather than written into the copy, because prices have
+   * changed three times and a number in a translation file is the one that
+   * gets forgotten. Plans are public-read (migration 017), so this works with
+   * no session. A failure is not worth failing the page over: the line simply
+   * is not shown.
+   */
+  let fromPerMonth: number | null = null;
+  try {
+    const supabase = await createClient();
+    const { data: plans } = await supabase
+      .from("subscription_plans")
+      .select("months, price_tnd")
+      .eq("is_enabled", true);
+    const perMonth = (plans ?? [])
+      .filter((p) => p.months > 0 && p.price_tnd > 0)
+      .map((p) => p.price_tnd / p.months);
+    if (perMonth.length) fromPerMonth = Math.round(Math.min(...perMonth) * 10) / 10;
+  } catch {
+    fromPerMonth = null;
+  }
+
+  return (
+    <StartClient locale={locale} initialAnswers={initialAnswers} fromPerMonth={fromPerMonth} />
+  );
 }

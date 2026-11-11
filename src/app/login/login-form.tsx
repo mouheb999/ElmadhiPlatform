@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
+import { Check } from "lucide-react";
 import {
   signInWithPassword,
   signUpWithPassword,
@@ -24,7 +25,7 @@ import { type Locale, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { isValidPhone } from "@/lib/phone";
 import { trackMeta } from "@/lib/meta/pixel";
-import { REVERSE_TRIAL } from "@/lib/access";
+import { TRIAL_DAYS } from "@/lib/subscription";
 import { SIGNUP_DONE, trackStep } from "@/lib/funnel/track";
 
 type Mode = "signin" | "signup";
@@ -44,6 +45,7 @@ const AUTH_ERRORS: Record<string, StringKey> = {
   auth_email_unconfirmed: "login.err_email_unconfirmed",
   auth_rate_limited: "login.err_rate_limited",
   auth_unavailable: "login.err_unavailable",
+  auth_phone_taken: "login.err_phone_taken",
   invalid_phone: "phone.invalid",
 };
 
@@ -71,9 +73,10 @@ export function LoginForm({
   const [mode, setMode] = useState<Mode>(
     params.get("mode") === "signup" ? "signup" : "signin",
   );
-  const [email, setEmail] = useState("");
+  // One field for sign-in: a phone number or an email. Sign-up only ever asks
+  // for the number — see `phoneLoginEmail` in lib/phone.ts.
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(
     params.get("error") ? t(locale, "login.failed") : null,
@@ -102,15 +105,17 @@ export function LoginForm({
 
     startTransition(async () => {
       if (mode === "signin") {
-        const res = await signInWithPassword(email, password);
+        const res = await signInWithPassword(identifier, password);
         if (!res.ok) {
           setError(authMessage(res.error));
           return;
         }
         // Identify the user in PostHog and capture sign-in event.
         if (res.data.userId) {
-          posthog.identify(res.data.userId, { email });
-          posthog.capture("user_signed_in", { method: "email" });
+          posthog.identify(res.data.userId);
+          posthog.capture("user_signed_in", {
+            method: identifier.includes("@") ? "email" : "phone",
+          });
         }
         // Admins pick a destination; regular users go straight in.
         if (res.data.isAdmin) {
@@ -124,29 +129,19 @@ export function LoginForm({
           setError(t(locale, "phone.invalid"));
           return;
         }
-        const res = await signUpWithPassword(email, password, fullName, phone);
+        const res = await signUpWithPassword(phone, password);
         if (!res.ok) {
           setError(authMessage(res.error));
           return;
         }
         // Signed up and signed in, which is the configured behaviour: straight
-        // in, no inbox to check. The notice below is not dead code — it is what
-        // this has to say if email confirmation is ever switched back on in
-        // Supabase, and without it a signup would silently do nothing.
+        // in, no inbox to check.
         //
-        // A new account goes to /checkout rather than `next`. With the paywall
-        // on, `next` is /dashboard, which the proxy bounces to /checkout
-        // anyway — so this is the same destination minus a redirect the user
-        // watches happen. The point is that the first screen after signing up
-        // is the one that explains what the plans are and what it costs, in the
-        // two steps it takes, rather than a flash of somewhere they cannot
-        // stay. With the trial back on, `next` is a real destination again.
-        //
-        // The exception is a `next` that is already a checkout URL: that is
-        // somebody who walked the preview, chose a plan and was sent here to
-        // make an account, and it carries the plan they chose. Dropping it for
-        // a bare /checkout would land them back on the grid having apparently
-        // forgotten the decision they just made.
+        // A new account goes to `next`, which is /dashboard unless they came
+        // from checkout with a plan chosen. Every new account has three days
+        // of the whole product (migration 058), so the dashboard is a real
+        // destination: the first screen after signing up is the app, with
+        // their own numbers in it, rather than a price.
         // Browser half of CompleteRegistration; same id as the server's.
         if (res.data.registrationEventId) {
           trackMeta("CompleteRegistration", undefined, res.data.registrationEventId);
@@ -159,11 +154,10 @@ export function LoginForm({
           trackStep(SIGNUP_DONE, locale);
           // Identify the new user in PostHog and capture sign-up event.
           if (res.data.userId) {
-            posthog.identify(res.data.userId, { email });
-            posthog.capture("user_signed_up", { method: "email" });
+            posthog.identify(res.data.userId);
+            posthog.capture("user_signed_up", { method: "phone" });
           }
-          const backToCheckout = next.startsWith("/checkout");
-          router.push(REVERSE_TRIAL || backToCheckout ? next : "/checkout");
+          router.push(next);
           router.refresh();
           return;
         }
@@ -271,68 +265,73 @@ export function LoginForm({
           <h1 className="text-[30px] font-extrabold leading-tight tracking-[-0.025em]">
             {mode === "signin"
               ? t(locale, "login.signin_title")
-              : t(locale, "login.signup_title")}
+              : plan
+                ? t(locale, "login.signup_title")
+                : t(locale, "login.trial_title").replace("{days}", String(TRIAL_DAYS))}
           </h1>
           <p className="mt-2 text-base leading-relaxed text-muted">
             {mode === "signin"
               ? t(locale, "login.signin_sub")
-              : t(locale, "login.signup_sub")}
+              : plan
+                ? t(locale, "login.signup_sub")
+                : t(locale, "login.trial_sub")}
           </p>
         </div>
 
+        {/* What the three days are, said where the form is. Somebody who has
+            just watched a plan get built is being asked for a phone number; the
+            fair exchange is to say exactly what it buys and what it does not
+            commit them to. Not shown mid-purchase — that reader has a plan
+            card above the form saying what they are doing. */}
+        {mode === "signup" && !plan && (
+          <ul className="mb-7 flex flex-col gap-2.5 rounded-2xl bg-surface px-5 py-4">
+            {(["login.trial_p1", "login.trial_p2", "login.trial_p3"] as const).map((key) => (
+              <li key={key} className="flex items-start gap-2.5 text-sm leading-snug text-ink">
+                <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" strokeWidth={2.6} />
+                <span>{t(locale, key).replace("{days}", String(TRIAL_DAYS))}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
         <div className="flex flex-col gap-4">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {mode === "signup" && (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="fullName">
-                    {t(locale, "login.full_name")}
-                  </Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    autoComplete="name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder={t(locale, "login.full_name_ph")}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="phone">{t(locale, "login.phone")}</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    // Numbers read LTR even when the rest of the page is RTL.
-                    dir="ltr"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder={t(locale, "login.phone_ph")}
-                  />
-                  <p className="text-xs text-muted">
-                    {t(locale, "login.phone_hint")}
-                  </p>
-                </div>
-              </>
+            {mode === "signup" ? (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="phone">{t(locale, "login.phone")}</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  // Numbers read LTR even when the rest of the page is RTL.
+                  dir="ltr"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t(locale, "login.phone_ph")}
+                />
+                <p className="text-xs text-muted">{t(locale, "login.phone_hint")}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="identifier">{t(locale, "login.identifier")}</Label>
+                <Input
+                  id="identifier"
+                  // `text`, not `tel` or `email`: this field takes either, and
+                  // a typed keyboard would lock out half the accounts.
+                  type="text"
+                  inputMode="email"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  dir="ltr"
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder={t(locale, "login.identifier_ph")}
+                />
+              </div>
             )}
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="email">{t(locale, "login.email")}</Label>
-              <Input
-                id="email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                dir="ltr"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-              />
-            </div>
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="password">{t(locale, "login.password")}</Label>
@@ -367,7 +366,9 @@ export function LoginForm({
                 ? t(locale, "login.please_wait")
                 : mode === "signin"
                   ? t(locale, "login.sign_in")
-                  : t(locale, "login.create_account")}
+                  : plan
+                    ? t(locale, "login.create_account")
+                    : t(locale, "login.trial_cta").replace("{days}", String(TRIAL_DAYS))}
             </Button>
           </form>
 

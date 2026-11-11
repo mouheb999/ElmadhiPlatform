@@ -1,5 +1,7 @@
 "use client";
 
+import { TRIAL_AI_LIMIT_REACHED } from "@/lib/ai-quota";
+
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -377,7 +379,9 @@ export function CalorieAiClient({
         imageMediaType: shot.mediaType,
       });
       if (!result.ok) {
-        setError(result.error);
+        setError(
+          result.error === TRIAL_AI_LIMIT_REACHED ? t(locale, "trial.ai_limit") : result.error,
+        );
         return;
       }
       setItems(result.data.items.map(toDraftItem));

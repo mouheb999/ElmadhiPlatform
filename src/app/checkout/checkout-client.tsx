@@ -57,11 +57,16 @@ const OFFER_TIER = "premium";
 /**
  * Which term wears the badge.
  *
- * Merchandising, not arithmetic: 12 months is the lowest price per month, but
- * six is the term we want chosen — long enough to show results, short enough
- * to say yes to — so it is badged and preselected.
+ * Merchandising, not arithmetic. Six months is the lowest price per month and
+ * it used to wear the badge — and of 24 payments, 2 chose it and 11 chose one
+ * month. A stranger does not commit half a year to an app they met this week.
+ *
+ * Three months is the term a result actually takes, and the one a first-time
+ * buyer can say yes to: 129 DT against 49 DT moves the average order more than
+ * a badge on a term nobody picks. So three is recommended and preselected, and
+ * six keeps its saving chip for the reader who wants the lowest monthly price.
  */
-const BEST_VALUE_MONTHS = 6;
+const BEST_VALUE_MONTHS = 3;
 
 /** The one line under each term. Keyed by months; unknown terms get none. */
 const TERM_BLURB: Record<number, StringKey> = {
@@ -125,6 +130,16 @@ type Props = {
   paymentStatus: string;
   planExpiresAt: string | null;
   isRenewal: boolean;
+  /**
+   * The account can use the product right now without a confirmed payment:
+   * it is inside its sign-up trial, or a receipt opened the door while a
+   * person checks it. Migration 058.
+   */
+  hasAccessNow: boolean;
+  /** Whole days left on that window, or null when there is none. */
+  trialDaysLeft: number | null;
+  /** The window ran out and nothing was ever paid. */
+  trialEnded: boolean;
   hasProof: boolean;
   /** There is an open request: they have said they transferred the money. */
   hasOpenRequest: boolean;
@@ -164,6 +179,9 @@ export function CheckoutClient({
   paymentStatus,
   planExpiresAt,
   isRenewal,
+  hasAccessNow,
+  trialDaysLeft,
+  trialEnded,
   hasProof,
   hasOpenRequest,
   wasRejected,
@@ -310,7 +328,9 @@ export function CheckoutClient({
    * moment that most needs to be right.
    */
   useEffect(() => {
-    if (paymentStatus === "active" || !awaitingReview) return;
+    // Already inside: a receipt opened the account, so there is nothing to
+    // wait for on this screen and no reason to keep asking.
+    if (paymentStatus === "active" || !awaitingReview || hasAccessNow) return;
 
     let stopped = false;
     async function check() {
@@ -328,7 +348,7 @@ export function CheckoutClient({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", check);
     };
-  }, [paymentStatus, awaitingReview, router]);
+  }, [paymentStatus, awaitingReview, hasAccessNow, router]);
 
   /**
    * The half of the funnel nobody could see.
@@ -568,10 +588,27 @@ export function CheckoutClient({
           <Card>
             <CardContent className="flex flex-col gap-4 p-6 text-center">
               <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent/15">
-                <Clock className="h-6 w-6 text-accent" />
+                {hasAccessNow ? (
+                  <Check className="h-6 w-6 text-accent" strokeWidth={2.6} />
+                ) : (
+                  <Clock className="h-6 w-6 text-accent" />
+                )}
               </span>
-              <h1 className="text-xl font-extrabold">{t(locale, "co.review_title")}</h1>
-              <p className="text-sm text-muted">{t(locale, "co.review_body")}</p>
+              {/* Two readers. One attached a receipt and is already inside —
+                  the door opened on the receipt, and the check happens behind
+                  them. The other is waiting on a person, which is now only an
+                  account that has had a receipt turned down before. */}
+              <h1 className="text-xl font-extrabold">
+                {t(locale, hasAccessNow ? "co.open_title" : "co.review_title")}
+              </h1>
+              <p className="text-sm text-muted">
+                {t(locale, hasAccessNow ? "co.open_body" : "co.review_body")}
+              </p>
+              {hasAccessNow && (
+                <Button asChild size="lg" className="w-full">
+                  <Link href="/dashboard">{t(locale, "co.open_cta")}</Link>
+                </Button>
+              )}
 
               {/* This screen is only reached with a receipt on file — the
                   no-receipt branch that used to live here was unreachable, and
@@ -581,7 +618,9 @@ export function CheckoutClient({
                 <Check className="h-4 w-4" />
                 {t(locale, "co.review_have_proof")}
               </p>
-              <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
+              {!hasAccessNow && (
+                <p className="text-xs text-muted">{t(locale, "pt.reply_soon")}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -670,6 +709,44 @@ export function CheckoutClient({
               </p>
             )}
 
+            {/* The trial ran out. The one thing this reader needs to hear
+                before a price is that nothing they built is gone — the plan
+                and every meal and session they logged are still there, behind
+                this screen. Somebody who believes they are starting over has
+                much less reason to pay than somebody picking up where they
+                stopped. */}
+            {trialEnded && (
+              <div className="flex flex-col gap-1 rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3.5">
+                <p className="text-sm font-bold">{t(locale, "trial.ended_title")}</p>
+                <p className="text-xs leading-relaxed text-muted">
+                  {t(locale, "trial.ended_body")}
+                </p>
+              </div>
+            )}
+
+            {/* Still inside the trial and looking at prices on purpose. Says
+                how long is left and that paying early loses nothing, with the
+                way back to the app one tap away. */}
+            {hasAccessNow && !hasOpenRequest && trialDaysLeft !== null && (
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface px-4 py-3">
+                <p className="text-xs leading-relaxed text-muted">
+                  <span className="font-bold text-ink">
+                    {t(locale, trialDaysLeft === 1 ? "trial.left_one" : "trial.left_many").replace(
+                      "{n}",
+                      String(trialDaysLeft),
+                    )}
+                  </span>{" "}
+                  {t(locale, "trial.pay_early")}
+                </p>
+                <Link
+                  href="/dashboard"
+                  className="shrink-0 text-xs font-bold text-accent hover:underline"
+                >
+                  {t(locale, "trial.back_to_app")}
+                </Link>
+              </div>
+            )}
+
             {/* Says out loud that not paying is a real option. Without this the
                 page still reads as "pay or leave", which is what it used to.
                 Hidden while REVERSE_TRIAL is off, because then it *is* "pay or
@@ -708,9 +785,10 @@ export function CheckoutClient({
                     const selected = selectedPlan?.id === plan.id;
                     const best = plan.months === BEST_VALUE_MONTHS;
                     const perMonth = Math.round((plan.price_tnd / plan.months) * 10) / 10;
-                    // The badge and the savings chip say the same thing in two
-                    // ways; the badged card keeps the badge and drops the chip.
-                    const save = best ? null : savingsDt(plan);
+                    // The badge says which term we would pick; the chip says
+                    // what it saves. Two different facts, so the recommended
+                    // card carries both.
+                    const save = savingsDt(plan);
                     const blurb = TERM_BLURB[plan.months];
                     return (
                       <button
@@ -731,7 +809,7 @@ export function CheckoutClient({
                         <span className="flex min-w-0 flex-col gap-1">
                           {best && (
                             <span className="w-fit rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-bg">
-                              {t(locale, "plans.best_value")}
+                              {t(locale, "plans.recommended")}
                             </span>
                           )}
                           <span className="flex flex-wrap items-center gap-2">

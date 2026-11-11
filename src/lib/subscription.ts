@@ -14,7 +14,89 @@ export type SubscriptionProfile = {
   is_admin?: boolean | null;
   plan_expires_at?: string | null;
   plan_type?: string | null;
+  /** Migration 058. Full access without a confirmed payment until then. */
+  free_access_until?: string | null;
 };
+
+/**
+ * How long a new account gets the whole product before it is asked to pay.
+ *
+ * MUST stay in sync with the interval in `handle_new_user`
+ * (supabase/migrations/058_free_access_window.sql) — the database grants the
+ * days, this constant is only what the copy says.
+ */
+export const TRIAL_DAYS = 3;
+
+/**
+ * How long a customer who has attached a receipt is let in while a person
+ * checks the transfer. Long enough to cover a weekend night; short enough that
+ * a screenshot of nothing buys very little.
+ */
+export const RECEIPT_GRACE_HOURS = 48;
+
+/** True while an unpaid grant — the trial, or a receipt under review — runs. */
+export function hasFreeAccess(
+  profile: SubscriptionProfile | null,
+  now: Date = new Date(),
+): boolean {
+  if (!profile?.free_access_until) return false;
+  return new Date(profile.free_access_until) > now;
+}
+
+/** True when a confirmed payment, and nothing else, is what lets them in. */
+export function hasPaidTerm(
+  profile: SubscriptionProfile | null,
+  now: Date = new Date(),
+): boolean {
+  if (!profile || profile.payment_status !== "active") return false;
+  if (!profile.plan_expires_at) return true;
+  return new Date(profile.plan_expires_at) > now;
+}
+
+/**
+ * Whole days left on the free window, rounded up — "2 days left" until the
+ * last day, then "1". Null when there is no window or it has closed.
+ */
+export function freeAccessDaysLeft(
+  profile: SubscriptionProfile | null,
+  now: Date = new Date(),
+): number | null {
+  if (!hasFreeAccess(profile, now)) return null;
+  const ms = new Date(profile!.free_access_until!).getTime() - now.getTime();
+  return Math.max(1, Math.ceil(ms / 86_400_000));
+}
+
+/**
+ * When a free window should end after being pushed out by `hours`.
+ *
+ * Never shortens: somebody on day one of a trial who attaches a receipt keeps
+ * the two days they already had rather than trading them for 48 hours.
+ */
+export function extendFreeAccess(
+  currentUntil: string | null | undefined,
+  hours: number,
+  now: Date = new Date(),
+): Date {
+  const pushed = new Date(now.getTime() + hours * 3_600_000);
+  const current = currentUntil ? new Date(currentUntil) : null;
+  return current && current > pushed ? current : pushed;
+}
+
+/**
+ * Where a free window falls back to when a receipt is turned down.
+ *
+ * The 48 hours were granted on the strength of that receipt, so they go — but
+ * the sign-up trial was not, and whatever is left of it stays. An account past
+ * its trial is closed as of now.
+ */
+export function revokeReceiptGrace(
+  accountCreatedAt: string | null | undefined,
+  now: Date = new Date(),
+): Date {
+  if (!accountCreatedAt) return now;
+  const trialEnd = new Date(new Date(accountCreatedAt).getTime() + TRIAL_DAYS * 86_400_000);
+  return trialEnd > now ? trialEnd : now;
+}
 
 /**
  * A null `plan_expires_at` counts as *no expiry*. That is only ever true for
@@ -26,9 +108,11 @@ export type SubscriptionProfile = {
 export function isSubscriptionActive(profile: SubscriptionProfile | null): boolean {
   if (!profile) return false;
   if (profile.is_admin) return true;
-  if (profile.payment_status !== "active") return false;
-  if (!profile.plan_expires_at) return true;
-  return new Date(profile.plan_expires_at) > new Date();
+  // The trial and the receipt window open the same door a payment does. Kept
+  // in step with `current_user_is_subscribed()` (migration 058): if the app
+  // let these through and RLS did not, every write they made would be refused.
+  if (hasFreeAccess(profile)) return true;
+  return hasPaidTerm(profile);
 }
 
 /**
@@ -42,7 +126,14 @@ export function isSubscriptionActive(profile: SubscriptionProfile | null): boole
  */
 export function isPremiumActive(profile: SubscriptionProfile | null): boolean {
   if (!isSubscriptionActive(profile)) return false;
-  return profile?.is_admin === true || profile?.plan_type === "premium";
+  // A trial is a trial of the whole product. The meal scan is the feature the
+  // ads lead with, and a trial that hid it would be a trial of something else.
+  // What it costs is bounded separately — see TRIAL_DAILY_AI_ESTIMATE_LIMIT.
+  return (
+    profile?.is_admin === true ||
+    profile?.plan_type === "premium" ||
+    (hasFreeAccess(profile) && !hasPaidTerm(profile))
+  );
 }
 
 /** What a guarded action returns to a lapsed user. */

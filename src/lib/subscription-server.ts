@@ -54,13 +54,14 @@ export const getSubscription = cache(async (): Promise<SubscriptionState> => {
       payment_status: null,
       plan_expires_at: null,
       plan_type: null,
+      free_access_until: null,
     };
   }
 
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("profiles")
-    .select("payment_status, is_admin, plan_expires_at, plan_type")
+    .select("payment_status, is_admin, plan_expires_at, plan_type, free_access_until")
     .eq("id", user.id)
     .maybeSingle();
 

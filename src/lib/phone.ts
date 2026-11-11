@@ -82,3 +82,55 @@ export function formatPhone(e164: string | null | undefined): string {
   const m = /^\+(216)(\d{2})(\d{3})(\d{3})$/.exec(e164);
   return m ? `+${m[1]} ${m[2]} ${m[3]} ${m[4]}` : e164;
 }
+
+/**
+ * Signing up with a phone number and a password, and nothing else.
+ *
+ * The account form was the second-largest leak in the funnel: 208 people chose
+ * a plan and 54 finished the four fields behind it. Two of those fields — name
+ * and email — were never needed to open an account. What is needed is a way to
+ * reach the person on WhatsApp (the number) and a way back in (the password).
+ *
+ * Supabase Auth identifies an account by email, and its phone provider needs
+ * an SMS gateway this product does not have. So a phone-only account is filed
+ * under an address derived from the number, on a subdomain of our own that
+ * receives no mail. Nothing is ever sent to it: sign-up auto-confirms, and
+ * password reset for these accounts goes through support on WhatsApp.
+ *
+ * The derived address is an implementation detail and must never be shown to
+ * the customer or handed to an ad platform as their email.
+ */
+export const PHONE_LOGIN_DOMAIN = "phone.hypefitness.club";
+
+/** `+21626341616` → `21626341616@phone.hypefitness.club`, or null. */
+export function phoneLoginEmail(phone: string | null | undefined): string | null {
+  const e164 = normalizePhone(phone);
+  return e164 ? `${e164.slice(1)}@${PHONE_LOGIN_DOMAIN}` : null;
+}
+
+/** True for an address this module made up, as opposed to one a person owns. */
+export function isPhoneLoginEmail(email: string | null | undefined): boolean {
+  return !!email && email.trim().toLowerCase().endsWith(`@${PHONE_LOGIN_DOMAIN}`);
+}
+
+/** A real address to show or send to, or null for a phone-only account. */
+export function contactEmail(email: string | null | undefined): string | null {
+  const e = email?.trim();
+  return e && !isPhoneLoginEmail(e) ? e : null;
+}
+
+/**
+ * What somebody typed into the one sign-in field: an email, or a number.
+ *
+ * Anything with an @ is an email and is passed through untouched. Anything
+ * else is tried as a phone number; null means it is neither.
+ */
+export function parseLoginIdentifier(
+  input: string,
+): { kind: "email"; email: string } | { kind: "phone"; phone: string } | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  if (raw.includes("@")) return { kind: "email", email: raw.toLowerCase() };
+  const phone = normalizePhone(raw);
+  return phone ? { kind: "phone", phone } : null;
+}

@@ -6,7 +6,13 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
 import { GATE_COOKIE } from "@/lib/paywall-gate";
-import { normalizePhone } from "@/lib/phone";
+import {
+  contactEmail,
+  normalizePhone,
+  parseLoginIdentifier,
+  phoneLoginEmail,
+} from "@/lib/phone";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { siteOrigin } from "@/lib/site-url";
 import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/funnel/attribution";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
@@ -127,68 +133,150 @@ function authFailure(error: { code?: string; message?: string }): string {
   return "auth_unavailable";
 }
 
+/**
+ * Which accounts a typed phone number could be signing in to.
+ *
+ * A phone-only account lives under the address derived from its number, so
+ * that is tried first. But some eight hundred accounts were created before
+ * phone-only sign-up existed, with a real email *and* a number on file, and
+ * their owners will reasonably type the number into a field that says "phone
+ * number". Those are found by the number and tried next.
+ *
+ * The lookup needs the service role (a signed-out caller cannot read
+ * `profiles`), and it never leaves this function: the caller is told only
+ * whether the password matched, exactly as for an email — so this cannot be
+ * used to learn which address a number belongs to.
+ */
+async function emailsForPhone(phone: string): Promise<string[]> {
+  const derived = phoneLoginEmail(phone);
+  const emails = derived ? [derived] : [];
+  try {
+    const { data } = await createAdminClient()
+      .from("profiles")
+      .select("email")
+      .eq("phone", phone)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    for (const row of data ?? []) {
+      if (row.email && !emails.includes(row.email)) emails.push(row.email);
+    }
+  } catch (err) {
+    // No service role key (local development) or the lookup failed. The
+    // derived address still works for every phone-only account.
+    console.error("[auth] phone lookup unavailable:", err);
+  }
+  return emails;
+}
+
+/** True when a profile already carries this number. Fails open. */
+async function phoneAlreadyRegistered(phone: string): Promise<boolean> {
+  try {
+    const { count } = await createAdminClient()
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("phone", phone);
+    return (count ?? 0) > 0;
+  } catch (err) {
+    console.error("[auth] phone uniqueness check unavailable:", err);
+    return false;
+  }
+}
+
+/**
+ * Sign in with whatever the customer typed: an email, or a phone number.
+ */
 export async function signInWithPassword(
-  email: string,
+  identifier: string,
   password: string,
 ): Promise<ActionResult<{ isAdmin: boolean; userId: string }>> {
+  const parsed = parseLoginIdentifier(identifier);
+  if (!parsed) return fail("auth_bad_credentials");
+
+  const candidates =
+    parsed.kind === "email" ? [parsed.email] : await emailsForPhone(parsed.phone);
+
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) return fail(authFailure(error));
+  let signedIn: { id: string } | null = null;
+  let lastError: { code?: string; message?: string } | null = null;
+  for (const email of candidates) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error && data.user) {
+      signedIn = data.user;
+      break;
+    }
+    lastError = error;
+    // Only a wrong password is worth trying the next address for. A rate
+    // limit or an outage will be the same answer every time.
+    if (error && authFailure(error) !== "auth_bad_credentials") break;
+  }
+  if (!signedIn) return fail(lastError ? authFailure(lastError) : "auth_bad_credentials");
 
   const { data: profile } = await supabase
     .from("profiles")
     .select("is_admin")
-    .eq("id", data.user.id)
+    .eq("id", signedIn.id)
     .maybeSingle();
 
   // Track sign-in server-side so both client and server streams share the event.
   const posthog = getPostHogClient();
   if (posthog) {
     posthog.identify({
-      distinctId: data.user.id,
+      distinctId: signedIn.id,
       properties: { is_admin: !!profile?.is_admin },
     });
     posthog.capture({
-      distinctId: data.user.id,
+      distinctId: signedIn.id,
       event: "user_signed_in",
-      properties: { method: "email" },
+      properties: { method: parsed.kind },
     });
     await posthog.flush();
   }
 
-  return ok({ isAdmin: !!profile?.is_admin, userId: data.user.id });
+  return ok({ isAdmin: !!profile?.is_admin, userId: signedIn.id });
 }
 
 /**
- * Sign up, and report whether that already signed the user in.
+ * Sign up with a phone number and a password, and report whether that already
+ * signed the user in.
+ *
+ * An email is optional and nobody is asked for one any more — see
+ * `phoneLoginEmail` in lib/phone.ts for where the account is filed instead and
+ * why. A name is not collected at all: the product greets people without one,
+ * and it was a quarter of a form three quarters of people abandoned.
  *
  * Supabase is configured with `mailer_autoconfirm` on, so `signUp` returns a
- * session and no confirmation mail is ever sent — telling someone to check an
- * inbox nothing was delivered to is how a signup dead-ends. But that is a
- * dashboard setting, not a fact about this code, so the answer is read off the
- * response rather than assumed: `session` is null exactly when Supabase has
- * decided to send a confirmation instead, and the caller shows the inbox notice
- * only then.
+ * session and no confirmation mail is ever sent. That is a dashboard setting,
+ * not a fact about this code, so the answer is read off the response rather
+ * than assumed: `session` is null exactly when Supabase has decided to send a
+ * confirmation instead. For a phone-only account that would be a dead end —
+ * the mail would go to an address nobody reads — so it is reported as a
+ * failure rather than as "check your inbox".
  */
 export async function signUpWithPassword(
-  email: string,
+  phone: string,
   password: string,
-  fullName?: string,
-  phone?: string,
+  options: { email?: string; fullName?: string } = {},
 ): Promise<ActionResult<{ signedIn: boolean; userId: string; registrationEventId: string | null }>> {
   // Normalised here rather than taken as typed: the trigger in migration 039
   // copies this metadata straight into `profiles.phone`, which carries a CHECK
   // on the E.164 shape. A raw "26 341 616" would fail that at INSERT time and
   // take the whole sign-up down with it.
   const normalized = normalizePhone(phone);
-  if (phone?.trim() && !normalized) return fail("invalid_phone");
+  if (!normalized) return fail("invalid_phone");
+
+  const typedEmail = options.email?.trim().toLowerCase() || null;
+  const email = typedEmail ?? phoneLoginEmail(normalized);
+  if (!email) return fail("invalid_phone");
+
+  // One account per number. Without this, somebody who signed up by email last
+  // month and comes back through an ad would be handed a second account — and
+  // a second three days — instead of being told they already have one.
+  if (await phoneAlreadyRegistered(normalized)) return fail("auth_phone_taken");
 
   const origin = await siteUrl();
   if (!origin) return fail(MISCONFIGURED);
 
+  const fullName = options.fullName?.trim();
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -196,14 +284,22 @@ export async function signUpWithPassword(
     options: {
       data: {
         ...(fullName ? { full_name: fullName } : {}),
-        ...(normalized ? { phone: normalized } : {}),
+        phone: normalized,
         // The ad they came from and the answers they arrived with. See above.
         ...(await funnelMetadata()),
       },
       emailRedirectTo: `${origin}/dashboard`,
     },
   });
-  if (error) return fail(authFailure(error));
+  if (error) {
+    const code = authFailure(error);
+    return fail(code === "auth_email_taken" && !typedEmail ? "auth_phone_taken" : code);
+  }
+  // Confirmation switched on, and no inbox to confirm from.
+  if (!data.session && !typedEmail) {
+    console.error("[auth] phone sign-up returned no session: is mailer_autoconfirm off?");
+    return fail("auth_unavailable");
+  }
 
   // Track new sign-up server-side when a session is created immediately.
   if (data.user) {
@@ -211,12 +307,15 @@ export async function signUpWithPassword(
     if (posthog) {
       posthog.identify({
         distinctId: data.user.id,
-        properties: { has_full_name: !!fullName, has_phone: !!normalized },
+        properties: { has_full_name: !!fullName, has_phone: true },
       });
       posthog.capture({
         distinctId: data.user.id,
         event: "user_signed_up",
-        properties: { method: "email", confirmed_immediately: !!data.session },
+        properties: {
+          method: typedEmail ? "email" : "phone",
+          confirmed_immediately: !!data.session,
+        },
       });
       await posthog.flush();
     }
@@ -237,7 +336,9 @@ export async function signUpWithPassword(
         name: "CompleteRegistration",
         eventId,
         path: "/login",
-        user: { id: userId, email, phone: normalized, ...client },
+        // Never the derived address: it is not theirs, and hashing it to Meta
+        // as their email would be matching on a string we invented.
+        user: { id: userId, email: contactEmail(email), phone: normalized, ...client },
       }),
     );
   }

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { getLocale } from "@/lib/i18n-server";
 import { isUnread } from "@/lib/support";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
+import { freeAccessDaysLeft, hasFreeAccess, hasPaidTerm } from "@/lib/subscription";
 import { CheckoutClient, type PaymentThread } from "./checkout-client";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +69,7 @@ export default async function CheckoutPage({
     ? await Promise.all([
         supabase
           .from("profiles")
-          .select("payment_status, plan_type, plan_expires_at")
+          .select("payment_status, plan_type, plan_expires_at, free_access_until")
           .eq("id", user.id)
           .maybeSingle(),
         // Their most recent attempt, whatever became of it. `pending` drives
@@ -86,6 +87,13 @@ export default async function CheckoutPage({
 
   const expired =
     !!profile?.plan_expires_at && new Date(profile.plan_expires_at) < new Date();
+
+  // The window that lets an unpaid account in — the sign-up trial, or the 48
+  // hours a receipt opens (migration 058). Three states this page words
+  // differently: still running, run out without a payment, or never granted.
+  const freeAccess = hasFreeAccess(profile);
+  const trialEnded =
+    !!profile?.free_access_until && !freeAccess && !hasPaidTerm(profile) && !expired;
 
   // The conversation attached to the open request (migration 044). This is what
   // turns the review screen from a status light into somewhere the customer can
@@ -126,6 +134,9 @@ export default async function CheckoutPage({
       paymentStatus={expired ? "unpaid" : (profile?.payment_status ?? "unpaid")}
       planExpiresAt={profile?.plan_expires_at ?? null}
       isRenewal={expired}
+      hasAccessNow={freeAccess}
+      trialDaysLeft={freeAccessDaysLeft(profile)}
+      trialEnded={trialEnded}
       hasProof={openRequest?.status === "pending" && !!openRequest.proof_path}
       hasOpenRequest={openRequest?.status === "pending"}
       wasRejected={openRequest?.status === "rejected"}

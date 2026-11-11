@@ -28,6 +28,7 @@ export type Database = {
           contacted_by: string | null;
           plan_type: string | null;
           plan_expires_at: string | null;
+          free_access_until: string | null;
           payment_ref: string | null;
           paid_at: string | null;
           /** The ad click this account came from. Migration 054. */
@@ -50,6 +51,7 @@ export type Database = {
           contacted_by?: string | null;
           plan_type?: string | null;
           plan_expires_at?: string | null;
+          free_access_until?: string | null;
           payment_ref?: string | null;
           paid_at?: string | null;
           attribution?: Json | null;
@@ -70,6 +72,7 @@ export type Database = {
           contacted_by?: string | null;
           plan_type?: string | null;
           plan_expires_at?: string | null;
+          free_access_until?: string | null;
           payment_ref?: string | null;
           paid_at?: string | null;
           attribution?: Json | null;
