@@ -77,9 +77,11 @@ export function GapInterstitial({
           </span>
         </div>
       )}
-      <p className="mx-auto max-w-[34ch] text-balance text-center text-sm leading-relaxed text-muted">
-        {t(locale, meaningful ? "fn.i1_body" : "fn.i1_body_same")}
-      </p>
+      {!meaningful && (
+        <p className="mx-auto max-w-[34ch] text-balance text-center text-sm leading-relaxed text-muted">
+          {t(locale, "fn.i1_body_same")}
+        </p>
+      )}
     </Frame>
   );
 }

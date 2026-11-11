@@ -3,13 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import posthog from "posthog-js";
-import { Check } from "lucide-react";
 import {
   signInWithPassword,
   signUpWithPassword,
   signInWithGoogle,
 } from "@/app/actions/auth";
-import { JourneyBar } from "@/components/funnel/journey";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -230,17 +228,6 @@ export function LoginForm({
         <Logo />
       </div>
 
-      {/* Only for somebody mid-purchase — a plan came with them from checkout.
-          Without it this screen is a form that appeared out of nowhere in the
-          middle of buying something; with it, it is step two of four and the
-          two steps after it are named. Anyone who navigated to /login to sign
-          in is not in a funnel and gets none of this. */}
-      {plan && mode === "signup" && (
-        <div className="mb-5 w-full max-w-sm">
-          <JourneyBar locale={locale} current={2} />
-        </div>
-      )}
-
       <div className="w-full max-w-sm">
         {/* The purchase, restated above the form, so this reads as the next
             step in something they already decided rather than a gate. */}
@@ -278,22 +265,6 @@ export function LoginForm({
           </p>
         </div>
 
-        {/* What the three days are, said where the form is. Somebody who has
-            just watched a plan get built is being asked for a phone number; the
-            fair exchange is to say exactly what it buys and what it does not
-            commit them to. Not shown mid-purchase — that reader has a plan
-            card above the form saying what they are doing. */}
-        {mode === "signup" && !plan && (
-          <ul className="mb-7 flex flex-col gap-2.5 rounded-2xl bg-surface px-5 py-4">
-            {(["login.trial_p1", "login.trial_p2", "login.trial_p3"] as const).map((key) => (
-              <li key={key} className="flex items-start gap-2.5 text-sm leading-snug text-ink">
-                <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" strokeWidth={2.6} />
-                <span>{t(locale, key).replace("{days}", String(TRIAL_DAYS))}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-
         <div className="flex flex-col gap-4">
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {mode === "signup" ? (
@@ -311,7 +282,6 @@ export function LoginForm({
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder={t(locale, "login.phone_ph")}
                 />
-                <p className="text-xs text-muted">{t(locale, "login.phone_hint")}</p>
               </div>
             ) : (
               <div className="flex flex-col gap-1.5">
@@ -389,12 +359,6 @@ export function LoginForm({
           >
             {t(locale, "login.google")}
           </Button>
-
-          {plan && mode === "signup" && (
-            <p className="text-center text-xs leading-relaxed text-muted">
-              {t(locale, "jn.after_account")}
-            </p>
-          )}
 
           <p className="text-center text-sm text-muted">
             {mode === "signin" ? (

@@ -12,11 +12,7 @@ import {
   ScreenBody,
   type Choice,
 } from "@/components/funnel/funnel-ui";
-import {
-  BlockerInterstitial,
-  GapInterstitial,
-  MechanismInterstitial,
-} from "@/components/funnel/interstitial";
+import { GapInterstitial } from "@/components/funnel/interstitial";
 import { PlanReveal } from "@/components/funnel/plan-reveal";
 import { Logo } from "@/components/layout/logo";
 import { TRIAL_STARTED, trackStep } from "@/lib/funnel/track";
@@ -73,7 +69,7 @@ type Screen =
       unit: StringKey;
       decimal?: boolean;
     }
-  | { kind: "interstitial"; step: string; id: "gap" | "mechanism" | "blocker" }
+  | { kind: "interstitial"; step: string; id: "gap" }
   | { kind: "building"; step: string }
   | { kind: "reveal"; step: string };
 
@@ -120,9 +116,12 @@ export function StartClient({
    * Ordered the way a conversation goes rather than the way a database row is
    * shaped: the goal first, because it is the question they came to answer and
    * the cheapest possible first tap; the personal ones (what stopped you) last,
-   * once answering has become a habit. The interstitials sit at the two points
-   * where a body-measurement questionnaire starts to feel like paperwork —
-   * after the numbers, and after the confession.
+   * once answering has become a habit. One interstitial is left, after the
+   * numbers: the gap between where they are and where they want to be, said
+   * back to them. Two more used to follow — a list of features and a line of
+   * reassurance — and both were screens with a Continue button and nothing to
+   * answer, which is two taps spent on reading about the product instead of
+   * reaching it.
    */
   const screens = useMemo<Screen[]>(() => {
     const choice = (values: [string, StringKey, StringKey?][]): Choice[] =>
@@ -206,7 +205,6 @@ export function StartClient({
           ["very_active", "diet.activity_very_active"],
         ]),
       },
-      { kind: "interstitial", step: "i_mechanism", id: "mechanism" },
       {
         kind: "choice",
         step: "q_experience",
@@ -244,7 +242,6 @@ export function StartClient({
           ["stalled", "fn.blk_stalled"],
         ]),
       },
-      { kind: "interstitial", step: "i_blocker", id: "blocker" },
       { kind: "building", step: "building" },
       { kind: "reveal", step: "reveal" },
     ];
@@ -425,8 +422,6 @@ export function StartClient({
       {screen.kind === "interstitial" && (
         <>
           {screen.id === "gap" && <GapInterstitial locale={locale} answers={answers} />}
-          {screen.id === "mechanism" && <MechanismInterstitial locale={locale} />}
-          {screen.id === "blocker" && <BlockerInterstitial locale={locale} answers={answers} />}
           <BottomAction locale={locale} label={tr("fn.next")} onClick={goForward} />
         </>
       )}

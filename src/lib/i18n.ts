@@ -2306,8 +2306,8 @@ const STRINGS = {
   },
   "login.trial_title": { en: "Start your {days} free days", tn: "ابدأ {days} أيام مجاناً" },
   "login.trial_sub": {
-    en: "Your phone number and a password. That is the whole form.",
-    tn: "رقم هاتفك وكلمة سر. هذا كل شيء.",
+    en: "No card. Nothing to pay today.",
+    tn: "بدون بطاقة. لا تدفع شيئاً اليوم.",
   },
   "login.trial_p1": {
     en: "The whole app for {days} days: your program, your meals, the photo scan.",
@@ -2328,6 +2328,14 @@ const STRINGS = {
     tn: "بدون بطاقة. لا تدفع شيئاً اليوم.",
   },
   "fn.r_cta_then": { en: "After that, from", tn: "بعدها، ابتداءً من" },
+  "fn.inc_program": { en: "Your training program, with videos", tn: "برنامج تمارينك، بالفيديو" },
+  "fn.inc_meals": { en: "Your meals, with food you already eat", tn: "وجباتك، من أكلك اليومي" },
+  "fn.inc_scan": { en: "Photo scan: snap the plate, get the calories", tn: "صوّر الصحن، تعرف السعرات" },
+  "fn.inc_coach": { en: "A real coach who answers in Derja", tn: "مدرّب حقيقي يجيبك بالدارجة" },
+  "co.one_line": {
+    en: "Pay with D17, Flouci or transfer. Your account opens the moment you attach the receipt.",
+    tn: "ادفع بـ D17 أو Flouci أو تحويل. حسابك يُفتح فور إرفاق الوصل.",
+  },
   "plans.recommended": { en: "Recommended", tn: "ننصح به" },
   "trial.label": { en: "Free access", tn: "دخول مجاني" },
   "trial.left_one": { en: "last day", tn: "آخر يوم" },

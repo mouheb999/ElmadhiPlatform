@@ -18,32 +18,22 @@ export default async function Home() {
       <h1 className="max-w-2xl text-balance text-4xl font-extrabold leading-tight sm:text-5xl">
         {t(locale, "home.hero")}
       </h1>
-      <p className="max-w-md text-balance text-muted">{t(locale, "home.sub")}</p>
 
       {/* Into the funnel, not at the price.
           /start asks eleven questions and hands back a plan built from the
           answers — calories, macros, a training week and the date the target
           lands on. Somebody who has watched that get built has a reason to
           read a price; somebody sent straight to /checkout is being asked to
-          want a subscription to a product they have not seen.
-
-          /checkout stays one tap away below for the reader who is already
-          decided, and someone already subscribed who lands there still gets
-          the "you're in" card. */}
+          want a subscription to a product they have not seen. */}
       <Button size="lg" asChild>
         <Link href="/start">{t(locale, "fn.hero_cta")}</Link>
       </Button>
 
-      <p className="-mt-3 flex flex-col gap-2 text-sm text-muted">
-        <Link href="/checkout" className="font-bold text-ink hover:underline">
-          {t(locale, "home.cta")}
+      <p className="-mt-3 text-sm text-muted">
+        {t(locale, "login.have_account")}{" "}
+        <Link href="/login" className="font-bold text-accent hover:underline">
+          {t(locale, "login.sign_in_link")}
         </Link>
-        <span>
-          {t(locale, "login.have_account")}{" "}
-          <Link href="/login" className="font-bold text-accent hover:underline">
-            {t(locale, "login.sign_in_link")}
-          </Link>
-        </span>
       </p>
     </main>
   );

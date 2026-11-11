@@ -1,8 +1,8 @@
 "use client";
 
-import { CalendarDays, Check, Dumbbell, Flame, Info, TrendingDown, TrendingUp, ArrowLeft, ArrowRight } from "lucide-react";
+import { CalendarDays, Check, Flame, Info, ArrowLeft, ArrowRight } from "lucide-react";
 import { MilestoneTrack } from "@/components/funnel/milestone-track";
-import { ProofPoints, Testimonials } from "@/components/funnel/proof";
+import { Testimonials } from "@/components/funnel/proof";
 import { TRIAL_DAYS } from "@/lib/subscription";
 import { dir, t, weeksLabel, type Locale, type StringKey } from "@/lib/i18n";
 import type { FunnelAnswers } from "@/lib/funnel/answers";
@@ -24,14 +24,9 @@ import { calculateFitnessPlan } from "@/lib/funnel/fitness-plan";
  * instead of picking a date.
  */
 
-/** How many sessions a week each training-days answer means, for display. */
-const DAYS_LABEL: Record<string, StringKey> = {
-  "0": "diet.td_0",
-  "1_2": "diet.td_1_2",
-  "3_4": "diet.td_3_4",
-  "5_6": "diet.td_5_6",
-  "7": "diet.td_7",
-};
+
+/** What the free days include, one line each. */
+const INCLUDED: StringKey[] = ["fn.inc_program", "fn.inc_meals", "fn.inc_scan", "fn.inc_coach"];
 
 export function PlanReveal({
   locale,
@@ -57,7 +52,6 @@ export function PlanReveal({
   const { targets } = projection;
   // The arrow on the button points the way the reader is going.
   const direction = dir(locale);
-  const rateKg = Math.abs(projection.weeklyRateKg);
   const last = projection.timeline[projection.timeline.length - 1];
 
   /**
@@ -131,9 +125,6 @@ export function PlanReveal({
         <h1 className="text-balance font-display text-[28px] font-extrabold leading-tight tracking-tight">
           {t(locale, "fn.r_title")}
         </h1>
-        <p className="max-w-[34ch] text-balance text-sm leading-relaxed text-muted">
-          {t(locale, "fn.r_sub")}
-        </p>
       </header>
 
       {/* ---- The daily number ---- */}
@@ -156,12 +147,6 @@ export function PlanReveal({
           <Macro label={t(locale, "fn.m_fat")} grams={targets.fatG} />
         </div>
 
-        <p className="text-center text-xs text-muted">
-          {t(locale, "fn.r_maintenance")}:{" "}
-          <bdi className="font-bold tabular-nums text-ink">
-            {targets.tdee} {t(locale, "fn.m_kcal")}
-          </bdi>
-        </p>
       </section>
 
       {/* The budget could not hold a split that satisfies the nutrition
@@ -195,37 +180,6 @@ export function PlanReveal({
           <span>{t(locale, "fn.r_needs_coach")}</span>
         </p>
       )}
-
-      {/* ---- Your goal, and the pace it implies ---- */}
-      <section className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface px-4 py-3.5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
-            {t(locale, "fn.r_goal_label")}
-          </span>
-          <span className="font-display text-[15px] font-extrabold leading-tight">
-            {locale === "tn" ? targets.goalLabel.ar : targets.goalLabel.en}
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface px-4 py-3.5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">
-            {t(locale, "fn.r_pace_label")}
-          </span>
-          <span className="flex items-center gap-1.5 font-display text-[15px] font-extrabold leading-tight">
-            {projection.direction === "down" ? (
-              <TrendingDown className="h-4 w-4 shrink-0 text-accent" />
-            ) : projection.direction === "up" ? (
-              <TrendingUp className="h-4 w-4 shrink-0 text-accent" />
-            ) : null}
-            {/* The rate and the calories above are the same decision read two
-                ways — see lib/algorithms/energy.ts. They cannot disagree. */}
-            <bdi>
-              {projection.direction === "hold"
-                ? t(locale, "fn.r_pace_hold")
-                : `~${rateKg.toFixed(2)} ${t(locale, "fn.unit_kg")}${t(locale, "fn.r_per_week")}`}
-            </bdi>
-          </span>
-        </div>
-      </section>
 
       {/* ---- Where it goes ---- */}
       {projection.kind === "scale" ? (
@@ -281,9 +235,6 @@ export function PlanReveal({
             </p>
           )}
 
-          <p className="text-center text-[12px] leading-relaxed text-muted">
-            {t(locale, "fn.r_estimate")}
-          </p>
         </section>
       ) : (
         <section className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface px-4 py-5 text-center">
@@ -301,32 +252,23 @@ export function PlanReveal({
         </section>
       )}
 
-      {/* ---- The week ---- */}
-      <section className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface px-4 py-4">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/15">
-          <Dumbbell className="h-5 w-5 text-accent" />
-        </span>
-        <span className="flex min-w-0 flex-col">
-          <span className="font-display text-[15px] font-extrabold">
-            {t(locale, "fn.r_week_title")} ·{" "}
-            <bdi>{t(locale, DAYS_LABEL[answers.trainingDays] ?? "diet.td_3_4")}</bdi>
-          </span>
-          <span className="text-[13px] leading-snug text-muted">{t(locale, "fn.r_week_body")}</span>
-        </span>
-      </section>
+      {/* ---- What they get ----
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-center font-display text-lg font-extrabold tracking-tight">
-          {t(locale, "fn.r_inside")}
-        </h2>
-        <ProofPoints locale={locale} />
-      </section>
+          Four lines, no cards. This used to be a training-week card, a heading
+          and five bordered cards with a paragraph each — a second sales page
+          stacked under the plan. The plan above is the argument; this is the
+          list of what comes with it, and a list reads as one thing where five
+          boxes read as five. */}
+      <ul className="flex flex-col gap-3 px-1">
+        {INCLUDED.map((key) => (
+          <li key={key} className="flex items-center gap-3 text-[15px] font-semibold leading-snug">
+            <Check className="h-[18px] w-[18px] shrink-0 text-accent" strokeWidth={2.8} />
+            <span>{t(locale, key)}</span>
+          </li>
+        ))}
+      </ul>
 
       <Testimonials locale={locale} limit={2} />
-
-      <p className="text-center text-[11.5px] leading-relaxed text-muted">
-        {t(locale, "fn.r_kept")}
-      </p>
 
       {/* ---- The ask ----
 

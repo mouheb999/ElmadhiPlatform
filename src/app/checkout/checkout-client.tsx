@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import posthog from "posthog-js";
-import { ArrowLeft, ArrowRight, Check, Clock, ImageUp, Lock, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Clock, ImageUp, Lock, Send } from "lucide-react";
 import {
   attachPaymentProof,
   isAccountActive,
@@ -12,18 +12,15 @@ import {
   sendPaymentMessage,
   startPaymentRequest,
 } from "@/app/actions/payment";
-import { AppPreview } from "@/components/checkout/app-preview";
 import { PaymentMethods } from "@/components/checkout/payment-methods";
-import { ActivationSteps, JourneyBar } from "@/components/funnel/journey";
-import { Faq, Guarantee, Testimonials } from "@/components/funnel/proof";
-import { BuildPlanPrompt, PlanRecap } from "@/components/funnel/plan-recap";
+import { Faq, Testimonials } from "@/components/funnel/proof";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { type Locale, dir, monthsLabel, t, type StringKey } from "@/lib/i18n";
 import { REVERSE_TRIAL, type LockedFeature } from "@/lib/access";
-import { isComplete, type FunnelAnswers } from "@/lib/funnel/answers";
+import type { FunnelAnswers } from "@/lib/funnel/answers";
 import {
   ACTIVATED,
   CHECKOUT_VIEWED,
@@ -67,14 +64,6 @@ const OFFER_TIER = "premium";
  * six keeps its saving chip for the reader who wants the lowest monthly price.
  */
 const BEST_VALUE_MONTHS = 3;
-
-/** The one line under each term. Keyed by months; unknown terms get none. */
-const TERM_BLURB: Record<number, StringKey> = {
-  1: "plans.term_1",
-  3: "plans.term_3",
-  6: "plans.term_6",
-  12: "plans.term_12",
-};
 
 /** Which locked control sent them here, so the page can open by naming it. */
 const FROM_REASON: Record<LockedFeature, StringKey> = {
@@ -187,7 +176,6 @@ export function CheckoutClient({
   wasRejected,
   thread,
   from,
-  funnelAnswers,
   settings,
   methods,
   plans,
@@ -236,11 +224,6 @@ export function CheckoutClient({
   const [isPending, startTransition] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
   const plansRef = useRef<HTMLDivElement>(null);
-
-  /** The only way out of the preview's wall, and its skip link. */
-  function scrollToPlans() {
-    plansRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   /**
    * Step 1 → step 2, with the account collected in between if there isn't one.
@@ -582,9 +565,6 @@ export function CheckoutClient({
     return (
       <Shell direction={direction}>
         <div className="flex w-full max-w-sm flex-col gap-4">
-          {/* Still the same four steps. Somebody waiting on a human is at the
-              end of a process, not in an unnumbered limbo after it. */}
-          <JourneyBar locale={locale} current={4} />
           <Card>
             <CardContent className="flex flex-col gap-4 p-6 text-center">
               <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-accent/15">
@@ -656,11 +636,6 @@ export function CheckoutClient({
   return (
     <Shell direction={direction}>
       <div className="flex w-full max-w-md flex-col gap-4">
-        {/* Four steps, not two: the account form between these screens and the
-            wait for activation after them are part of the journey whether or
-            not this page counts them. See components/funnel/journey.tsx. */}
-        <JourneyBar locale={locale} current={step === 1 ? 1 : 3} />
-
         {step === 1 && (
           <>
             <div className="text-center">
@@ -669,30 +644,10 @@ export function CheckoutClient({
               <h1 className="text-2xl font-extrabold tracking-tight">
                 {t(locale, "checkout.title")}
               </h1>
-              {fromFeature ? (
+              {fromFeature && (
                 <p className="mt-1 text-sm text-muted">{t(locale, FROM_REASON[fromFeature])}</p>
-              ) : (
-                <p className="mt-1 text-sm text-muted">{t(locale, "checkout.subtitle")}</p>
               )}
             </div>
-
-            {/* Two readers arrive here, and they need opposite things.
-
-                One came through /start: they answered eleven questions and
-                watched a plan get built two minutes ago, so the price has to
-                read as the next step in that, not as a fresh pitch. The recap
-                restates their own numbers above the terms.
-
-                The other landed on the price with no plan at all — a direct
-                link, a bookmark, an ad pointed here instead of at /start. For
-                them the best possible offer is not another paragraph about the
-                product; it is two free minutes that end in their own calories
-                and their own target date. */}
-            {isComplete(funnelAnswers) ? (
-              <PlanRecap locale={locale} answers={funnelAnswers} />
-            ) : (
-              <BuildPlanPrompt locale={locale} />
-            )}
 
             {wasRejected && (
               <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
@@ -747,23 +702,12 @@ export function CheckoutClient({
               </div>
             )}
 
-            {/* Says out loud that not paying is a real option. Without this the
-                page still reads as "pay or leave", which is what it used to.
-                Hidden while REVERSE_TRIAL is off, because then it *is* "pay or
-                leave" and promising a free tier that no longer exists is worse
-                than the blunt version. */}
-            {REVERSE_TRIAL && (
-              <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-xs leading-relaxed text-muted">
-                {t(locale, "co.free_line")}
-              </p>
-            )}
-
-            {/* The product, before the price. With the trial off this is the
-                only thing on the page that can answer "what am I buying?" —
-                the tier bullets describe features to somebody who already
-                knows what the app is, and a stranger here does not. */}
-            <AppPreview locale={locale} onPickPlan={scrollToPlans} />
-
+            {/* Nothing between the title and the prices. A plan recap, a
+                walkable preview of the app and a paragraph about the free tier
+                used to sit here, and they made sense when this page was the
+                first time anyone saw the product. It no longer is: the reader
+                has had the app in their hands for three days. What they came
+                for is the three cards below. */}
             {plans.length === 0 ? (
               <p className="rounded-2xl border border-hairline bg-surface px-4 py-3 text-center text-sm text-muted">
                 {t(locale, "checkout.no_plans")}
@@ -789,7 +733,6 @@ export function CheckoutClient({
                     // what it saves. Two different facts, so the recommended
                     // card carries both.
                     const save = savingsDt(plan);
-                    const blurb = TERM_BLURB[plan.months];
                     return (
                       <button
                         key={plan.id}
@@ -822,11 +765,6 @@ export function CheckoutClient({
                               </span>
                             )}
                           </span>
-                          {blurb && (
-                            <span className="text-xs leading-snug text-muted">
-                              {t(locale, blurb)}
-                            </span>
-                          )}
                         </span>
 
                         <span className="flex shrink-0 items-center gap-3">
@@ -911,60 +849,15 @@ export function CheckoutClient({
                   {direction === "rtl" ? <ArrowLeft /> : <ArrowRight />}
                 </Button>
 
-                {/* Names the form before it arrives, directly under the button
-                    it describes rather than four blocks below it. Somebody who
-                    taps a button that says "continue" and gets an account form
-                    instead reads that as a bait; the button says what happens,
-                    and this says why it is needed at all. */}
-                {!signedIn && (
-                  <p className="-mt-1 text-center text-xs leading-relaxed text-muted">
-                    {t(locale, "co.next_signup_why")}
-                  </p>
-                )}
-
-                {/* And then the rest of it, in order, before they commit to the
-                    first step. The transfer and the wait for a human are not
-                    going away this quarter; being met by surprise is what costs
-                    the sale, not the steps themselves. */}
-                <ActivationSteps locale={locale} />
-
-                {/* The two objections that stop a first-time buyer on a manual
-                    transfer page, answered where the decision is made. */}
-                <div className="flex items-stretch justify-center gap-4 text-xs">
-                  <span className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 shrink-0 text-muted" />
-                    <span className="flex flex-col">
-                      <span className="font-bold text-ink">{t(locale, "co.secure_title")}</span>
-                      <span className="text-muted">{t(locale, "co.secure_body")}</span>
-                    </span>
-                  </span>
-                  <span className="w-px bg-hairline" aria-hidden="true" />
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4 shrink-0 text-muted" />
-                    <span className="flex flex-col">
-                      <span className="font-bold text-ink">{t(locale, "co.cancel_title")}</span>
-                      <span className="text-muted">{t(locale, "co.cancel_body")}</span>
-                    </span>
-                  </span>
-                </div>
-
-                {/* The third objection, and the biggest one on a screen that
-                    asks for a bank transfer to a stranger: what happens if
-                    this turns out not to fit me. Left unanswered it is the
-                    last thought a hesitant reader has before closing the tab. */}
-                <Guarantee locale={locale} />
-
-                {/* With the trial off this is a trapdoor: /dashboard is gated,
-                    so "keep using the free plan" would bounce straight back
-                    here. An unpaid account leaves via Settings → sign out. */}
-                {REVERSE_TRIAL && (
-                  <Link
-                    href="/dashboard"
-                    className="text-center text-xs font-bold text-muted underline decoration-dotted underline-offset-4 hover:text-ink"
-                  >
-                    {t(locale, "co.stay_free")}
-                  </Link>
-                )}
+                {/* One line where four blocks used to be: the numbered
+                    "how activation works" card, a secure-payment row, a
+                    guarantee card and a link back to a free plan that no
+                    longer exists. The two facts a buyer needs at this button
+                    are how they pay and how fast they are let in. */}
+                <p className="-mt-1 flex items-center justify-center gap-1.5 text-center text-xs leading-relaxed text-muted">
+                  <Lock className="h-3.5 w-3.5 shrink-0" />
+                  {t(locale, "co.one_line")}
+                </p>
 
                 {/* Below the fold on purpose. A reader who has already decided
                     taps the button above and never sees any of this; a reader
