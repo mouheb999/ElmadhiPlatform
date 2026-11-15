@@ -26,6 +26,8 @@ export type RedoQuota = {
   limit: number;
   used: number;
   remaining: number;
+  /** Admins are not capped (migration 061). `remaining` stays at `limit`. */
+  unlimited?: boolean;
 };
 
 const PROFILE_TABLE = {
@@ -45,14 +47,21 @@ export async function getRedoQuota(
   userId: string,
   kind: PlanKind,
 ): Promise<RedoQuota> {
-  const { count } = await supabase
-    .from(PROFILE_TABLE[kind])
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gt("version", 1)
-    .gte("created_at", utcMonthStart().toISOString());
+  const [{ count }, { data: profile }] = await Promise.all([
+    supabase
+      .from(PROFILE_TABLE[kind])
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gt("version", 1)
+      .gte("created_at", utcMonthStart().toISOString()),
+    supabase.from("profiles").select("is_admin").eq("id", userId).maybeSingle(),
+  ]);
 
   const used = count ?? 0;
+  // Admins skip the cap, same as the database trigger (migration 061).
+  if (profile?.is_admin) {
+    return { limit: MONTHLY_REDO_LIMIT, used, remaining: MONTHLY_REDO_LIMIT, unlimited: true };
+  }
   return { limit: MONTHLY_REDO_LIMIT, used, remaining: Math.max(0, MONTHLY_REDO_LIMIT - used) };
 }
 

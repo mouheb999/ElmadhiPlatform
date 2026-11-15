@@ -40,9 +40,11 @@ function RedoRow({
   labelKey: StringKey;
   quota: RedoQuota;
 }) {
-  const left = t(locale, "redo.remaining")
-    .replace("{remaining}", String(quota.remaining))
-    .replace("{total}", String(quota.limit));
+  const left = quota.unlimited
+    ? t(locale, "redo.unlimited")
+    : t(locale, "redo.remaining")
+        .replace("{remaining}", String(quota.remaining))
+        .replace("{total}", String(quota.limit));
 
   if (quota.remaining <= 0) {
     return (

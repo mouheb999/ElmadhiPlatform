@@ -894,6 +894,10 @@ const STRINGS = {
     en: "{remaining} of {total} left this month",
     tn: "بقي لك {remaining} من {total} هذا الشهر",
   },
+  "redo.unlimited": {
+    en: "Unlimited rebuilds (admin)",
+    tn: "تبديل بلا حدود (مسؤول)",
+  },
   "redo.none_left": {
     en: "No rebuilds left this month — you can redo it next month.",
     tn: "لم يبقَ لك تبديل هذا الشهر — يمكنك الإعادة الشهر القادم.",
@@ -1065,6 +1069,10 @@ const STRINGS = {
   "qa.quota_left": {
     en: "{n} of {total} questions left this month",
     tn: "بقي {n} من {total} أسئلة هذا الشهر",
+  },
+  "qa.quota_unlimited": {
+    en: "Unlimited questions (admin)",
+    tn: "أسئلة بلا حدود (مسؤول)",
   },
   "qa.quota_none": {
     en: "You've used your {total} questions for this month. The counter resets on the 1st.",

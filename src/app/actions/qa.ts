@@ -48,7 +48,7 @@ export async function submitQaRequest(
   }
 
   revalidatePath("/qa");
-  return ok({ remaining: quota.remaining - 1 });
+  return ok({ remaining: quota.unlimited ? quota.remaining : quota.remaining - 1 });
 }
 
 /** User clicked through to read their answered question — stop notifying. */
