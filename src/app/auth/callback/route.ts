@@ -6,6 +6,12 @@ import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/funnel/attribution";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
 import { readClientContext, sendMetaEvent } from "@/lib/meta/capi";
 import { REGISTRATION_EVENT_COOKIE } from "@/lib/meta/pixel";
+import {
+  TRIAL_DEVICE_COOKIE,
+  TRIAL_DEVICE_COOKIE_OPTIONS,
+  closeRepeatTrial,
+  isRepeatTrial,
+} from "@/lib/trial-device";
 
 /**
  * An account this young, arriving through the callback, was just created by
@@ -42,6 +48,14 @@ export async function GET(request: NextRequest) {
       const user = data.user;
       const createdAt = user?.created_at ? Date.parse(user.created_at) : NaN;
       if (user && Date.now() - createdAt < NEW_ACCOUNT_WINDOW_MS) {
+        // One trial per device, for a Google sign-up too. See lib/trial-device.
+        const marker = request.cookies.get(TRIAL_DEVICE_COOKIE)?.value;
+        if (isRepeatTrial(marker, user.id)) {
+          await closeRepeatTrial(user.id);
+        } else {
+          response.cookies.set(TRIAL_DEVICE_COOKIE, user.id, TRIAL_DEVICE_COOKIE_OPTIONS);
+        }
+
         const eventId = `reg_${user.id}`;
         const client = await readClientContext();
         after(() =>

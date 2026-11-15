@@ -13,6 +13,12 @@ import {
   phoneLoginEmail,
 } from "@/lib/phone";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  TRIAL_DEVICE_COOKIE,
+  TRIAL_DEVICE_COOKIE_OPTIONS,
+  closeRepeatTrial,
+  isRepeatTrial,
+} from "@/lib/trial-device";
 import { siteOrigin } from "@/lib/site-url";
 import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/funnel/attribution";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
@@ -341,6 +347,21 @@ export async function signUpWithPassword(
         user: { id: userId, email: contactEmail(email), phone: normalized, ...client },
       }),
     );
+  }
+
+  // One trial per device. If this browser has already had one, the three days
+  // the database just granted are closed again; either way the browser is
+  // marked from here on. Only for a real new account — an empty `identities`
+  // means the address already existed and nothing was created.
+  if (data.user && (data.user.identities?.length ?? 0) > 0) {
+    const store = await cookies();
+    const marker = store.get(TRIAL_DEVICE_COOKIE)?.value;
+    if (isRepeatTrial(marker, data.user.id)) {
+      await closeRepeatTrial(data.user.id);
+    } else {
+      // The first account on this device: it is the one the trial belongs to.
+      store.set(TRIAL_DEVICE_COOKIE, data.user.id, TRIAL_DEVICE_COOKIE_OPTIONS);
+    }
   }
 
   return ok({ signedIn: !!data.session, userId: data.user?.id ?? "", registrationEventId });
