@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AttributionCapture } from "@/components/funnel/attribution-capture";
+import { LeaveInAppBrowser } from "@/components/funnel/leave-in-app-browser";
 import { Logo } from "@/components/layout/logo";
 import { Button } from "@/components/ui/button";
 import { getLocale } from "@/lib/i18n-server";
@@ -12,6 +13,7 @@ export default async function Home() {
       {/* An ad can be pointed at this page as easily as at /start, and the
           campaign parameters survive one page load. Renders nothing. */}
       <AttributionCapture />
+      <LeaveInAppBrowser locale={locale} />
 
       <div className="glow-accent pointer-events-none absolute inset-x-0 top-0 -z-10 h-[60vh]" />
       <Logo className="h-20 sm:h-24" />

@@ -4,6 +4,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { FUNNEL_COOKIE, parseFunnelAnswers } from "@/lib/funnel/answers";
 import { createClient } from "@/lib/supabase/server";
+import { LeaveInAppBrowser } from "@/components/funnel/leave-in-app-browser";
 import { StartClient } from "./start-client";
 
 /**
@@ -74,6 +75,11 @@ export default async function StartPage() {
   }
 
   return (
-    <StartClient locale={locale} initialAnswers={initialAnswers} fromPerMonth={fromPerMonth} />
+    <>
+      {/* A visitor from Instagram is handed to their real browser before they
+          answer anything. Renders nothing anywhere else. */}
+      <LeaveInAppBrowser locale={locale} />
+      <StartClient locale={locale} initialAnswers={initialAnswers} fromPerMonth={fromPerMonth} />
+    </>
   );
 }
