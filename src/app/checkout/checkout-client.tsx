@@ -284,7 +284,6 @@ export function CheckoutClient({
   }, [plans]);
 
   const selectedPlan = offers.find((p) => p.months === months) ?? offers[0] ?? null;
-  const monthlyBase = offers.find((p) => p.months === 1)?.price_tnd ?? null;
   const activeMethod = useMemo(
     () => methods.find((m) => m.key === methodKey) ?? null,
     [methods, methodKey],
@@ -362,19 +361,6 @@ export function CheckoutClient({
   useEffect(() => {
     if (step === 2) trackStep(PAY_STEP, locale);
   }, [step, locale]);
-
-  /**
-   * What a term saves against paying month by month, in dinars.
-   *
-   * Dinars rather than the percentage this used to show: "Save 72 DT" is the
-   * number a customer can check against the row above it — twelve times the
-   * one-month price, minus the price on the card — and a percentage is not.
-   */
-  function savingsDt(plan: Plan): number | null {
-    if (!monthlyBase || plan.months === 1) return null;
-    const saved = monthlyBase * plan.months - plan.price_tnd;
-    return saved > 0 ? saved : null;
-  }
 
   /** One decimal at most, no trailing ".0" — 36.5 stays 36.5, 43.0 becomes 43. */
   function dt(value: number): string {
@@ -724,10 +710,10 @@ export function CheckoutClient({
                     const selected = selectedPlan?.id === plan.id;
                     const best = plan.months === BEST_VALUE_MONTHS;
                     const perMonth = Math.round((plan.price_tnd / plan.months) * 10) / 10;
-                    // The badge says which term we would pick; the chip says
-                    // what it saves. Two different facts, so the recommended
-                    // card carries both.
-                    const save = savingsDt(plan);
+                    // No "save X DT" chip. Each card shows its price and
+                    // its price per month, and the comparison is left to the
+                    // reader: the recommended term is sold on what it is for,
+                    // not on a discount against the one above it.
                     return (
                       <button
                         key={plan.id}
@@ -759,11 +745,6 @@ export function CheckoutClient({
                             {best && (
                               <span className="text-xs font-semibold text-muted">
                                 {term(plan.months)}
-                              </span>
-                            )}
-                            {save !== null && (
-                              <span className="rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
-                                {t(locale, "plans.save")} <bdi>{dt(save)} DT</bdi>
                               </span>
                             )}
                           </span>
