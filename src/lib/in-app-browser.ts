@@ -20,6 +20,9 @@
  *     browser app". This is long-standing and dependable.
  *   - **iOS** (17 and later) understands `x-safari-https://`, which opens the
  *     address in Safari. Older versions ignore it and nothing happens.
+ *     Instagram's browser on iPhone refuses that address when a page goes to
+ *     it by itself, and allows it when the visitor taps a link — so on iPhone
+ *     the automatic attempt is skipped and a button is shown instead.
  *
  * So the page tries once, and when it is still inside the app a moment later
  * it shows one line telling the visitor how to do it by hand. Either company
@@ -65,10 +68,13 @@ export function externalBrowserUrl(userAgent: string, href: string): string | nu
 
   if (platform === "ios") return `x-safari-${url.href}`;
 
-  // No `package=` on purpose: naming Chrome would fail on a phone that uses
-  // another browser. Without it Android opens whatever the default is. The
-  // fallback is the same page, so a phone that cannot honour the intent just
-  // stays where it is.
+  // Chrome is named on purpose. Without a package Android shows its "open
+  // with" chooser — a pop-up with a list of apps, which is one more decision
+  // in front of somebody who only tapped a link. Naming Chrome goes straight
+  // there on the phones that have it, which is nearly all of them. On one that
+  // does not, the intent cannot be honoured and Android loads the fallback —
+  // this same page — so the visitor simply stays where they are and is shown
+  // the manual line.
   const target = `${url.host}${url.pathname}${url.search}`;
-  return `intent://${target}#Intent;scheme=https;S.browser_fallback_url=${encodeURIComponent(url.href)};end`;
+  return `intent://${target}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(url.href)};end`;
 }

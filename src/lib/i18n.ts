@@ -2422,13 +2422,15 @@ const STRINGS = {
 
   // ---- leaving Instagram's built-in browser ----
   "iab.title": { en: "Open in your browser for the full app.", tn: "افتحه في متصفّحك لتحصل على التطبيق كاملاً." },
+  "iab.open_safari": { en: "Open in Safari", tn: "افتح في Safari" },
+  "iab.open_chrome": { en: "Open in Chrome", tn: "افتح في Chrome" },
   "iab.how_ios": {
-    en: "Tap ••• at the top, then “Open in external browser”.",
-    tn: "اضغط ••• في الأعلى، ثم «فتح في متصفّح خارجي».",
+    en: "Or tap ••• at the top, then “Open in external browser”.",
+    tn: "أو اضغط ••• في الأعلى، ثم «فتح في متصفّح خارجي».",
   },
   "iab.how_android": {
-    en: "Tap ⋮ at the top, then “Open in Chrome”.",
-    tn: "اضغط ⋮ في الأعلى، ثم «فتح في Chrome».",
+    en: "Or tap ⋮ at the top, then “Open in Chrome”.",
+    tn: "أو اضغط ⋮ في الأعلى، ثم «فتح في Chrome».",
   },
 
   // ---- reminders (web push), switched on in Settings ----

@@ -35,14 +35,14 @@ describe("the way out", () => {
     expect(externalBrowserUrl(IG_IOS, PAGE)).toBe(`x-safari-${PAGE}`);
   });
 
-  it("asks Android for the default browser, keeping the campaign and the click id", () => {
+  it("asks Android for Chrome, keeping the campaign and the click id", () => {
     const out = externalBrowserUrl(IG_ANDROID, PAGE)!;
     expect(out.startsWith("intent://hypefitness.club/start?utm_source=ig&utm_campaign=reel1&fbclid=AbC123#Intent;")).toBe(true);
     expect(out).toContain("scheme=https");
     expect(out).toContain(`S.browser_fallback_url=${encodeURIComponent(PAGE)}`);
     expect(out.endsWith(";end")).toBe(true);
-    // Naming one browser would break on phones that use another.
-    expect(out).not.toContain("package=");
+    // Named, so Android goes straight there instead of showing its chooser.
+    expect(out).toContain("package=com.android.chrome");
   });
 
   it("does nothing in a real browser, or for an address it should not rewrite", () => {

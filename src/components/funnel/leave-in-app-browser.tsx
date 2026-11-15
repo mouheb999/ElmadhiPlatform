@@ -15,11 +15,12 @@ const TRIED_KEY = "hype_left_in_app";
  * See lib/in-app-browser.ts for why this matters and why it cannot be made
  * certain. The order here is deliberate:
  *
- *   1. Try once, straight away, before the visitor has started answering
- *      questions — a hand-off halfway through would throw their answers away.
- *   2. A moment later, if this page is still the one on screen, the hand-off
- *      did not happen. Show one line saying how to open the browser from
- *      Instagram's own menu, with an X.
+ *   1. On Android, try once, straight away, before the visitor has started
+ *      answering questions — a hand-off halfway through would throw their
+ *      answers away.
+ *   2. If this page is still the one on screen — or at once on iPhone, where
+ *      the automatic attempt is refused — show a card with a button that opens
+ *      the same page in the browser, the manual steps under it, and an X.
  *
  * It never tries twice in a visit. A page that keeps bouncing somebody towards
  * a browser they cannot reach is worse than the in-app browser it was trying
@@ -28,10 +29,13 @@ const TRIED_KEY = "hype_left_in_app";
  */
 export function LeaveInAppBrowser({ locale }: { locale: Locale }) {
   const [platform, setPlatform] = useState<InAppPlatform | null>(null);
+  const [target, setTarget] = useState<string | null>(null);
 
   useEffect(() => {
     const found = inAppPlatform(navigator.userAgent);
     if (!found) return;
+
+    const out = externalBrowserUrl(navigator.userAgent, window.location.href);
 
     let tried = false;
     try {
@@ -42,24 +46,42 @@ export function LeaveInAppBrowser({ locale }: { locale: Locale }) {
       tried = true;
     }
 
-    if (!tried) {
-      const target = externalBrowserUrl(navigator.userAgent, window.location.href);
-      if (target) window.location.href = target;
-    }
+    // Android only. On iPhone, Instagram blocks a page that sends itself to
+    // Safari and allows it when the visitor taps — so there the button below
+    // is the hand-off, and it is shown at once.
+    if (found === "android" && !tried && out) window.location.href = out;
 
-    // Still here after the phone has had time to switch apps: say how.
-    const timer = setTimeout(() => setPlatform(found), tried ? 400 : 1800);
+    // Android: still here after the phone has had time to switch apps.
+    const delay = found === "ios" ? 300 : tried ? 400 : 1800;
+    const timer = setTimeout(() => {
+      setTarget(out);
+      setPlatform(found);
+    }, delay);
     return () => clearTimeout(timer);
   }, []);
 
   if (!platform) return null;
 
   return (
-    <div className="hint-in fixed inset-x-3 top-[calc(env(safe-area-inset-top)+10px)] z-50 mx-auto flex max-w-md items-start gap-3 rounded-2xl border border-white/10 bg-surface2 py-3 pe-10 ps-4 shadow-[0_14px_36px_-12px_rgba(0,0,0,0.9)]">
-      <p className="text-[13px] leading-snug text-muted">
-        <span className="font-bold text-ink">{t(locale, "iab.title")}</span>{" "}
+    <div className="hint-in fixed inset-x-3 top-[calc(env(safe-area-inset-top)+10px)] z-50 mx-auto flex max-w-md flex-col gap-2.5 rounded-2xl border border-white/10 bg-surface2 py-3 pe-10 ps-4 shadow-[0_14px_36px_-12px_rgba(0,0,0,0.9)]">
+      <p className="text-[13px] font-bold leading-snug text-ink">{t(locale, "iab.title")}</p>
+
+      {/* A real link, tapped by the visitor: the one form of this both phones
+          honour. One tap, and the same page opens in the browser. */}
+      {target && (
+        <a
+          href={target}
+          className="press self-start rounded-full bg-accent px-4 py-2 text-[14px] font-bold text-bg"
+        >
+          {t(locale, platform === "ios" ? "iab.open_safari" : "iab.open_chrome")}
+        </a>
+      )}
+
+      {/* And the way that works whatever the phone does with that link. */}
+      <p className="text-[12px] leading-snug text-muted">
         {t(locale, platform === "ios" ? "iab.how_ios" : "iab.how_android")}
       </p>
+
       <button
         type="button"
         onClick={() => setPlatform(null)}
