@@ -1787,6 +1787,57 @@ const STRINGS = {
   },
 
   // ---- admin: user records ----
+  // ---- admin: free trials ----
+  "admin.nav_trials": { en: "Free trials", tn: "التجارب المجانية" },
+  "admin.trials_title": { en: "Free trials", tn: "التجارب المجانية" },
+  "admin.trials_sub": {
+    en: "How many free trials are being started, and how many turn into payments.",
+    tn: "قدّاش من تجربة مجانية تبدات، وقدّاش منهم ولّاو دفع.",
+  },
+  "admin.trials_new_heading": { en: "New free trials", tn: "تجارب مجانية جديدة" },
+  "admin.trials_today": { en: "Today", tn: "اليوم" },
+  "admin.trials_week": { en: "Last 7 days", tn: "آخر 7 أيام" },
+  "admin.trials_month": { en: "Last 30 days", tn: "آخر 30 يوم" },
+  "admin.trials_total": { en: "All time", tn: "المجموع" },
+  "admin.trials_daily": { en: "New trials per day", tn: "تجارب جديدة كل يوم" },
+  "admin.trials_bar": { en: "{n} new", tn: "{n} جديد" },
+  "admin.trials_outcomes": { en: "What happened to them", tn: "شنوّة صار بيهم" },
+  "admin.trials_conversion": { en: "of trials paid", tn: "من التجارب دفعوا" },
+  "admin.trials_active": { en: "In trial", tn: "في التجربة" },
+  "admin.trials_paying": { en: "Payment sent", tn: "بعث الدفع" },
+  "admin.trials_paid": { en: "Paid", tn: "دفع" },
+  "admin.trials_ended": { en: "Ended, not paid", tn: "وفات، ما دفعش" },
+  "admin.trials_blocked": { en: "Repeat device", tn: "جهاز مكرّر" },
+  "admin.trials_left_1": { en: "1 day left", tn: "باقي يوم" },
+  "admin.trials_left_2": { en: "2 days left", tn: "باقي يومين" },
+  "admin.trials_left_n": { en: "{n} days left", tn: "باقي {n} أيام" },
+  "admin.trials_signed_up": { en: "Signed up", tn: "سجّل" },
+  "admin.trials_none": { en: "No free trials here yet.", tn: "ما فماش تجارب مجانية هنا بعد." },
+  "admin.trials_note": {
+    en:
+      "A trial is counted on the day the account signed up (Tunis time). " +
+      "\"Repeat device\" accounts signed up on a phone that already had a trial, so they got no free days and are not counted as trials.",
+    tn:
+      "التجربة تتحسب في النهار اللي تسجّل فيه الحساب (بتوقيت تونس). " +
+      "حسابات \"جهاز مكرّر\" تسجّلت من تليفون خذا تجربة قبل، ما خذاوش أيام مجانية وما يتحسبوش تجارب.",
+  },
+  "admin.wa_msg_trial_active": {
+    en:
+      "Hi {name}, this is HYPE FITNESS. How are your free days going? " +
+      "If anything is unclear or you need help with your plan, just reply here.",
+    tn:
+      "أهلاً {name}، هذا HYPE FITNESS. كيفاش ماشية الأيام المجانية؟ " +
+      "كان فما حاجة موش واضحة ولا تحب معاونة في البرنامج، جاوبنا هنا.",
+  },
+  "admin.wa_msg_trial_ended": {
+    en:
+      "Hi {name}, this is HYPE FITNESS. Your free days have ended — " +
+      "subscribe and you keep your plan and everything you logged.",
+    tn:
+      "أهلاً {name}، هذا HYPE FITNESS. الأيام المجانية متاعك وفات — " +
+      "اشترك وتبقى عندك البرنامج وكل شي سجّلتو.",
+  },
+
   "admin.nav_users": { en: "Users", tn: "المستخدمون" },
   "admin.users_title": { en: "User records", tn: "سجلات المستخدمين" },
   "admin.users_sub": {
