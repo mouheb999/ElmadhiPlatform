@@ -196,6 +196,21 @@ export async function proxy(request: NextRequest) {
     // the column in the select does not exist yet and the whole read fails.
     if (error) throw error;
     profile = data;
+
+    // An account from before the trial existed, coming back. It gets the same
+    // three days a new sign-up does, starting now — see migration 061. The
+    // function refuses anyone who has already had a window or ever paid, so
+    // this is one extra call, once, for those accounts and nobody else.
+    if (
+      profile &&
+      !profile.is_admin &&
+      profile.free_access_until === null &&
+      profile.plan_expires_at === null &&
+      profile.payment_status !== "active"
+    ) {
+      const { data: granted } = await supabase.rpc("claim_welcome_trial");
+      if (typeof granted === "string") profile.free_access_until = granted;
+    }
   } catch (err) {
     // Same reasoning as `indeterminate` above: a database hiccup must not
     // become a 500 or an eviction to /checkout for a paying user.

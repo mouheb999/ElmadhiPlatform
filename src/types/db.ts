@@ -1461,6 +1461,8 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      // migration 061: three free days for an account older than the trial.
+      claim_welcome_trial: { Args: Record<string, never>; Returns: string | null };
       // migration 038: the dashboard's Q&A spark, sampled in the database so
       // the payload is five rows instead of the whole published library.
       qa_cards_random: {
