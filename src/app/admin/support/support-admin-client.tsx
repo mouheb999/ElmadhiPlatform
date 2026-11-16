@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { t, type Locale, type StringKey } from "@/lib/i18n";
+import { t, type Locale } from "@/lib/i18n";
 import { toSupportCategory, type SupportMessage } from "@/lib/support";
 import { CATEGORY_LABEL, STATUS_LABEL } from "@/app/(app)/support/support-client";
 import { answerSupportTicket, setSupportTicketStatus } from "@/app/actions/support";
