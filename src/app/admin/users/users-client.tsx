@@ -11,6 +11,7 @@ import {
   type ResetResult,
   type WorkoutHistorySummary,
 } from "@/app/actions/admin-users";
+import { Avatar, StatTile } from "@/components/admin/kit";
 
 function formatDate(value: string | null) {
   return value ? new Date(value).toLocaleString() : "—";
@@ -80,13 +81,13 @@ export function AdminUsersClient({ locale }: { locale: Locale }) {
       </div>
 
       {error && (
-        <p className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm">
+        <p className="rounded-2xl bg-danger/15 px-4 py-3 text-sm font-semibold text-danger">
           {error}
         </p>
       )}
 
       {done && (
-        <div className="flex items-start gap-3 rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+        <div className="flex items-start gap-3 rounded-[22px] border border-accent/30 bg-accent/10 px-4 py-4 text-sm">
           <Check className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
           <div>
             <div className="font-bold">{t(locale, "admin.users_reset_done")}</div>
@@ -100,32 +101,31 @@ export function AdminUsersClient({ locale }: { locale: Locale }) {
       )}
 
       {summary && (
-        <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface p-4">
-          <div>
-            <div className="font-bold">{summary.fullName ?? summary.email}</div>
-            <div className="text-xs text-muted" dir="ltr">
-              {summary.email}
+        <div className="flex flex-col gap-4 rounded-[22px] border border-hairline bg-surface p-4">
+          <div className="flex items-center gap-3">
+            <Avatar name={summary.fullName ?? summary.email} />
+            <div className="min-w-0">
+              <div className="truncate font-bold">{summary.fullName ?? summary.email}</div>
+              <div className="truncate text-xs text-muted" dir="ltr">
+                {summary.email}
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {[
               { label: t(locale, "admin.users_sessions"), value: summary.sessionCount },
               { label: t(locale, "admin.users_sets"), value: summary.setCount },
               { label: t(locale, "admin.users_events"), value: summary.completionEventCount },
               { label: t(locale, "admin.users_open"), value: summary.openSessionCount },
             ].map((stat) => (
-              <div
-                key={stat.label}
-                className="rounded-2xl border border-hairline px-3 py-2 text-center"
-              >
-                <div className="text-xl font-extrabold">{stat.value}</div>
-                <div className="text-xs text-muted">{stat.label}</div>
+              <div key={stat.label} className="[&>div]:bg-surface2">
+                <StatTile value={stat.value} label={stat.label} />
               </div>
             ))}
           </div>
 
-          <p className="rounded-2xl border border-hairline px-4 py-3 text-xs text-muted">
+          <p className="rounded-2xl bg-surface2 px-4 py-3 text-xs text-muted">
             {t(locale, "admin.users_plan_safe")}{" "}
             <span className="font-bold text-ink">
               {summary.activeProgramName ?? t(locale, "admin.users_no_program")}
@@ -174,9 +174,9 @@ export function AdminUsersClient({ locale }: { locale: Locale }) {
           {nothingToReset ? (
             <p className="text-sm text-muted">{t(locale, "admin.users_nothing")}</p>
           ) : (
-            <div className="flex flex-col gap-3 rounded-2xl border border-red-500/40 bg-red-500/5 p-4">
+            <div className="flex flex-col gap-3 rounded-2xl bg-danger/10 p-4">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-400" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
                 <p className="text-sm text-muted">{t(locale, "admin.users_warning")}</p>
               </div>
               <Input
@@ -185,12 +185,13 @@ export function AdminUsersClient({ locale }: { locale: Locale }) {
                 onChange={(e) => setConfirmEmail(e.target.value)}
                 placeholder={summary.email}
                 aria-label={t(locale, "admin.users_confirm_label")}
+                className="bg-bg"
               />
               <Button
                 variant="secondary"
                 onClick={reset}
                 disabled={isPending || !confirmed}
-                className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+                className="bg-danger/15 text-danger hover:bg-danger/25"
               >
                 {t(locale, "admin.users_reset")}
               </Button>

@@ -10,6 +10,7 @@ import {
 import { LoadFailure } from "@/components/shared/load-failure";
 import type { Locale } from "@/lib/i18n";
 import { tunisDateKey } from "@/lib/dates";
+import { canLogOn } from "@/lib/log-date";
 import { encodeFoodRef } from "@/lib/food-ref";
 import { isAppShell } from "@/lib/app-shell";
 
@@ -22,8 +23,9 @@ function shiftDate(date: string, days: number): string {
 /**
  * Today view of the unified /diet home (V1.5): logged meals vs. targets for a
  * browsable day, with every friction-killer entry path — from the plan, search,
- * recents, favorites, quick calories, copy the last logged day. Logging is only
- * open on today; past days are read-only history. Self-contained data-loading
+ * recents, favorites, quick calories, copy the last logged day. Logging is open
+ * on today and on recent past days (see lib/log-date); older days are
+ * read-only history. Self-contained data-loading
  * (moved from the former /diet/log page) so the shell can compose it under the
  * tab bar.
  */
@@ -378,6 +380,8 @@ export async function TodayView({
       planMeals={planMeals}
       hasPreviousDay={!!previousRow}
       isToday={isToday}
+      viewDate={viewDate}
+      canLog={canLogOn(viewDate)}
       dateLabel={dateLabel}
       prevDate={shiftDate(viewDate, -1)}
       nextDate={isToday ? null : shiftDate(viewDate, 1)}

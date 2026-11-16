@@ -84,7 +84,7 @@ export function QaFeed({
     });
   }
 
-  const outOfQuestions = quota !== null && remaining <= 0;
+  const outOfQuestions = quota !== null && !quota.unlimited && remaining <= 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -177,7 +177,9 @@ export function QaFeed({
                 </Button>
               </div>
               <p className="text-xs text-muted">
-                {fillCounts(t(locale, "qa.quota_left"), { n: remaining, total: quota.limit })}
+                {quota.unlimited
+                  ? t(locale, "qa.quota_unlimited")
+                  : fillCounts(t(locale, "qa.quota_left"), { n: remaining, total: quota.limit })}
               </p>
             </>
           )}

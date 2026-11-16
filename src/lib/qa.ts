@@ -13,6 +13,8 @@ export type QaQuota = {
   limit: number;
   used: number;
   remaining: number;
+  /** Admins are not capped (migration 061). `remaining` stays at `limit`. */
+  unlimited?: boolean;
 };
 
 /** Start of the current calendar month, matching the trigger's date_trunc. */
@@ -39,15 +41,18 @@ export async function getQaQuota(
   supabase: SupabaseClient<Database>,
   userId: string,
 ): Promise<QaQuota> {
-  const [limit, { count }] = await Promise.all([
+  const [limit, { count }, { data: profile }] = await Promise.all([
     getQaMonthlyLimit(supabase),
     supabase
       .from("qa_requests")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .gte("created_at", monthStart().toISOString()),
+    supabase.from("profiles").select("is_admin").eq("id", userId).maybeSingle(),
   ]);
 
   const used = count ?? 0;
+  // Admins skip the cap, same as the database trigger (migration 061).
+  if (profile?.is_admin) return { limit, used, remaining: limit, unlimited: true };
   return { limit, used, remaining: Math.max(0, limit - used) };
 }

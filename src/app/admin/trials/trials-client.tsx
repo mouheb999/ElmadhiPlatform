@@ -1,0 +1,256 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { CheckCheck, MessageCircle, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { DayBars } from "@/components/admin/day-bars";
+import { setContacted } from "@/app/actions/admin";
+import { cn } from "@/lib/utils";
+import { DEFAULT_LOCALE, isLocale, t, type Locale, type StringKey } from "@/lib/i18n";
+import { formatPhone, whatsappLink } from "@/lib/phone";
+import type { TrialStatus, TrialSummary } from "@/lib/trials";
+import { Avatar, SectionTitle, StatTile, adminCard } from "@/components/admin/kit";
+
+export type TrialRow = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  userLocale: string | null;
+  createdAt: string | null;
+  status: TrialStatus;
+  daysLeft: number | null;
+  contactedAt: string | null;
+};
+
+/** Order is the order an admin works the list in: who can still be won first. */
+const STATUSES: { key: TrialStatus; label: StringKey; tone: string }[] = [
+  { key: "active", label: "admin.trials_active", tone: "bg-accent/15 text-accent" },
+  { key: "paying", label: "admin.trials_paying", tone: "bg-learn/15 text-learn" },
+  { key: "paid", label: "admin.trials_paid", tone: "bg-protein/15 text-protein" },
+  { key: "ended", label: "admin.trials_ended", tone: "bg-white/10 text-muted" },
+  { key: "blocked", label: "admin.trials_blocked", tone: "bg-danger/15 text-danger" },
+];
+
+/** Which WhatsApp opener fits where the person is. */
+const WA_MESSAGE: Record<TrialStatus, StringKey> = {
+  active: "admin.wa_msg_trial_active",
+  ended: "admin.wa_msg_trial_ended",
+  paying: "admin.wa_msg_active",
+  paid: "admin.wa_msg_active",
+  blocked: "admin.wa_msg_unpaid",
+};
+
+function waLink(row: TrialRow): string | null {
+  const to = isLocale(row.userLocale) ? row.userLocale : DEFAULT_LOCALE;
+  const message = t(to, WA_MESSAGE[row.status]).replace(
+    "{name}",
+    (row.name ?? "").split(" ")[0] || "",
+  );
+  return whatsappLink(row.phone, message);
+}
+
+// Fixed locale and Tunis time: the dates are compared down a column, and the
+// accounts are in Tunisia whatever the admin's laptop thinks.
+const stampFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Africa/Tunis",
+});
+
+function daysLeftLabel(locale: Locale, n: number): string {
+  if (n === 1) return t(locale, "admin.trials_left_1");
+  if (n === 2) return t(locale, "admin.trials_left_2");
+  return t(locale, "admin.trials_left_n").replace("{n}", String(n));
+}
+
+export function TrialsClient({
+  locale,
+  summary,
+  rows,
+}: {
+  locale: Locale;
+  summary: TrialSummary;
+  rows: TrialRow[];
+}) {
+  const [filter, setFilter] = useState<TrialStatus | "all">("all");
+  const [query, setQuery] = useState("");
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
+    return rows.filter((row) => {
+      if (filter !== "all" && row.status !== filter) return false;
+      if (!q) return true;
+      return (
+        (row.name ?? "").toLowerCase().includes(q) ||
+        (row.email ?? "").toLowerCase().includes(q) ||
+        (digits.length >= 3 && (row.phone ?? "").includes(digits))
+      );
+    });
+  }, [rows, filter, query]);
+
+  const periods: { label: StringKey; value: number }[] = [
+    { label: "admin.trials_today", value: summary.started.today },
+    { label: "admin.trials_week", value: summary.started.week },
+    { label: "admin.trials_month", value: summary.started.month },
+    { label: "admin.trials_total", value: summary.started.total },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* The headline: how many trials are being started. */}
+      <section className="flex flex-col gap-3">
+        <SectionTitle>{t(locale, "admin.trials_new_heading")}</SectionTitle>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {periods.map((p, i) => (
+            <StatTile key={p.label} value={p.value} label={t(locale, p.label)} highlight={i === 0} />
+          ))}
+        </div>
+      </section>
+
+      <DailyChart locale={locale} daily={summary.daily} />
+
+      {/* What became of them. Tapping one filters the list below. */}
+      <section className="flex flex-col gap-3">
+        <SectionTitle
+          right={
+            summary.conversionPct !== null ? (
+              <>
+                <span className="text-sm font-extrabold text-ink">{summary.conversionPct}%</span>{" "}
+                {t(locale, "admin.trials_conversion")}
+              </>
+            ) : undefined
+          }
+        >
+          {t(locale, "admin.trials_outcomes")}
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+          {STATUSES.map((s) => (
+            <StatTile
+              key={s.key}
+              value={summary.byStatus[s.key]}
+              label={t(locale, s.label)}
+              selected={filter === s.key}
+              onClick={() => setFilter(filter === s.key ? "all" : s.key)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <div className="relative flex items-center">
+        <Search className="pointer-events-none absolute start-4 h-4 w-4 text-muted" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t(locale, "admin.subs_search")}
+          className="ps-11"
+        />
+      </div>
+
+      {visible.length === 0 ? (
+        <p className={cn(adminCard, "px-4 py-8 text-center text-sm text-muted")}>
+          {t(locale, "admin.trials_none")}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {visible.map((row) => (
+            <TrialCard key={row.id} locale={locale} row={row} />
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-muted">{t(locale, "admin.trials_note")}</p>
+    </div>
+  );
+}
+
+/** New trials per Tunis day, in a card of its own. */
+function DailyChart({ locale, daily }: { locale: Locale; daily: TrialSummary["daily"] }) {
+  if (daily.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-1 rounded-[28px] border border-hairline bg-surface p-5">
+      <h2 className="text-sm font-bold text-muted">{t(locale, "admin.trials_daily")}</h2>
+      <DayBars
+        daily={daily}
+        caption={t(locale, "admin.trials_daily")}
+        valueTemplate={t(locale, "admin.trials_bar")}
+      />
+    </section>
+  );
+}
+
+function TrialCard({ locale, row }: { locale: Locale; row: TrialRow }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  const status = STATUSES.find((s) => s.key === row.status)!;
+  const link = waLink(row);
+
+  return (
+    <div className={cn(adminCard, "flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4")}>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <Avatar name={row.name ?? row.email} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-bold">
+          {row.name ?? row.email ?? (row.phone ? formatPhone(row.phone) : row.id.slice(0, 8))}
+        </div>
+        {row.email && row.name && (
+          <div className="truncate text-xs text-muted" dir="ltr">
+            {row.email}
+          </div>
+        )}
+        {row.phone && (
+          <div className="truncate text-xs text-muted" dir="ltr">
+            {formatPhone(row.phone)}
+          </div>
+        )}
+      </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
+        <div className="text-end">
+          <div className="whitespace-nowrap text-sm tabular-nums" dir="ltr">
+            {row.createdAt ? stampFmt.format(new Date(row.createdAt)) : "—"}
+          </div>
+          <div className="text-[11px] text-muted">
+            {row.status === "active" && row.daysLeft !== null
+              ? daysLeftLabel(locale, row.daysLeft)
+              : t(locale, "admin.trials_signed_up")}
+          </div>
+        </div>
+
+        <span className={cn("shrink-0 rounded-full px-3 py-1 text-[11px] font-bold", status.tone)}>
+          {t(locale, status.label)}
+        </span>
+
+        {link && (
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={row.contactedAt ? t(locale, "admin.contacted") : t(locale, "admin.not_contacted")}
+            aria-label={row.contactedAt ? t(locale, "admin.contacted") : t(locale, "admin.wa_confirm")}
+            // Marked as the link opens, same as the subscriptions list.
+            onClick={() => {
+              if (!row.contactedAt) {
+                startTransition(async () => {
+                  await setContacted(row.id, true);
+                  router.refresh();
+                });
+              }
+            }}
+            className={cn(
+              "press grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors",
+              row.contactedAt ? "bg-surface2 text-muted" : "bg-accent/15 text-accent",
+            )}
+          >
+            {row.contactedAt ? <CheckCheck className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}

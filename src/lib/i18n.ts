@@ -894,6 +894,10 @@ const STRINGS = {
     en: "{remaining} of {total} left this month",
     tn: "بقي لك {remaining} من {total} هذا الشهر",
   },
+  "redo.unlimited": {
+    en: "Unlimited rebuilds (admin)",
+    tn: "تبديل بلا حدود (مسؤول)",
+  },
   "redo.none_left": {
     en: "No rebuilds left this month — you can redo it next month.",
     tn: "لم يبقَ لك تبديل هذا الشهر — يمكنك الإعادة الشهر القادم.",
@@ -1065,6 +1069,10 @@ const STRINGS = {
   "qa.quota_left": {
     en: "{n} of {total} questions left this month",
     tn: "بقي {n} من {total} أسئلة هذا الشهر",
+  },
+  "qa.quota_unlimited": {
+    en: "Unlimited questions (admin)",
+    tn: "أسئلة بلا حدود (مسؤول)",
   },
   "qa.quota_none": {
     en: "You've used your {total} questions for this month. The counter resets on the 1st.",
@@ -1369,6 +1377,15 @@ const STRINGS = {
 
   // ---- food diary ----
   "diary.today_target": { en: "Today", tn: "اليوم" },
+  "diary.past_day": {
+    en: "You're filling in a past day.",
+    tn: "راك تعمّر في نهار فات.",
+  },
+  "diary.past_locked": {
+    en: "This day is too old to change.",
+    tn: "هذا النهار قديم برشا باش يتبدّل.",
+  },
+  "diary.go_today": { en: "Back to today", tn: "ارجع لليوم" },
   "diary.no_target": {
     en: "Set up your diet first to get daily targets.",
     tn: "اضبط نظامك الغذائي أولاً لتحصل على أهداف يومية.",
@@ -1779,6 +1796,99 @@ const STRINGS = {
   },
 
   // ---- admin: user records ----
+  // ---- admin: payments ----
+  "admin.pay_waiting_sum": { en: "{n} waiting · {amount} DT", tn: "{n} يستنّاو · {amount} د.ت" },
+  "admin.pay_clear_sub": { en: "No payments waiting.", tn: "ما فماش دفعات تستنّى." },
+  "admin.pay_tab_setup": { en: "Prices & methods", tn: "الأسعار والطرق" },
+  "admin.pay_f_receipt": { en: "With receipt", tn: "معاها وصل" },
+  "admin.pay_f_none": { en: "No receipt", tn: "بلا وصل" },
+  "admin.pay_reject_confirm": { en: "Tap again", tn: "عاود انزل" },
+
+  // ---- admin: overview ----
+  "admin.nav_overview": { en: "Overview", tn: "الرئيسية" },
+  "admin.nav_more": { en: "More", tn: "المزيد" },
+  "admin.ov_hi_morning": { en: "Good morning", tn: "صباح الخير" },
+  "admin.ov_hi_afternoon": { en: "Good afternoon", tn: "نهارك زين" },
+  "admin.ov_hi_evening": { en: "Good evening", tn: "مساء الخير" },
+  "admin.ov_revenue": { en: "Revenue this month", tn: "مداخيل هذا الشهر" },
+  "admin.ov_revenue_daily": { en: "Revenue per day", tn: "المداخيل كل يوم" },
+  "admin.ov_vs_last": {
+    en: "Change compared with the same days of last month.",
+    tn: "الفرق مقارنة بنفس الأيام من الشهر اللي فات.",
+  },
+  "admin.ov_today": { en: "Today", tn: "اليوم" },
+  "admin.ov_payments_n": { en: "Payments", tn: "دفعات" },
+  "admin.ov_last_month": { en: "Last month", tn: "الشهر اللي فات" },
+  "admin.ov_dt": { en: "{n} DT", tn: "{n} د.ت" },
+  "admin.ov_queue": { en: "Needs you", tn: "يستنّى فيك" },
+  "admin.ov_queue_n": { en: "{n} open", tn: "{n} مفتوح" },
+  "admin.ov_q_payments": { en: "Payments to confirm", tn: "دفعات للتأكيد" },
+  "admin.ov_q_tickets": { en: "Open reports", tn: "تبليغات مفتوحة" },
+  "admin.ov_q_questions": { en: "Questions to answer", tn: "أسئلة للإجابة" },
+  "admin.ov_q_trials": { en: "Trials ending today", tn: "تجارب توفى اليوم" },
+  "admin.ov_q_expiring": { en: "Subscriptions expiring soon", tn: "اشتراكات قريب توفى" },
+  "admin.ov_wait_hours": { en: "oldest waiting {n}h", tn: "الأقدم يستنّى {n} س" },
+  "admin.ov_wait_days": { en: "oldest waiting {n} days", tn: "الأقدم يستنّى {n} يوم" },
+  "admin.ov_clear_title": { en: "All caught up", tn: "كل شي مريقل" },
+  "admin.ov_clear_sub": { en: "Nothing is waiting on you right now.", tn: "ما فما شي يستنّى فيك توّا." },
+  "admin.ov_k_subs": { en: "Active subscribers", tn: "مشتركين مفعّلين" },
+  "admin.ov_k_in_trial": { en: "In free trial now", tn: "في التجربة توّا" },
+  "admin.ov_k_trials7": { en: "New trials · 7 days", tn: "تجارب جديدة · 7 أيام" },
+  "admin.ov_k_signups7": { en: "New accounts · 7 days", tn: "حسابات جديدة · 7 أيام" },
+  "admin.ov_recent": { en: "Latest payments", tn: "آخر الدفعات" },
+  "admin.ov_recent_none": { en: "No confirmed payments yet.", tn: "ما فماش دفعات مأكّدة بعد." },
+
+  // ---- admin: free trials ----
+  "admin.nav_trials": { en: "Free trials", tn: "التجارب المجانية" },
+  "admin.trials_title": { en: "Free trials", tn: "التجارب المجانية" },
+  "admin.trials_sub": {
+    en: "How many free trials are being started, and how many turn into payments.",
+    tn: "قدّاش من تجربة مجانية تبدات، وقدّاش منهم ولّاو دفع.",
+  },
+  "admin.trials_new_heading": { en: "New free trials", tn: "تجارب مجانية جديدة" },
+  "admin.trials_today": { en: "Today", tn: "اليوم" },
+  "admin.trials_week": { en: "Last 7 days", tn: "آخر 7 أيام" },
+  "admin.trials_month": { en: "Last 30 days", tn: "آخر 30 يوم" },
+  "admin.trials_total": { en: "All time", tn: "المجموع" },
+  "admin.trials_daily": { en: "New trials per day", tn: "تجارب جديدة كل يوم" },
+  "admin.trials_bar": { en: "{n} new", tn: "{n} جديد" },
+  "admin.trials_outcomes": { en: "What happened to them", tn: "شنوّة صار بيهم" },
+  "admin.trials_conversion": { en: "of trials paid", tn: "من التجارب دفعوا" },
+  "admin.trials_active": { en: "In trial", tn: "في التجربة" },
+  "admin.trials_paying": { en: "Payment sent", tn: "بعث الدفع" },
+  "admin.trials_paid": { en: "Paid", tn: "دفع" },
+  "admin.trials_ended": { en: "Ended, not paid", tn: "وفات، ما دفعش" },
+  "admin.trials_blocked": { en: "Repeat device", tn: "جهاز مكرّر" },
+  "admin.trials_left_1": { en: "1 day left", tn: "باقي يوم" },
+  "admin.trials_left_2": { en: "2 days left", tn: "باقي يومين" },
+  "admin.trials_left_n": { en: "{n} days left", tn: "باقي {n} أيام" },
+  "admin.trials_signed_up": { en: "Signed up", tn: "سجّل" },
+  "admin.trials_none": { en: "No free trials here yet.", tn: "ما فماش تجارب مجانية هنا بعد." },
+  "admin.trials_note": {
+    en:
+      "A trial is counted on the day the account signed up (Tunis time). " +
+      "\"Repeat device\" accounts signed up on a phone that already had a trial, so they got no free days and are not counted as trials.",
+    tn:
+      "التجربة تتحسب في النهار اللي تسجّل فيه الحساب (بتوقيت تونس). " +
+      "حسابات \"جهاز مكرّر\" تسجّلت من تليفون خذا تجربة قبل، ما خذاوش أيام مجانية وما يتحسبوش تجارب.",
+  },
+  "admin.wa_msg_trial_active": {
+    en:
+      "Hi {name}, this is HYPE FITNESS. How are your free days going? " +
+      "If anything is unclear or you need help with your plan, just reply here.",
+    tn:
+      "أهلاً {name}، هذا HYPE FITNESS. كيفاش ماشية الأيام المجانية؟ " +
+      "كان فما حاجة موش واضحة ولا تحب معاونة في البرنامج، جاوبنا هنا.",
+  },
+  "admin.wa_msg_trial_ended": {
+    en:
+      "Hi {name}, this is HYPE FITNESS. Your free days have ended — " +
+      "subscribe and you keep your plan and everything you logged.",
+    tn:
+      "أهلاً {name}، هذا HYPE FITNESS. الأيام المجانية متاعك وفات — " +
+      "اشترك وتبقى عندك البرنامج وكل شي سجّلتو.",
+  },
+
   "admin.nav_users": { en: "Users", tn: "المستخدمون" },
   "admin.users_title": { en: "User records", tn: "سجلات المستخدمين" },
   "admin.users_sub": {

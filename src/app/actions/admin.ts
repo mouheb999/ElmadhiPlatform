@@ -50,7 +50,7 @@ export async function updatePaymentSettings(
   if (error) return fail(error.message);
 
   revalidatePath("/checkout");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -97,7 +97,7 @@ export async function updatePaymentMethod(
   if (error) return fail(error.message);
 
   revalidatePath("/checkout");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -128,7 +128,7 @@ export async function markPaymentsSeen(): Promise<ActionResult> {
     .is("admin_seen_at", null);
   if (error) return fail(error.message);
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -176,7 +176,7 @@ export async function replyToPaymentThread(
     .eq("id", ticketId);
   if (ticketError) return fail(ticketError.message);
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath("/checkout");
   return ok(undefined);
 }
@@ -308,7 +308,7 @@ export async function activateRequest(requestId: string): Promise<ActionResult> 
     }),
   );
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -334,7 +334,7 @@ export async function updatePlanPrice(
   if (error) return fail(error.message);
 
   revalidatePath("/checkout");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -414,7 +414,7 @@ export async function rejectRequest(requestId: string): Promise<ActionResult> {
     }
   }
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath("/checkout");
   return ok(undefined);
 }
@@ -449,7 +449,7 @@ export async function setContacted(
     .eq("id", userId);
   if (error) return fail(error.message);
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/subscriptions");
   return ok(undefined);
 }

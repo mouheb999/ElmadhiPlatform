@@ -30,12 +30,13 @@ export default async function AdminLayout({
   return (
     <main
       dir={dir(locale)}
-      className="container-page flex flex-col gap-8 pb-[calc(2.5rem+env(safe-area-inset-bottom))] pt-[calc(2.5rem+env(safe-area-inset-top))]"
+      // The bottom padding on a phone clears the fixed tab bar (see AdminNav).
+      className="container-page flex flex-col gap-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+env(safe-area-inset-top))] md:gap-8 md:pb-[calc(2.5rem+env(safe-area-inset-bottom))] md:pt-[calc(2.5rem+env(safe-area-inset-top))]"
     >
       {/* items-start is load-bearing: stacked, the cross axis is horizontal, and a
           stretched flex item would pull the logo to full width and distort it. */}
-      <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Logo />
+      <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
+        <Logo className="h-8 md:h-10" />
         <AdminNav locale={locale} pendingPayments={unseenPayments ?? 0} />
       </div>
       {children}

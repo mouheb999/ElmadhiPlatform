@@ -6,6 +6,7 @@ import { pick } from "@/lib/i18n";
 import { QaRequestsClient, type TriageRequest, type TriageCategory } from "./qa-requests-client";
 import { QaQuotaClient, type QuotaRow } from "./qa-quota-client";
 import { QaLibraryClient, type LibraryCard } from "./qa-library-client";
+import { AdminHeader } from "@/components/admin/kit";
 
 export const dynamic = "force-dynamic";
 
@@ -112,18 +113,15 @@ export default async function AdminQaPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "admin.qa_title")}</h1>
-        <p className="text-muted">{t(locale, "admin.qa_sub")}</p>
-      </div>
+      <AdminHeader title={t(locale, "admin.qa_title")} sub={t(locale, "admin.qa_sub")} />
+      <QaRequestsClient locale={locale} requests={requests} categories={triageCategories} />
+      <QaLibraryClient locale={locale} cards={libraryCards} />
       <QaQuotaClient
         locale={locale}
         limit={settings?.monthly_question_limit ?? QA_DEFAULT_MONTHLY_LIMIT}
         rows={quotaRows}
         monthLabel={monthLabel}
       />
-      <QaRequestsClient locale={locale} requests={requests} categories={triageCategories} />
-      <QaLibraryClient locale={locale} cards={libraryCards} />
     </div>
   );
 }

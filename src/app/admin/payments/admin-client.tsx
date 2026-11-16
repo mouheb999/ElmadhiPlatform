@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send } from "lucide-react";
+import { Check, CheckCheck, CheckCircle2, ImageOff, MessageCircle, Search, Send } from "lucide-react";
 import {
   updatePaymentSettings,
   updatePaymentMethod,
@@ -18,10 +18,21 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AdminHeader,
+  Avatar,
+  EmptyState,
+  ErrorNote,
+  FilterChip,
+  SectionTitle,
+  Segmented,
+  adminCard,
+  adminTextarea,
+} from "@/components/admin/kit";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DEFAULT_LOCALE, type Locale, isLocale, pick, t } from "@/lib/i18n";
-import { formatPhone, whatsappLink } from "@/lib/phone";
+import { contactEmail, formatPhone, whatsappLink } from "@/lib/phone";
 import type { Database } from "@/types/db";
 
 type Settings = Database["public"]["Tables"]["payment_settings"]["Row"];
@@ -55,22 +66,58 @@ type Props = {
   plans: Plan[];
 };
 
-const fieldClass =
-  "min-h-24 w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+const fieldClass = adminTextarea;
+
+type View = "queue" | "setup";
+type ReceiptFilter = "all" | "receipt" | "none";
+
+/** 1769 → "1,769". Western digits in both languages. */
+function money(n: number): string {
+  return Math.round(n).toLocaleString("en-US");
+}
 
 export function AdminClient({ locale, settings, methods, requests, plans }: Props) {
-  return (
-    <div className="flex flex-col gap-8">
-      <RequestsCard locale={locale} requests={requests} />
-      <PlansCard locale={locale} plans={plans} />
-      <SettingsCard locale={locale} settings={settings} />
+  // The queue is the daily job; prices and bank details change a few times a
+  // year. They used to share one long scroll, which put four forms between an
+  // admin and the bottom of the queue.
+  const [view, setView] = useState<View>("queue");
+  const total = requests.reduce((sum, r) => sum + (Number(r.amount_tnd) || 0), 0);
 
-      <div className="flex flex-col gap-4">
-        <h2 className="text-lg font-extrabold">{t(locale, "admin.methods")}</h2>
-        {methods.map((m) => (
-          <MethodCard key={m.id} locale={locale} method={m} />
-        ))}
-      </div>
+  return (
+    <div className="flex flex-col gap-5">
+      <AdminHeader
+        title={t(locale, "admin.nav_payments")}
+        sub={
+          requests.length > 0
+            ? t(locale, "admin.pay_waiting_sum")
+                .replace("{n}", String(requests.length))
+                .replace("{amount}", money(total))
+            : t(locale, "admin.pay_clear_sub")
+        }
+      />
+      <Segmented
+        value={view}
+        onChange={setView}
+        options={[
+          { value: "queue", label: t(locale, "admin.requests"), count: requests.length },
+          { value: "setup", label: t(locale, "admin.pay_tab_setup") },
+        ]}
+      />
+
+      {view === "queue" ? (
+        <RequestsQueue locale={locale} requests={requests} />
+      ) : (
+        <div className="flex flex-col gap-6">
+          <PlansCard locale={locale} plans={plans} />
+          <SettingsCard locale={locale} settings={settings} />
+          <div className="flex flex-col gap-3">
+            <SectionTitle>{t(locale, "admin.methods")}</SectionTitle>
+            {methods.map((m) => (
+              <MethodCard key={m.id} locale={locale} method={m} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -95,16 +142,22 @@ function waLink(r: Request): string | null {
   return whatsappLink(r.phone, message);
 }
 
-function RequestsCard({
-  locale,
-  requests,
-}: {
-  locale: Locale;
-  requests: Request[];
-}) {
+const stampFmt = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "Africa/Tunis",
+});
+
+function RequestsQueue({ locale, requests }: { locale: Locale; requests: Request[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ReceiptFilter>("all");
+  const [query, setQuery] = useState("");
+  /** The request whose Reject has been tapped once and is waiting for the second. */
+  const [rejecting, setRejecting] = useState<string | null>(null);
 
   // The queue is on screen, so the nav badge has done its job. Done here rather
   // than in the page's render body: a write during render re-runs on every
@@ -120,158 +173,217 @@ function RequestsCard({
     setError(null);
     startTransition(async () => {
       const res = await fn();
+      setRejecting(null);
       if (!res.ok) setError(res.error ?? t(locale, "common.error"));
       else router.refresh();
     });
   }
 
+  const withReceipt = requests.filter((r) => r.proofUrl).length;
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
+    return requests.filter((r) => {
+      if (filter === "receipt" && !r.proofUrl) return false;
+      if (filter === "none" && r.proofUrl) return false;
+      if (!q) return true;
+      return (
+        (r.fullName ?? "").toLowerCase().includes(q) ||
+        (r.email ?? "").toLowerCase().includes(q) ||
+        (digits.length >= 3 && (r.phone ?? "").includes(digits))
+      );
+    });
+  }, [requests, filter, query]);
+
+  if (requests.length === 0) {
+    return (
+      <EmptyState
+        positive
+        icon={CheckCircle2}
+        title={t(locale, "admin.ov_clear_title")}
+        sub={t(locale, "admin.no_requests")}
+      />
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t(locale, "admin.requests")}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {error && (
-          <p className="text-sm text-red-500" role="alert">
-            {error}
-          </p>
-        )}
-        {requests.length === 0 && (
-          <p className="text-sm text-muted">{t(locale, "admin.no_requests")}</p>
-        )}
-        {requests.map((r) => (
-          <div
-            key={r.id}
-            className="flex flex-col gap-3 rounded-2xl border border-hairline p-3 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div className="min-w-0">
-              <p className="flex items-center gap-2 truncate font-bold text-ink">
-                {r.fullName ?? r.email ?? r.user_id}
-                {r.isNew && (
-                  <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-bg">
-                    {t(locale, "admin.pay_unread")}
-                  </span>
-                )}
-                <WaitingFor locale={locale} hours={r.waitingHours} />
-              </p>
-              <p className="truncate text-sm text-muted">
-                {r.email ?? r.user_id}
-              </p>
-              <p className="text-sm text-muted">
-                {r.plan_tier && r.plan_months
-                  ? `${r.plan_tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")} · ${r.plan_months} ${t(locale, "admin.months_short")} · `
-                  : ""}
-                {r.method_key} · {r.amount_tnd} DT ·{" "}
-                {r.created_at
-                  ? new Date(r.created_at).toLocaleString()
-                  : ""}
-              </p>
+    <div className="flex flex-col gap-3">
+      {/* A receipt is what makes a request actionable, so that split comes first. */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
+        <FilterChip selected={filter === "all"} onClick={() => setFilter("all")} count={requests.length}>
+          {t(locale, "admin.contact_all")}
+        </FilterChip>
+        <FilterChip selected={filter === "receipt"} onClick={() => setFilter("receipt")} count={withReceipt}>
+          {t(locale, "admin.pay_f_receipt")}
+        </FilterChip>
+        <FilterChip
+          selected={filter === "none"}
+          onClick={() => setFilter("none")}
+          count={requests.length - withReceipt}
+        >
+          {t(locale, "admin.pay_f_none")}
+        </FilterChip>
+      </div>
 
-              {/* The receipt, inline. Confirming a manual transfer has always
-                  meant looking at one of these; it just used to mean finding it
-                  in a WhatsApp thread and matching it to a row by hand. */}
-              <div className="mt-2">
-                {r.proofUrl ? (
-                  <a
-                    href={r.proofUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block"
-                    title={t(locale, "admin.proof_open")}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={r.proofUrl}
-                      alt={t(locale, "admin.proof")}
-                      className="max-h-40 rounded-xl border border-hairline bg-black/40 object-contain transition-opacity hover:opacity-80"
-                    />
-                  </a>
-                ) : (
-                  <p className="text-xs font-semibold text-amber-500">
-                    {t(locale, "admin.proof_none")}
-                  </p>
-                )}
-                {r.proof_note && (
-                  <p className="mt-1 max-w-md text-xs text-muted">
-                    <span className="font-bold">{t(locale, "admin.proof_note")}:</span>{" "}
-                    {r.proof_note}
-                  </p>
-                )}
-              </div>
-              <p className="text-sm" dir="ltr">
-                {r.phone ? (
-                  <span className="text-ink">{formatPhone(r.phone)}</span>
-                ) : (
-                  <span className="text-muted">
-                    {t(locale, "admin.no_phone")}
-                  </span>
-                )}
-              </p>
+      <div className="relative flex items-center">
+        <Search className="pointer-events-none absolute start-4 h-4 w-4 text-muted" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t(locale, "admin.subs_search")}
+          className="ps-11"
+        />
+      </div>
 
-              {/* Answering in place. The WhatsApp button beside it is still the
-                  right tool for chasing somebody who has gone quiet; this is for
-                  the far commoner case of one question about one transfer. */}
-              {r.thread && <PaymentThread locale={locale} thread={r.thread} />}
-            </div>
-            <div className="flex shrink-0 gap-2">
-              {waLink(r) && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  asChild
-                  className={cn(
-                    r.contactedAt
-                      ? "border-hairline text-muted"
-                      : "border-accent text-accent",
+      {error && <ErrorNote>{error}</ErrorNote>}
+
+      {visible.length === 0 && (
+        <p className={cn(adminCard, "px-4 py-8 text-center text-sm text-muted")}>
+          {t(locale, "admin.subs_none")}
+        </p>
+      )}
+
+      {visible.map((r) => {
+        const name = r.fullName ?? contactEmail(r.email) ?? (r.phone ? formatPhone(r.phone) : r.user_id.slice(0, 8));
+        const email = contactEmail(r.email);
+        const link = waLink(r);
+        const plan =
+          r.plan_tier && r.plan_months
+            ? `${r.plan_tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")} · ${r.plan_months} ${t(locale, "admin.months_short")}`
+            : null;
+        return (
+          <article key={r.id} className={cn(adminCard, "flex flex-col gap-4 p-4")}>
+            <div className="flex items-start gap-3">
+              <Avatar name={r.fullName ?? email} />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-2">
+                  <span className="truncate font-bold">{name}</span>
+                  {r.isNew && (
+                    <span className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase text-bg">
+                      {t(locale, "admin.pay_unread")}
+                    </span>
                   )}
-                >
-                  <a
-                    href={waLink(r)!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title={
-                      r.contactedAt
-                        ? `${t(locale, "admin.contacted")} · ${new Date(r.contactedAt).toLocaleString()}`
-                        : undefined
-                    }
-                    // Mark as the link opens: the admin is already doing the
-                    // thing, so asking for a second click to record it is how
-                    // the list ends up lying.
-                    onClick={() => {
-                      if (!r.contactedAt) {
-                        startTransition(async () => {
-                          await setContacted(r.user_id, true);
-                          router.refresh();
-                        });
-                      }
-                    }}
-                  >
-                    {r.contactedAt
-                      ? `✓ ${t(locale, "admin.wa_confirm")}`
-                      : t(locale, "admin.wa_confirm")}
-                  </a>
-                </Button>
+                </p>
+                <p className="truncate text-xs text-muted">
+                  {[plan, r.method_key].filter(Boolean).join(" · ")}
+                </p>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                  <WaitingFor locale={locale} hours={r.waitingHours} />
+                  <span className="tabular-nums" dir="ltr">
+                    {r.created_at ? stampFmt.format(new Date(r.created_at)) : ""}
+                  </span>
+                </p>
+              </div>
+              <p className="shrink-0 text-end" dir="ltr">
+                <span className="font-num text-2xl font-extrabold tabular-nums">{money(Number(r.amount_tnd) || 0)}</span>{" "}
+                <span className="text-xs font-bold text-muted">DT</span>
+              </p>
+            </div>
+
+            {/* The receipt, inline. Confirming a manual transfer has always
+                meant looking at one of these; it just used to mean finding it
+                in a WhatsApp thread and matching it to a row by hand. */}
+            {r.proofUrl ? (
+              <a
+                href={r.proofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t(locale, "admin.proof_open")}
+                className="press block overflow-hidden rounded-2xl bg-black"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={r.proofUrl}
+                  alt={t(locale, "admin.proof")}
+                  loading="lazy"
+                  className="mx-auto max-h-56 w-auto object-contain"
+                />
+              </a>
+            ) : (
+              <p className="flex items-center gap-2 rounded-2xl bg-learn/10 px-3 py-2.5 text-xs font-bold text-learn">
+                <ImageOff className="h-4 w-4 shrink-0" />
+                {t(locale, "admin.proof_none")}
+              </p>
+            )}
+            {r.proof_note && (
+              <p className="rounded-2xl bg-surface2 px-3 py-2.5 text-sm">
+                <span className="block text-[11px] font-bold text-muted">{t(locale, "admin.proof_note")}</span>
+                {r.proof_note}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-0.5 text-sm" dir="ltr">
+              {r.phone ? (
+                <span className="font-semibold tabular-nums">{formatPhone(r.phone)}</span>
+              ) : (
+                <span className="text-muted">{t(locale, "admin.no_phone")}</span>
               )}
+              {email && <span className="truncate text-xs text-muted">{email}</span>}
+            </div>
+
+            {/* Answering in place. The WhatsApp button below is still the right
+                tool for chasing somebody who has gone quiet; this is for the
+                far commoner case of one question about one transfer. */}
+            {r.thread && <PaymentThread locale={locale} thread={r.thread} />}
+
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
+                className="h-12 flex-1"
                 disabled={isPending}
                 onClick={() => act(() => activateRequest(r.id))}
               >
+                <Check />
                 {t(locale, "admin.activate")}
               </Button>
+              {/* Rejecting takes the customer's access back, so it asks twice. */}
               <Button
                 size="sm"
                 variant="secondary"
+                className={cn("h-12", rejecting === r.id && "bg-danger/20 text-danger hover:bg-danger/25")}
                 disabled={isPending}
-                onClick={() => act(() => rejectRequest(r.id))}
+                onClick={() =>
+                  rejecting === r.id ? act(() => rejectRequest(r.id)) : setRejecting(r.id)
+                }
+                onBlur={() => setRejecting((id) => (id === r.id ? null : id))}
               >
-                {t(locale, "admin.reject")}
+                {rejecting === r.id ? t(locale, "admin.pay_reject_confirm") : t(locale, "admin.reject")}
               </Button>
+              {link && (
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={t(locale, "admin.wa_confirm")}
+                  title={
+                    r.contactedAt
+                      ? `${t(locale, "admin.contacted")} · ${stampFmt.format(new Date(r.contactedAt))}`
+                      : t(locale, "admin.wa_confirm")
+                  }
+                  // Mark as the link opens: the admin is already doing the
+                  // thing, so asking for a second click to record it is how
+                  // the list ends up lying.
+                  onClick={() => {
+                    if (!r.contactedAt) {
+                      startTransition(async () => {
+                        await setContacted(r.user_id, true);
+                        router.refresh();
+                      });
+                    }
+                  }}
+                  className={cn(
+                    "press grid h-12 w-12 shrink-0 place-items-center rounded-full",
+                    r.contactedAt ? "bg-surface2 text-muted" : "bg-accent/15 text-accent",
+                  )}
+                >
+                  {r.contactedAt ? <CheckCheck className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+                </a>
+              )}
             </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
@@ -310,7 +422,7 @@ function PaymentThread({
   }
 
   return (
-    <div className="mt-3 flex max-w-md flex-col gap-2 rounded-2xl border border-hairline bg-surface p-3">
+    <div className="flex flex-col gap-2 rounded-2xl bg-surface2 p-3">
       <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
         {t(locale, "admin.pay_thread")}
       </p>
@@ -325,8 +437,8 @@ function PaymentThread({
               className={cn(
                 "max-w-[85%] rounded-xl px-2.5 py-1.5 text-sm",
                 message.sender === "admin"
-                  ? "self-end bg-accent/10"
-                  : "self-start bg-white/5",
+                  ? "self-end bg-accent/15"
+                  : "self-start bg-white/[0.07]",
               )}
             >
               <span className="block text-[10px] font-bold uppercase tracking-wide text-muted">
@@ -339,7 +451,7 @@ function PaymentThread({
       )}
 
       {error && (
-        <p className="text-xs text-red-500" role="alert">
+        <p className="text-xs font-semibold text-danger" role="alert">
           {error}
         </p>
       )}
@@ -351,7 +463,7 @@ function PaymentThread({
           rows={2}
           maxLength={2000}
           placeholder={t(locale, "admin.pay_reply_ph")}
-          className="w-full flex-1 resize-none rounded-xl border border-hairline bg-bg px-3 py-2 text-sm text-ink outline-none placeholder:text-muted/60 focus:border-accent/60"
+          className="w-full flex-1 resize-none rounded-xl border-0 bg-bg px-3 py-2 text-base text-ink outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-accent/60"
         />
         <Button
           size="icon"
@@ -391,20 +503,20 @@ function PlansCard({ locale, plans }: { locale: Locale; plans: Plan[] }) {
   }
 
   return (
-    <Card>
+    <Card className="border border-hairline">
       <CardHeader>
         <CardTitle>{t(locale, "admin.plans_title")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {error && (
-          <p className="text-sm text-red-500" role="alert">
+          <p className="text-sm font-semibold text-danger" role="alert">
             {error}
           </p>
         )}
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className="flex items-center justify-between gap-3 rounded-2xl border border-hairline p-3"
+            className="flex items-center justify-between gap-3 rounded-2xl bg-surface2 p-3"
           >
             <span className="text-sm font-bold">
               {plan.tier === "premium" ? t(locale, "plans.premium") : t(locale, "plans.standard")} ·{" "}
@@ -416,10 +528,10 @@ function PlansCard({ locale, plans }: { locale: Locale; plans: Plan[] }) {
                 inputMode="decimal"
                 value={prices[plan.id] ?? ""}
                 onChange={(e) => setPrices((prev) => ({ ...prev, [plan.id]: e.target.value }))}
-                className="h-10 w-24 text-center text-sm"
+                className="h-10 w-20 bg-bg text-center text-base"
               />
               <span className="text-xs text-muted">DT</span>
-              <Button size="sm" variant="secondary" disabled={isPending} onClick={() => save(plan)}>
+              <Button size="sm" variant="secondary" className="bg-white/10" disabled={isPending} onClick={() => save(plan)}>
                 {savedId === plan.id ? "✓" : t(locale, "admin.save")}
               </Button>
             </div>
@@ -462,7 +574,7 @@ function SettingsCard({
   }
 
   return (
-    <Card>
+    <Card className="border border-hairline [&_input]:bg-surface2">
       <CardHeader>
         <CardTitle>{t(locale, "admin.settings")}</CardTitle>
       </CardHeader>
@@ -546,7 +658,7 @@ function SettingsCard({
           {status && (
             <span
               role={status.ok ? "status" : "alert"}
-              className={status.ok ? "text-sm text-muted" : "text-sm font-bold text-red-500"}
+              className={status.ok ? "text-sm text-muted" : "text-sm font-bold text-danger"}
             >
               {status.text}
             </span>
@@ -586,7 +698,7 @@ function MethodCard({ locale, method }: { locale: Locale; method: Method }) {
   }
 
   return (
-    <Card>
+    <Card className="border border-hairline [&_input]:bg-surface2">
       <CardHeader>
         <CardTitle className="flex items-center justify-between gap-3">
           <span>{pick(locale, method.label_en, method.label_ar)}</span>
@@ -680,7 +792,7 @@ function MethodCard({ locale, method }: { locale: Locale; method: Method }) {
           {status && (
             <span
               role={status.ok ? "status" : "alert"}
-              className={status.ok ? "text-sm text-muted" : "text-sm font-bold text-red-500"}
+              className={status.ok ? "text-sm text-muted" : "text-sm font-bold text-danger"}
             >
               {status.text}
             </span>
@@ -733,12 +845,12 @@ function WaitingFor({ locale, hours }: { locale: Locale; hours: number | null })
   return (
     <span
       className={cn(
-        "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold",
+        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold",
         hours >= 12
-          ? "border-red-500/50 text-red-400"
+          ? "bg-danger/15 text-danger"
           : hours >= 2
-            ? "border-amber-500/50 text-amber-400"
-            : "border-hairline text-muted",
+            ? "bg-learn/15 text-learn"
+            : "bg-white/10 text-muted",
       )}
     >
       {label}

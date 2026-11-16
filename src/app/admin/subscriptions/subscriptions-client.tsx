@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar, FilterChip, StatTile, adminCard } from "@/components/admin/kit";
 import { deleteAccount, endSubscription } from "@/app/actions/subscriptions";
 import { setContacted } from "@/app/actions/admin";
 import { cn } from "@/lib/utils";
@@ -41,10 +42,10 @@ const STANDINGS: {
   /** Chip + row accent. Expiring is amber because it is a to-do, not a fault. */
   tone: string;
 }[] = [
-  { key: "expiring", label: "admin.subs_expiring", tone: "border-amber-500/40 bg-amber-500/10 text-amber-300" },
-  { key: "active", label: "admin.subs_active", tone: "border-accent/40 bg-accent/10 text-accent" },
-  { key: "expired", label: "admin.subs_expired", tone: "border-red-500/40 bg-red-500/10 text-red-400" },
-  { key: "unpaid", label: "admin.subs_unpaid", tone: "border-hairline bg-white/5 text-muted" },
+  { key: "expiring", label: "admin.subs_expiring", tone: "bg-learn/15 text-learn" },
+  { key: "active", label: "admin.subs_active", tone: "bg-accent/15 text-accent" },
+  { key: "expired", label: "admin.subs_expired", tone: "bg-danger/15 text-danger" },
+  { key: "unpaid", label: "admin.subs_unpaid", tone: "bg-white/10 text-muted" },
 ];
 
 function formatDate(value: string | null) {
@@ -142,26 +143,15 @@ export function SubscriptionsClient({
     <div className="flex flex-col gap-4">
       {/* The headline numbers. Tapping one filters the list below it. */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {STANDINGS.map((standing) => {
-          const selected = filter === standing.key;
-          return (
-            <button
-              key={standing.key}
-              type="button"
-              onClick={() => setFilter(selected ? "all" : standing.key)}
-              aria-pressed={selected}
-              className={cn(
-                "rounded-2xl border px-3 py-3 text-start transition-colors",
-                selected ? standing.tone : "border-hairline bg-surface hover:border-white/20",
-              )}
-            >
-              <div className="text-2xl font-extrabold tabular-nums">
-                {counts[standing.key]}
-              </div>
-              <div className="text-xs font-bold text-muted">{t(locale, standing.label)}</div>
-            </button>
-          );
-        })}
+        {STANDINGS.map((standing) => (
+          <StatTile
+            key={standing.key}
+            value={counts[standing.key]}
+            label={t(locale, standing.label)}
+            selected={filter === standing.key}
+            onClick={() => setFilter(filter === standing.key ? "all" : standing.key)}
+          />
+        ))}
       </div>
 
       {/* Who still needs a message. Only people with a number are counted. */}
@@ -172,28 +162,16 @@ export function SubscriptionsClient({
             ["contacted", "admin.contacted"],
             ["all", "admin.contact_all"],
           ] as const
-        ).map(([key, label]) => {
-          const selected = contact === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setContact(key)}
-              aria-pressed={selected}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-xs font-bold transition-colors",
-                selected
-                  ? "border-accent/40 bg-accent/10 text-accent"
-                  : "border-hairline bg-surface text-muted hover:border-white/20",
-              )}
-            >
-              {t(locale, label)}
-              <span className="ms-1.5 tabular-nums opacity-70">
-                {contactCounts[key]}
-              </span>
-            </button>
-          );
-        })}
+        ).map(([key, label]) => (
+          <FilterChip
+            key={key}
+            selected={contact === key}
+            onClick={() => setContact(key)}
+            count={contactCounts[key]}
+          >
+            {t(locale, label)}
+          </FilterChip>
+        ))}
       </div>
 
       <div className="relative flex items-center">
@@ -207,7 +185,7 @@ export function SubscriptionsClient({
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-2xl border border-hairline bg-surface px-4 py-8 text-center text-sm text-muted">
+        <p className={cn(adminCard, "px-4 py-8 text-center text-sm text-muted")}>
           {t(locale, "admin.subs_none")}
         </p>
       ) : (
@@ -259,8 +237,10 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
   }
 
   return (
-    <div className="flex flex-col rounded-2xl border border-hairline bg-surface">
-      <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-center sm:gap-4">
+    <div className={cn(adminCard, "flex flex-col")}>
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Avatar name={row.name ?? row.email} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="truncate font-bold">
@@ -273,7 +253,7 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
               />
             )}
           </div>
-          {row.email && (
+          {row.email && row.name && (
             <div className="truncate text-xs text-muted" dir="ltr">
               {row.email}
             </div>
@@ -284,26 +264,27 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
             </div>
           )}
         </div>
+        </div>
 
         <div className="flex items-center justify-between gap-3 sm:justify-end">
           {row.planType && row.planType !== "free" && (
-            <span className="rounded-full border border-hairline px-2.5 py-1 text-[11px] font-bold text-muted">
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold capitalize text-muted">
               {row.planType}
             </span>
           )}
 
-          <div className="text-end">
-            <div className="text-sm tabular-nums" dir="ltr">
+          <div className="flex-1 text-end sm:flex-none">
+            <div className="whitespace-nowrap text-sm tabular-nums" dir="ltr">
               {formatDate(row.expiresAt)}
             </div>
-            <div className="text-[11px] text-muted">
+            <div className="whitespace-nowrap text-[11px] text-muted">
               {row.isAdmin ? t(locale, "admin.subs_admin") : relativeDays(locale, row.daysLeft)}
             </div>
           </div>
 
           <span
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold",
+              "shrink-0 rounded-full px-3 py-1 text-[11px] font-bold",
               standing.tone,
             )}
           >
@@ -336,10 +317,8 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
                 }
               }}
               className={cn(
-                "shrink-0 rounded-full border p-1.5 transition-colors",
-                row.contactedAt
-                  ? "border-hairline text-muted hover:border-white/20"
-                  : "border-accent/40 text-accent hover:bg-accent/10",
+                "press grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors",
+                row.contactedAt ? "bg-surface2 text-muted" : "bg-accent/15 text-accent",
               )}
             >
               {row.contactedAt ? (
@@ -362,7 +341,7 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
               aria-label={t(locale, "admin.subs_actions")}
               title={t(locale, "admin.subs_actions")}
               className={cn(
-                "grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline transition-colors hover:text-ink",
+                "press grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full bg-surface2 transition-colors hover:text-ink",
                 open ? "text-ink" : "text-muted",
               )}
             >
@@ -375,14 +354,14 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
       {open && removable && (
         <div className="flex flex-col gap-3 border-t border-hairline p-4">
           {error && (
-            <p className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs">
+            <p className="rounded-2xl bg-danger/15 px-3 py-2 text-xs font-semibold text-danger">
               {error}
             </p>
           )}
 
           {/* The mis-tap, and the person worth another message later. */}
           {row.contactedAt && (
-            <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline p-3">
+            <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface2 p-3">
               <p className="text-xs text-muted">
                 {t(locale, "admin.contacted")} · {formatDate(row.contactedAt)}
               </p>
@@ -405,7 +384,7 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
 
           {/* Reversible: billing off, everything they logged stays. */}
           {hasSubscription && (
-            <div className="flex flex-col gap-2 rounded-xl border border-hairline p-3">
+            <div className="flex flex-col gap-2 rounded-2xl bg-surface2 p-3">
               <div>
                 <div className="text-sm font-bold">{t(locale, "admin.subs_end")}</div>
                 <p className="text-xs text-muted">{t(locale, "admin.subs_end_note")}</p>
@@ -417,7 +396,7 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
                     variant="secondary"
                     disabled={isPending}
                     onClick={() => run(() => endSubscription(row.id))}
-                    className="border-amber-500/40 text-amber-300 hover:bg-amber-500/10"
+                    className="bg-learn/15 text-learn hover:bg-learn/25"
                   >
                     {t(locale, "admin.subs_end_confirm")}
                   </Button>
@@ -439,9 +418,9 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
           )}
 
           {/* Permanent. Guarded by typing the address, like the Users tab. */}
-          <div className="flex flex-col gap-2 rounded-xl border border-red-500/40 bg-red-500/5 p-3">
+          <div className="flex flex-col gap-2 rounded-2xl bg-danger/10 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
               <div>
                 <div className="text-sm font-bold">{t(locale, "admin.subs_delete")}</div>
                 <p className="text-xs text-muted">{t(locale, "admin.subs_delete_note")}</p>
@@ -460,7 +439,7 @@ function RowCard({ locale, row }: { locale: Locale; row: SubscriptionRow }) {
               variant="secondary"
               disabled={isPending || !emailMatches}
               onClick={() => run(() => deleteAccount(row.id, typedEmail))}
-              className="self-start border-red-500/40 text-red-400 hover:bg-red-500/10"
+              className="self-start bg-danger/15 text-danger hover:bg-danger/25"
             >
               <Trash2 />
               {t(locale, "admin.subs_delete")}

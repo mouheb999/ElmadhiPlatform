@@ -70,9 +70,9 @@ export function QaLibraryClient({ locale, cards }: { locale: Locale; cards: Libr
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface p-5">
+    <div className="flex flex-col gap-4 rounded-[22px] border border-hairline bg-surface p-5 [&_input]:bg-surface2">
       <div>
-        <h2 className="font-bold">{t(locale, "admin.qa_library_title")}</h2>
+        <h2 className="text-lg font-extrabold tracking-tight">{t(locale, "admin.qa_library_title")}</h2>
         <p className="text-sm text-muted">{t(locale, "admin.qa_library_sub")}</p>
       </div>
 
@@ -86,7 +86,7 @@ export function QaLibraryClient({ locale, cards }: { locale: Locale; cards: Libr
         />
       </div>
 
-      {error && <p className="text-sm text-red-300">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <p className="text-xs text-muted">
         {t(locale, "admin.qa_library_count").replace("{n}", String(filtered.length))}
@@ -102,7 +102,7 @@ export function QaLibraryClient({ locale, cards }: { locale: Locale; cards: Libr
             return (
               <div
                 key={card.id}
-                className="flex flex-col gap-2 rounded-2xl border border-hairline p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-2xl bg-surface2 p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
                   <div className="truncate font-bold">{card.questionEn ?? card.questionAr}</div>

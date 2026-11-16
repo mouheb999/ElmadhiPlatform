@@ -3,6 +3,7 @@ import { getAdminUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { AdminHeader } from "@/components/admin/kit";
 import { subscriptionStanding, type SubscriptionStanding } from "@/lib/subscription";
 import { SubscriptionsClient, type SubscriptionRow } from "./subscriptions-client";
 
@@ -75,12 +76,7 @@ export default async function AdminSubscriptionsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          {t(locale, "admin.subs_title")}
-        </h1>
-        <p className="text-muted">{t(locale, "admin.subs_sub")}</p>
-      </div>
+      <AdminHeader title={t(locale, "admin.subs_title")} sub={t(locale, "admin.subs_sub")} />
       <SubscriptionsClient locale={locale} rows={rows} />
     </div>
   );
