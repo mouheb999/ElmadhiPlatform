@@ -196,7 +196,7 @@ export async function startPaymentRequest(
   }
 
   revalidatePath("/checkout");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok({ requestId: inserted.id });
 }
 
@@ -309,7 +309,7 @@ export async function attachPaymentProof(
   }
 
   revalidatePath("/checkout");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -503,7 +503,7 @@ export async function sendPaymentMessage(body: string): Promise<ActionResult> {
   });
 
   revalidatePath("/checkout");
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }
 
@@ -628,6 +628,6 @@ export async function suggestPaymentMethod(body: string): Promise<ActionResult> 
     method: text,
   });
 
-  revalidatePath("/admin");
+  revalidatePath("/admin", "layout");
   return ok(undefined);
 }

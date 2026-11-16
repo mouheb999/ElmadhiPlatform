@@ -1,134 +1,140 @@
 import { redirect } from "next/navigation";
-import { hoursSince } from "@/lib/dates";
 import { getAdminUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/lib/i18n-server";
-import { AdminClient } from "./admin-client";
+import { hoursSince } from "@/lib/dates";
+import { contactEmail, formatPhone } from "@/lib/phone";
+import { dayPart, summarizeRevenue } from "@/lib/admin-overview";
+import { subscriptionStanding } from "@/lib/subscription";
+import { summarizeTrials, trialDaysLeft, trialStatus } from "@/lib/trials";
+import { OverviewView, type OverviewData } from "./overview-view";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage() {
+const DAY_MS = 86_400_000;
+
+/**
+ * The admin home: this month's revenue, what is waiting on a person, and the
+ * headline counts. Read-only — every card links to the page where the work is
+ * done. The payments queue that used to live here is at /admin/payments.
+ */
+export default async function AdminOverviewPage() {
   const admin = await getAdminUser();
   if (!admin) redirect("/dashboard");
 
   const locale = await getLocale();
   const db = createAdminClient();
+  // One clock for the whole page, so the cards agree with each other.
+  const now = new Date();
+  // Far enough back to cover all of last month for the comparison.
+  const revenueSince = new Date(now.getTime() - 70 * DAY_MS).toISOString();
+  const weekAgo = new Date(now.getTime() - 7 * DAY_MS).toISOString();
 
-  const [{ data: settings }, { data: methods }, { data: requests }, { data: plans }] =
-    await Promise.all([
-      db.from("payment_settings").select("*").eq("id", 1).maybeSingle(),
-      db
-        .from("payment_methods")
-        .select("*")
-        .order("order_index", { ascending: true }),
-      db
-        .from("payment_requests")
-        .select("*")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false }),
-      db
-        .from("subscription_plans")
-        .select("*")
-        .order("tier", { ascending: false })
-        .order("months", { ascending: true }),
-    ]);
+  const [
+    { data: me },
+    { data: confirmed },
+    { data: pending },
+    { count: openTickets },
+    { count: pendingQuestions },
+    { data: subscribers },
+    { data: trials },
+    { count: signups7d },
+  ] = await Promise.all([
+    db.from("profiles").select("full_name").eq("id", admin.id).maybeSingle(),
+    db
+      .from("payment_requests")
+      .select("id, user_id, amount_tnd, resolved_at")
+      .eq("status", "confirmed")
+      .gte("resolved_at", revenueSince)
+      .order("resolved_at", { ascending: false }),
+    db.from("payment_requests").select("amount_tnd, created_at").eq("status", "pending"),
+    db.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
+    db.from("qa_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    db
+      .from("profiles")
+      .select("payment_status, plan_expires_at")
+      .eq("payment_status", "active")
+      .eq("is_admin", false),
+    db
+      .from("profiles")
+      .select("id, created_at, free_access_until, payment_status, paid_at")
+      .eq("is_admin", false)
+      .not("free_access_until", "is", null)
+      .limit(2000),
+    db
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("is_admin", false)
+      .gte("created_at", weekAgo),
+  ]);
 
-  // Who each request belongs to, so the admin can chase them on WhatsApp
-  // without leaving the panel.
-  //
-  // One query keyed by id, not a getUserById per request: that was a round-trip
-  // per pending payment, and it could only ever return an email. `profiles`
-  // carries the name and number too — and the number is the whole point, since
-  // confirming a manual payment means asking for the transfer screenshot.
-  const userIds = [...new Set((requests ?? []).map((r) => r.user_id))];
-  const { data: people } = userIds.length
+  // Who the latest payments came from. One query for the five on show.
+  const latest = (confirmed ?? []).slice(0, 5);
+  const { data: payers } = latest.length
     ? await db
         .from("profiles")
-        .select("id, full_name, email, phone, locale, contacted_at")
-        .in("id", userIds)
+        .select("id, full_name, email, phone")
+        .in("id", [...new Set(latest.map((p) => p.user_id))])
     : { data: [] };
+  const payerById = new Map((payers ?? []).map((p) => [p.id, p]));
 
-  // The receipt the customer uploaded. The bucket is private (migration 041)
-  // because these are screenshots of banking apps, so the panel renders a
-  // short-lived signed URL rather than a public one. Ten minutes is longer than
-  // anyone spends on this page and short enough that a leaked page source is
-  // not a lasting handle on somebody's bank details.
-  const proofPaths = (requests ?? [])
-    .map((r) => r.proof_path)
-    .filter((p): p is string => !!p);
-  const { data: signed } = proofPaths.length
-    ? await db.storage.from("payment-proofs").createSignedUrls(proofPaths, 600)
-    : { data: [] };
-  const proofUrlByPath = new Map(
-    (signed ?? [])
-      .filter((s) => s.signedUrl && s.path)
-      .map((s) => [s.path as string, s.signedUrl]),
-  );
-
-  // The conversation attached to each request (migration 044), so an admin can
-  // answer "your transfer is 5 DT short" without leaving the queue — which was
-  // previously only possible by copying a phone number into WhatsApp.
-  const requestIds = (requests ?? []).map((r) => r.id);
-  const { data: tickets } = requestIds.length
-    ? await db
-        .from("support_tickets")
-        .select("id, payment_request_id, support_messages(id, sender, body, created_at)")
-        .in("payment_request_id", requestIds)
-    : { data: [] };
-
-  type TicketRow = {
-    id: string;
-    payment_request_id: string | null;
-    support_messages: { id: string; sender: string; body: string; created_at: string | null }[];
-  };
-  const threadByRequest = new Map(
-    ((tickets ?? []) as unknown as TicketRow[])
-      .filter((ticket) => ticket.payment_request_id)
-      .map((ticket) => [
-        ticket.payment_request_id as string,
-        {
-          ticketId: ticket.id,
-          messages: (ticket.support_messages ?? [])
-            .slice()
-            .sort((a, b) => Date.parse(a.created_at ?? "") - Date.parse(b.created_at ?? ""))
-            .map((m) => ({
-              id: m.id,
-              sender: m.sender === "admin" ? ("admin" as const) : ("user" as const),
-              body: m.body,
-              createdAt: m.created_at,
-            })),
-        },
-      ]),
-  );
-
-  const byId = new Map((people ?? []).map((p) => [p.id, p]));
-  const pending = (requests ?? []).map((r) => {
-    const person = byId.get(r.user_id);
-    return {
-      ...r,
-      email: person?.email ?? null,
-      fullName: person?.full_name ?? null,
-      phone: person?.phone ?? null,
-      userLocale: person?.locale ?? null,
-      contactedAt: person?.contacted_at ?? null,
-      proofUrl: r.proof_path ? (proofUrlByPath.get(r.proof_path) ?? null) : null,
-      isNew: !r.admin_seen_at,
-      // Computed here rather than in the client component: reading the clock
-      // during a client render is impure and would hydrate to a different
-      // number than the server sent. The page is force-dynamic, so this is a
-      // fresh snapshot on every load, which is all the badge needs.
-      waitingHours: hoursSince(r.created_at),
-      thread: threadByRequest.get(r.id) ?? null,
-    };
+  const stampFmt = new Intl.DateTimeFormat("en-GB", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Africa/Tunis",
   });
 
-  return (
-    <AdminClient
-      locale={locale}
-      settings={settings ?? null}
-      methods={methods ?? []}
-      requests={pending}
-      plans={plans ?? []}
-    />
-  );
+  const standings = (subscribers ?? []).map((s) => subscriptionStanding(s, now).standing);
+  const trialRows = trials ?? [];
+  const trialSummary = summarizeTrials(trialRows, now);
+  const pendingRows = pending ?? [];
+  const waits = pendingRows
+    .map((p) => hoursSince(p.created_at, now.getTime()))
+    .filter((h): h is number => h !== null);
+
+  const data: OverviewData = {
+    adminName: me?.full_name?.trim().split(/\s+/)[0] || null,
+    greeting: dayPart(now),
+    dateLabel: new Intl.DateTimeFormat(locale === "tn" ? "ar-TN-u-nu-latn" : "en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      timeZone: "Africa/Tunis",
+    }).format(now),
+    revenue: summarizeRevenue(confirmed ?? [], now),
+    queue: {
+      pendingPayments: pendingRows.length,
+      pendingAmount: pendingRows.reduce((sum, p) => sum + (Number(p.amount_tnd) || 0), 0),
+      oldestPendingHours: waits.length ? Math.max(...waits) : null,
+      openTickets: openTickets ?? 0,
+      pendingQuestions: pendingQuestions ?? 0,
+      // Still unpaid with a day or less left: the last moment a message helps.
+      trialsEndingSoon: trialRows.filter(
+        (p) => trialStatus(p, now) === "active" && trialDaysLeft(p, now) === 1,
+      ).length,
+      expiringSubs: standings.filter((s) => s === "expiring").length,
+    },
+    kpis: {
+      activeSubscribers: standings.filter((s) => s === "active" || s === "expiring").length,
+      inTrial: trialSummary.byStatus.active,
+      newTrials7d: trialSummary.started.week,
+      signups7d: signups7d ?? 0,
+    },
+    recent: latest.map((p) => {
+      const payer = payerById.get(p.user_id);
+      return {
+        id: p.id,
+        name:
+          payer?.full_name?.trim() ||
+          contactEmail(payer?.email) ||
+          (payer?.phone ? formatPhone(payer.phone) : "—"),
+        amount: Number(p.amount_tnd) || 0,
+        when: p.resolved_at ? stampFmt.format(new Date(p.resolved_at)) : "",
+      };
+    }),
+  };
+
+  return <OverviewView locale={locale} data={data} />;
 }

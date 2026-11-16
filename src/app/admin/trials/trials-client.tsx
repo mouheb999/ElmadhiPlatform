@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCheck, MessageCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { DayBars } from "@/components/admin/day-bars";
 import { setContacted } from "@/app/actions/admin";
 import { cn } from "@/lib/utils";
 import { DEFAULT_LOCALE, isLocale, t, type Locale, type StringKey } from "@/lib/i18n";
@@ -51,7 +52,6 @@ function waLink(row: TrialRow): string | null {
 
 // Fixed locale and Tunis time: the dates are compared down a column, and the
 // accounts are in Tunisia whatever the admin's laptop thinks.
-const dayFmt = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", timeZone: "UTC" });
 const stampFmt = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",
@@ -59,11 +59,6 @@ const stampFmt = new Intl.DateTimeFormat("en-GB", {
   minute: "2-digit",
   timeZone: "Africa/Tunis",
 });
-
-/** "2026-11-15" (already a Tunis day) → "15 Nov". */
-function formatDayKey(key: string): string {
-  return dayFmt.format(new Date(`${key}T00:00:00Z`));
-}
 
 function daysLeftLabel(locale: Locale, n: number): string {
   if (n === 1) return t(locale, "admin.trials_left_1");
@@ -191,88 +186,17 @@ export function TrialsClient({
   );
 }
 
-/**
- * New trials per Tunis day. One series, so no legend — the heading names it.
- * Hover or focus a bar for its exact count; a table carries the same numbers
- * for screen readers.
- */
+/** New trials per Tunis day, in a card of its own. */
 function DailyChart({ locale, daily }: { locale: Locale; daily: TrialSummary["daily"] }) {
-  const [hover, setHover] = useState<number | null>(null);
   if (daily.length === 0) return null;
-
-  const max = Math.max(1, ...daily.map((d) => d.count));
-  const shown = hover !== null ? daily[hover] : null;
-  // A handful of date ticks, never one per bar: first, last, and one between.
-  const ticks = new Set([0, Math.floor((daily.length - 1) / 2), daily.length - 1]);
-
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-hairline bg-surface p-4">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="font-display text-sm font-bold">{t(locale, "admin.trials_daily")}</h2>
-        <p className="text-xs tabular-nums text-muted" dir="ltr" aria-live="polite">
-          {shown
-            ? `${formatDayKey(shown.date)} · ${t(locale, "admin.trials_bar").replace("{n}", String(shown.count))}`
-            : `max ${max}`}
-        </p>
-      </div>
-
-      <div className="relative h-36" dir="ltr">
-        {/* Recessive guides: the top of the scale and the baseline. */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 border-t border-dashed border-hairline" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-hairline" />
-        <div className="absolute inset-0 flex items-end gap-[2px]">
-          {daily.map((d, i) => (
-            <button
-              key={d.date}
-              type="button"
-              aria-label={`${formatDayKey(d.date)}: ${d.count}`}
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
-              onFocus={() => setHover(i)}
-              onBlur={() => setHover(null)}
-              // The hit target is the full column, not just the bar.
-              className="group flex h-full min-w-0 flex-1 items-end focus:outline-none"
-            >
-              <span
-                className={cn(
-                  "block w-full rounded-t-[4px] transition-colors",
-                  d.count === 0 ? "bg-white/10" : "bg-accent",
-                  hover === i ? "opacity-100" : hover !== null ? "opacity-60" : "opacity-100",
-                  "group-focus-visible:ring-2 group-focus-visible:ring-ink",
-                )}
-                style={{ height: d.count === 0 ? 2 : `${Math.max(4, (d.count / max) * 100)}%` }}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex gap-[2px] text-[10px] tabular-nums text-muted" dir="ltr">
-        {daily.map((d, i) => (
-          <span
-            key={d.date}
-            // The end labels hug their edge so they never run off the card.
-            className={cn(
-              "min-w-0 flex-1 overflow-visible whitespace-nowrap",
-              i === 0 ? "text-left" : i === daily.length - 1 ? "flex justify-end" : "text-center",
-            )}
-          >
-            {ticks.has(i) ? formatDayKey(d.date) : ""}
-          </span>
-        ))}
-      </div>
-
-      <table className="sr-only">
-        <caption>{t(locale, "admin.trials_daily")}</caption>
-        <tbody>
-          {daily.map((d) => (
-            <tr key={d.date}>
-              <th scope="row">{d.date}</th>
-              <td>{d.count}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <section className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface p-4">
+      <h2 className="font-display text-sm font-bold">{t(locale, "admin.trials_daily")}</h2>
+      <DayBars
+        daily={daily}
+        caption={t(locale, "admin.trials_daily")}
+        valueTemplate={t(locale, "admin.trials_bar")}
+      />
     </section>
   );
 }
