@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePaidUser } from "@/lib/subscription-server";
 import { tunisDateKey } from "@/lib/dates";
+import { resolveLogDate } from "@/lib/log-date";
 import { resolveFood, macrosForPortion } from "@/lib/food-lookup";
 import { isUserFoodRef } from "@/lib/food-ref";
 import { type ActionResult, ok, fail } from "@/lib/action-result";
@@ -60,6 +61,9 @@ function serverToday(): string {
   return tunisDateKey();
 }
 
+/** What a log aimed at a day outside the allowed window is told. */
+const BAD_LOG_DATE = "You can only log food for today or the last 30 days.";
+
 /**
  * Log a food from the catalog or from the user's own list.
  *
@@ -75,10 +79,15 @@ export async function logFood(input: {
   foodRef: string;
   quantityG: number;
   entryMethod: ManualEntryMethod;
+  /** Tunis YYYY-MM-DD to log against. Omitted = today. See lib/log-date. */
+  date?: string;
 }): Promise<ActionResult> {
   const supabase = await createClient();
   const { user, denied } = await requirePaidUser();
   if (!user) return fail(denied);
+
+  const logDate = resolveLogDate(input.date);
+  if (!logDate) return fail(BAD_LOG_DATE);
 
   if (!MEAL_SLOTS.includes(input.slot)) return fail("Unknown meal slot.");
   if (!MANUAL_ENTRY_METHODS.includes(input.entryMethod)) return fail("Unknown entry method.");
@@ -92,7 +101,7 @@ export async function logFood(input: {
 
   const { error } = await supabase.from("meal_logs").insert({
     user_id: user.id,
-    log_date: serverToday(),
+    log_date: logDate,
     meal_slot: input.slot,
     ingredient_id: food.ingredientId,
     user_food_id: food.userFoodId,
@@ -130,10 +139,15 @@ export async function logFood(input: {
  */
 export async function logPlanMeal(
   mealId: string,
+  /** Tunis YYYY-MM-DD to log against. Omitted = today. */
+  date?: string,
 ): Promise<ActionResult<{ logged: number }>> {
   const supabase = await createClient();
   const { user, denied } = await requirePaidUser();
   if (!user) return fail(denied);
+
+  const logDate = resolveLogDate(date);
+  if (!logDate) return fail(BAD_LOG_DATE);
 
   type Macros = {
     calories_per_100g: number;
@@ -178,7 +192,6 @@ export async function logPlanMeal(
   const slot = (MEAL_SLOTS as string[]).includes(meal.meal_type)
     ? (meal.meal_type as MealSlot)
     : "other";
-  const today = serverToday();
 
   const { error } = await supabase.from("meal_logs").insert(
     items.map((item) => {
@@ -196,7 +209,7 @@ export async function logPlanMeal(
       );
       return {
         user_id: user.id,
-        log_date: today,
+        log_date: logDate,
         meal_slot: slot,
         ingredient_id: item.ingredient_id,
         user_food_id: item.user_food_id,
@@ -237,10 +250,15 @@ export async function logQuick(input: {
   proteinG: number | null;
   carbsG: number | null;
   fatG: number | null;
+  /** Tunis YYYY-MM-DD to log against. Omitted = today. */
+  date?: string;
 }): Promise<ActionResult> {
   const supabase = await createClient();
   const { user, denied } = await requirePaidUser();
   if (!user) return fail(denied);
+
+  const logDate = resolveLogDate(input.date);
+  if (!logDate) return fail(BAD_LOG_DATE);
 
   if (!MEAL_SLOTS.includes(input.slot)) return fail("Unknown meal slot.");
   const calories = Number(input.calories);
@@ -267,7 +285,7 @@ export async function logQuick(input: {
 
   const { error } = await supabase.from("meal_logs").insert({
     user_id: user.id,
-    log_date: serverToday(),
+    log_date: logDate,
     meal_slot: input.slot,
     // Free text the user typed; bounded so a pasted document can't become a
     // diary row every screen then has to render.

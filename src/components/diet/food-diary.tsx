@@ -130,6 +130,8 @@ export function FoodDiary({
   planMeals,
   hasPreviousDay,
   isToday,
+  viewDate,
+  canLog,
   dateLabel,
   prevDate,
   nextDate,
@@ -145,6 +147,10 @@ export function FoodDiary({
   planMeals: DiaryPlanMeal[];
   hasPreviousDay: boolean;
   isToday: boolean;
+  /** The day on screen, as a Tunis YYYY-MM-DD. Logs are written to it. */
+  viewDate: string;
+  /** Whether food can still be added to this day (today, or recent enough). */
+  canLog: boolean;
   dateLabel: string;
   prevDate: string;
   nextDate: string | null;
@@ -226,6 +232,22 @@ export function FoodDiary({
           <span className="h-10 w-10" />
         )}
       </div>
+
+      {/* On a past day, say so and offer the way back — a meal logged into
+          the wrong day is the one mistake this screen makes easy. */}
+      {!isToday && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-surface2 px-4 py-2.5">
+          <p className="text-[13px] font-semibold text-muted">
+            {t(locale, canLog ? "diary.past_day" : "diary.past_locked")}
+          </p>
+          <Link
+            href="/diet?view=today"
+            className="press shrink-0 rounded-full bg-accent px-3.5 py-1.5 text-[13px] font-bold text-bg"
+          >
+            {t(locale, "diary.go_today")}
+          </Link>
+        </div>
+      )}
 
       {targets ? (
         <DiaryHero locale={locale} targets={targets} consumed={consumed} />
@@ -315,7 +337,7 @@ export function FoodDiary({
               </ul>
             )}
 
-            {isToday && (
+            {canLog && (
               <button
                 type="button"
                 // A free account keeps the button and gets told why, rather
@@ -348,6 +370,7 @@ export function FoodDiary({
         <AddFoodSheet
           locale={locale}
           slot={sheetSlot}
+          date={viewDate}
           recents={recents}
           favorites={favorites}
           ingredients={ingredients}
@@ -502,6 +525,7 @@ function DiaryHero({
 function AddFoodSheet({
   locale,
   slot,
+  date,
   recents,
   favorites,
   ingredients,
@@ -511,6 +535,8 @@ function AddFoodSheet({
 }: {
   locale: Locale;
   slot: MealSlot;
+  /** The diary day being filled in — today, or a past day being caught up. */
+  date: string;
   recents: DiaryFood[];
   favorites: DiaryFood[];
   ingredients: DiaryFood[];
@@ -568,6 +594,7 @@ function AddFoodSheet({
         slot,
         foodRef: selected.id,
         quantityG: grams,
+        date,
         entryMethod:
           tab === "plan"
             ? "plan"
@@ -588,7 +615,7 @@ function AddFoodSheet({
   function submitPlanMeal(mealId: string) {
     setError(null);
     startTransition(async () => {
-      const result = await logPlanMeal(mealId);
+      const result = await logPlanMeal(mealId, date);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -607,6 +634,7 @@ function AddFoodSheet({
         proteinG: quick.protein.trim() ? parseFloat(quick.protein) : null,
         carbsG: quick.carbs.trim() ? parseFloat(quick.carbs) : null,
         fatG: quick.fat.trim() ? parseFloat(quick.fat) : null,
+        date,
       });
       if (!result.ok) {
         setError(result.error);

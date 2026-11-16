@@ -1377,6 +1377,15 @@ const STRINGS = {
 
   // ---- food diary ----
   "diary.today_target": { en: "Today", tn: "اليوم" },
+  "diary.past_day": {
+    en: "You're filling in a past day.",
+    tn: "راك تعمّر في نهار فات.",
+  },
+  "diary.past_locked": {
+    en: "This day is too old to change.",
+    tn: "هذا النهار قديم برشا باش يتبدّل.",
+  },
+  "diary.go_today": { en: "Back to today", tn: "ارجع لليوم" },
   "diary.no_target": {
     en: "Set up your diet first to get daily targets.",
     tn: "اضبط نظامك الغذائي أولاً لتحصل على أهداف يومية.",
