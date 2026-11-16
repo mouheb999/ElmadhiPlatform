@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 import { contactEmail } from "@/lib/phone";
 import { summarizeTrials, trialDaysLeft, trialStatus } from "@/lib/trials";
 import { TrialsClient, type TrialRow } from "./trials-client";
+import { AdminHeader } from "@/components/admin/kit";
 
 export const dynamic = "force-dynamic";
 
@@ -52,12 +53,7 @@ export default async function AdminTrialsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          {t(locale, "admin.trials_title")}
-        </h1>
-        <p className="text-muted">{t(locale, "admin.trials_sub")}</p>
-      </div>
+      <AdminHeader title={t(locale, "admin.trials_title")} sub={t(locale, "admin.trials_sub")} />
       <TrialsClient locale={locale} summary={summary} rows={rows} />
     </div>
   );

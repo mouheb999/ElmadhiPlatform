@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown } from "lucide-react";
+import { CheckCircle2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { pick, t, type Locale } from "@/lib/i18n";
 import { publishQaRequest, dismissQaRequest } from "@/app/actions/qa";
+import { EmptyState, SectionTitle } from "@/components/admin/kit";
 
 export type TriageRequest = {
   id: string;
@@ -22,7 +23,7 @@ export type TriageCategory = {
 };
 
 const TEXTAREA_CLASS =
-  "min-h-24 w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  "min-h-24 w-full rounded-2xl border-0 bg-surface2 px-4 py-3 text-base text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60";
 
 type FormState = {
   categoryId: string;
@@ -101,23 +102,31 @@ export function QaRequestsClient({
   }
 
   if (items.length === 0) {
-    return <p className="py-8 text-center text-muted">{t(locale, "admin.qa_empty")}</p>;
+    return (
+      <EmptyState
+        positive
+        icon={CheckCircle2}
+        title={t(locale, "admin.ov_clear_title")}
+        sub={t(locale, "admin.qa_empty")}
+      />
+    );
   }
 
   return (
     <div className="flex flex-col gap-3">
+      <SectionTitle right={items.length}>{t(locale, "admin.ov_q_questions")}</SectionTitle>
       {error && (
-        <p className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm">{error}</p>
+        <p className="rounded-2xl bg-danger/15 px-4 py-3 text-sm font-semibold text-danger">{error}</p>
       )}
       {items.map((request) => {
         const open = openId === request.id;
         const form = formFor(request);
         return (
-          <div key={request.id} className="overflow-hidden rounded-2xl border border-hairline bg-surface">
+          <div key={request.id} className="overflow-hidden rounded-[22px] border border-hairline bg-surface">
             <button
               type="button"
               onClick={() => setOpenId(open ? null : request.id)}
-              className="flex w-full items-center justify-between gap-3 p-4 text-start"
+              className="press flex min-h-[64px] w-full cursor-pointer items-center justify-between gap-3 p-4 text-start"
             >
               <div>
                 <div className="font-bold">{request.questionText}</div>
@@ -130,13 +139,13 @@ export function QaRequestsClient({
             </button>
 
             {open && (
-              <div className="flex flex-col gap-3 border-t border-hairline p-4">
+              <div className="flex flex-col gap-3 border-t border-hairline p-4 [&_input]:bg-surface2">
                 <label className="flex flex-col gap-1">
                   <span className="text-xs font-bold text-muted">{t(locale, "admin.qa_category")}</span>
                   <select
                     value={form.categoryId}
                     onChange={(e) => patchForm(request.id, request, { categoryId: e.target.value })}
-                    className="h-12 rounded-2xl border border-hairline bg-surface px-4 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                    className="h-12 rounded-2xl border-0 bg-surface2 px-4 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>

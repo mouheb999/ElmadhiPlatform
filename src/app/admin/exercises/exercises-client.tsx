@@ -14,6 +14,8 @@ import {
   DIFFICULTIES,
   type ExerciseInput,
 } from "@/app/actions/exercises-meta";
+import { Plus, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/shared/image-upload";
 import { type Locale, dir, pick, t } from "@/lib/i18n";
 import type { Database } from "@/types/db";
+import { AdminHeader, adminCard } from "@/components/admin/kit";
 
 /**
  * Only the columns `page.tsx` actually selects — it deliberately avoids
@@ -47,10 +50,10 @@ type ExerciseRow = Pick<
 >;
 
 const selectClass =
-  "flex h-12 w-full rounded-2xl border border-hairline bg-surface px-4 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  "flex h-12 w-full rounded-2xl border-0 bg-surface2 px-4 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 const textareaClass =
-  "flex min-h-24 w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  "flex min-h-24 w-full rounded-2xl border-0 bg-surface2 px-4 py-3 text-base text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
 
 export function ExercisesClient({
   locale,
@@ -75,14 +78,18 @@ export function ExercisesClient({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-xl font-extrabold">{t(locale, "ex.title")}</h1>
-        {editing === null && (
-          <Button size="sm" onClick={() => setEditing("new")}>
-            {t(locale, "ex.add")}
-          </Button>
-        )}
-      </div>
+      <AdminHeader
+        title={t(locale, "ex.title")}
+        sub={String(exercises.length)}
+        right={
+          editing === null ? (
+            <Button size="sm" onClick={() => setEditing("new")}>
+              <Plus />
+              {t(locale, "ex.add")}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {editing === "new" && (
         <ExerciseForm
@@ -92,11 +99,15 @@ export function ExercisesClient({
         />
       )}
 
-      <Input
-        placeholder={t(locale, "ex.search")}
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-      />
+      <div className="relative flex items-center">
+        <Search className="pointer-events-none absolute start-4 h-4 w-4 text-muted" />
+        <Input
+          placeholder={t(locale, "ex.search")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          className="ps-11"
+        />
+      </div>
 
       {filtered.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted">
@@ -153,26 +164,26 @@ function ExerciseRowItem({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-hairline p-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className={cn(adminCard, "flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between")}>
       <div className="flex min-w-0 items-center gap-3">
         {exercise.thumbnail_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={exercise.thumbnail_url}
             alt=""
-            className="h-12 w-12 shrink-0 rounded-xl border border-hairline object-cover"
+            className="h-14 w-14 shrink-0 rounded-2xl bg-surface2 object-cover"
           />
         )}
         <div className="min-w-0">
           <p className="truncate font-bold text-ink">
             {pick(locale, exercise.name_en, exercise.name_ar)}
           </p>
-          <p className="text-sm text-muted">
+          <p className="truncate text-xs capitalize text-muted">
             {exercise.primary_muscle} · {exercise.equipment}
             {exercise.difficulty ? ` · ${exercise.difficulty}` : ""}
           </p>
           {error && (
-            <p className="text-sm text-red-500" role="alert">
+            <p className="text-sm text-danger" role="alert">
               {error}
             </p>
           )}
@@ -282,7 +293,7 @@ function ExerciseForm({
 
   return (
     <Card>
-      <CardContent className="flex flex-col gap-4 pt-6">
+      <CardContent className="flex flex-col gap-4 pt-6 [&_input]:bg-surface2">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label={t(locale, "ex.name_ar")}>
             <Input
@@ -400,7 +411,7 @@ function ExerciseForm({
         />
 
         {error && (
-          <p className="text-sm text-red-500" role="alert">
+          <p className="text-sm text-danger" role="alert">
             {error}
           </p>
         )}

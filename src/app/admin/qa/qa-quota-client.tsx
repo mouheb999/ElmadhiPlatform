@@ -46,9 +46,9 @@ export function QaQuotaClient({
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-hairline bg-surface p-5">
+    <div className="flex flex-col gap-4 rounded-[22px] border border-hairline bg-surface p-5 [&_input]:bg-surface2">
       <div>
-        <h2 className="font-bold">{t(locale, "admin.qa_quota_title")}</h2>
+        <h2 className="text-lg font-extrabold tracking-tight">{t(locale, "admin.qa_quota_title")}</h2>
         <p className="text-sm text-muted">{t(locale, "admin.qa_quota_sub")}</p>
       </div>
 
@@ -69,7 +69,7 @@ export function QaQuotaClient({
           {t(locale, "admin.qa_quota_save")}
         </Button>
         {saved && <span className="text-sm text-accent">{t(locale, "admin.qa_quota_saved")}</span>}
-        {error && <span className="text-sm text-red-300">{error}</span>}
+        {error && <span className="text-sm text-danger">{error}</span>}
       </div>
 
       <div>
@@ -94,7 +94,7 @@ export function QaQuotaClient({
                 {rows.map((row) => (
                   <tr key={row.userId} className="border-t border-hairline">
                     <td className="py-2 pe-3">{row.email ?? row.userId.slice(0, 8)}</td>
-                    <td className={row.used >= limit ? "py-2 pe-3 font-bold text-amber-300" : "py-2 pe-3"}>
+                    <td className={row.used >= limit ? "py-2 pe-3 font-bold text-learn" : "py-2 pe-3"}>
                       {row.used} / {limit}
                     </td>
                     <td className="py-2 pe-3">{row.pending}</td>

@@ -3,6 +3,7 @@ import { t } from "@/lib/i18n";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { LoadFailure } from "@/components/shared/load-failure";
 import { SupportAdminClient, type AdminTicket } from "./support-admin-client";
+import { AdminHeader } from "@/components/admin/kit";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function AdminSupportPage() {
   if (error) {
     return (
       <div className="flex flex-col gap-6">
-        <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "admin.support_title")}</h1>
+        <AdminHeader title={t(locale, "admin.support_title")} />
         <LoadFailure detail={error.message} />
       </div>
     );
@@ -67,10 +68,7 @@ export default async function AdminSupportPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">{t(locale, "admin.support_title")}</h1>
-        <p className="text-muted">{t(locale, "admin.support_sub")}</p>
-      </div>
+      <AdminHeader title={t(locale, "admin.support_title")} sub={t(locale, "admin.support_sub")} />
       <SupportAdminClient locale={locale} tickets={tickets} />
     </div>
   );

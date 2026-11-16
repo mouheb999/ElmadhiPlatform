@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { CheckCircle2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { t, type Locale, type StringKey } from "@/lib/i18n";
 import { toSupportCategory, type SupportMessage } from "@/lib/support";
 import { CATEGORY_LABEL, STATUS_LABEL } from "@/app/(app)/support/support-client";
 import { answerSupportTicket, setSupportTicketStatus } from "@/app/actions/support";
+import { Avatar, EmptyState, Pill, Segmented } from "@/components/admin/kit";
 
 export type AdminTicket = {
   id: string;
@@ -21,7 +22,7 @@ export type AdminTicket = {
 };
 
 const TEXTAREA_CLASS =
-  "min-h-24 w-full rounded-2xl border border-hairline bg-surface px-4 py-3 text-base text-ink placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg";
+  "min-h-24 w-full rounded-2xl border-0 bg-surface2 px-4 py-3 text-base text-ink placeholder:text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60";
 
 /** Read a report, answer it, close it. Open threads first — that's the queue. */
 export function SupportAdminClient({
@@ -72,34 +73,25 @@ export function SupportAdminClient({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-2">
-        {[
-          { all: false, labelKey: "admin.support_show_open" as StringKey },
-          { all: true, labelKey: "admin.support_show_all" as StringKey },
-        ].map((tab) => (
-          <button
-            key={String(tab.all)}
-            type="button"
-            aria-pressed={showAll === tab.all}
-            onClick={() => setShowAll(tab.all)}
-            className={cn(
-              "rounded-full px-4 py-2 text-sm font-bold transition-colors",
-              showAll === tab.all
-                ? "bg-accent text-bg"
-                : "border border-hairline text-muted hover:text-ink",
-            )}
-          >
-            {t(locale, tab.labelKey)}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        value={showAll ? "all" : "open"}
+        onChange={(v) => setShowAll(v === "all")}
+        options={[
+          {
+            value: "open",
+            label: t(locale, "admin.support_show_open"),
+            count: tickets.filter((ticket) => ticket.status === "open").length,
+          },
+          { value: "all", label: t(locale, "admin.support_show_all") },
+        ]}
+      />
 
       {error && (
-        <p className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm">{error}</p>
+        <p className="rounded-2xl bg-danger/15 px-4 py-3 text-sm font-semibold text-danger">{error}</p>
       )}
 
       {visible.length === 0 ? (
-        <p className="py-8 text-center text-muted">{t(locale, "admin.support_empty")}</p>
+        <EmptyState positive icon={CheckCircle2} title={t(locale, "admin.ov_clear_title")} sub={t(locale, "admin.support_empty")} />
       ) : (
         visible.map((ticket) => {
           const open = openId === ticket.id;
@@ -107,22 +99,35 @@ export function SupportAdminClient({
           return (
             <div
               key={ticket.id}
-              className="overflow-hidden rounded-2xl border border-hairline bg-surface"
+              className="overflow-hidden rounded-[22px] border border-hairline bg-surface"
             >
               <button
                 type="button"
                 onClick={() => setOpenId(open ? null : ticket.id)}
-                className="flex w-full items-center justify-between gap-3 p-4 text-start"
+                className="press flex min-h-[72px] w-full cursor-pointer items-center gap-3 p-4 text-start"
               >
-                <div className="min-w-0">
-                  <div className="truncate font-bold">{firstMessage}</div>
-                  <div className="mt-0.5 text-xs text-muted">
+                <Avatar name={ticket.fullName ?? ticket.email} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-sm font-bold">
+                      {ticket.fullName ?? ticket.email ?? "—"}
+                    </span>
+                    <Pill
+                      tone={
+                        ticket.status === "open"
+                          ? "bg-fuel/15 text-fuel"
+                          : ticket.status === "answered"
+                            ? "bg-accent/15 text-accent"
+                            : "bg-white/10 text-muted"
+                      }
+                    >
+                      {t(locale, STATUS_LABEL[ticket.status] ?? "support.status_open")}
+                    </Pill>
+                  </div>
+                  <div className="mt-0.5 truncate text-sm text-muted">{firstMessage}</div>
+                  <div className="mt-0.5 text-[11px] text-muted">
                     {t(locale, CATEGORY_LABEL[toSupportCategory(ticket.category)])}
-                    {" · "}
-                    {t(locale, STATUS_LABEL[ticket.status] ?? "support.status_open")}
-                    {" · "}
-                    {t(locale, "admin.qa_from")}: {ticket.email ?? "—"}
-                    {ticket.createdAt ? ` · ${new Date(ticket.createdAt).toLocaleDateString()}` : ""}
+                    {ticket.createdAt ? ` · ${new Date(ticket.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}` : ""}
                   </div>
                 </div>
                 <ChevronDown
@@ -141,8 +146,8 @@ export function SupportAdminClient({
                       className={cn(
                         "max-w-[85%] rounded-2xl px-4 py-3 text-sm",
                         message.sender === "admin"
-                          ? "self-end border border-accent/40 bg-accent/10"
-                          : "self-start bg-white/5",
+                          ? "self-end bg-accent/15"
+                          : "self-start bg-surface2",
                       )}
                     >
                       <div className="text-[11px] font-bold text-muted">

@@ -1796,6 +1796,14 @@ const STRINGS = {
   },
 
   // ---- admin: user records ----
+  // ---- admin: payments ----
+  "admin.pay_waiting_sum": { en: "{n} waiting · {amount} DT", tn: "{n} يستنّاو · {amount} د.ت" },
+  "admin.pay_clear_sub": { en: "No payments waiting.", tn: "ما فماش دفعات تستنّى." },
+  "admin.pay_tab_setup": { en: "Prices & methods", tn: "الأسعار والطرق" },
+  "admin.pay_f_receipt": { en: "With receipt", tn: "معاها وصل" },
+  "admin.pay_f_none": { en: "No receipt", tn: "بلا وصل" },
+  "admin.pay_reject_confirm": { en: "Tap again", tn: "عاود انزل" },
+
   // ---- admin: overview ----
   "admin.nav_overview": { en: "Overview", tn: "الرئيسية" },
   "admin.nav_more": { en: "More", tn: "المزيد" },

@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { DEFAULT_LOCALE, isLocale, t, type Locale, type StringKey } from "@/lib/i18n";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import type { TrialStatus, TrialSummary } from "@/lib/trials";
+import { Avatar, SectionTitle, StatTile, adminCard } from "@/components/admin/kit";
 
 export type TrialRow = {
   id: string;
@@ -25,11 +26,11 @@ export type TrialRow = {
 
 /** Order is the order an admin works the list in: who can still be won first. */
 const STATUSES: { key: TrialStatus; label: StringKey; tone: string }[] = [
-  { key: "active", label: "admin.trials_active", tone: "border-accent/40 bg-accent/10 text-accent" },
-  { key: "paying", label: "admin.trials_paying", tone: "border-amber-500/40 bg-amber-500/10 text-amber-300" },
-  { key: "paid", label: "admin.trials_paid", tone: "border-sky-400/40 bg-sky-400/10 text-sky-300" },
-  { key: "ended", label: "admin.trials_ended", tone: "border-hairline bg-white/5 text-muted" },
-  { key: "blocked", label: "admin.trials_blocked", tone: "border-red-500/40 bg-red-500/10 text-red-400" },
+  { key: "active", label: "admin.trials_active", tone: "bg-accent/15 text-accent" },
+  { key: "paying", label: "admin.trials_paying", tone: "bg-learn/15 text-learn" },
+  { key: "paid", label: "admin.trials_paid", tone: "bg-protein/15 text-protein" },
+  { key: "ended", label: "admin.trials_ended", tone: "bg-white/10 text-muted" },
+  { key: "blocked", label: "admin.trials_blocked", tone: "bg-danger/15 text-danger" },
 ];
 
 /** Which WhatsApp opener fits where the person is. */
@@ -103,21 +104,10 @@ export function TrialsClient({
     <div className="flex flex-col gap-6">
       {/* The headline: how many trials are being started. */}
       <section className="flex flex-col gap-3">
-        <h2 className="font-display text-sm font-bold text-muted">
-          {t(locale, "admin.trials_new_heading")}
-        </h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <SectionTitle>{t(locale, "admin.trials_new_heading")}</SectionTitle>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {periods.map((p, i) => (
-            <div
-              key={p.label}
-              className={cn(
-                "rounded-2xl border px-4 py-3",
-                i === 0 ? "border-accent/40 bg-accent/10" : "border-hairline bg-surface",
-              )}
-            >
-              <div className="text-3xl font-extrabold tabular-nums">{p.value}</div>
-              <div className="text-xs font-bold text-muted">{t(locale, p.label)}</div>
-            </div>
+            <StatTile key={p.label} value={p.value} label={t(locale, p.label)} highlight={i === 0} />
           ))}
         </div>
       </section>
@@ -126,36 +116,28 @@ export function TrialsClient({
 
       {/* What became of them. Tapping one filters the list below. */}
       <section className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-sm font-bold text-muted">
-            {t(locale, "admin.trials_outcomes")}
-          </h2>
-          {summary.conversionPct !== null && (
-            <p className="text-sm">
-              <span className="font-extrabold tabular-nums">{summary.conversionPct}%</span>{" "}
-              <span className="text-muted">{t(locale, "admin.trials_conversion")}</span>
-            </p>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {STATUSES.map((s) => {
-            const selected = filter === s.key;
-            return (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => setFilter(selected ? "all" : s.key)}
-                aria-pressed={selected}
-                className={cn(
-                  "rounded-2xl border px-3 py-3 text-start transition-colors",
-                  selected ? s.tone : "border-hairline bg-surface hover:border-white/20",
-                )}
-              >
-                <div className="text-2xl font-extrabold tabular-nums">{summary.byStatus[s.key]}</div>
-                <div className="text-xs font-bold text-muted">{t(locale, s.label)}</div>
-              </button>
-            );
-          })}
+        <SectionTitle
+          right={
+            summary.conversionPct !== null ? (
+              <>
+                <span className="text-sm font-extrabold text-ink">{summary.conversionPct}%</span>{" "}
+                {t(locale, "admin.trials_conversion")}
+              </>
+            ) : undefined
+          }
+        >
+          {t(locale, "admin.trials_outcomes")}
+        </SectionTitle>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+          {STATUSES.map((s) => (
+            <StatTile
+              key={s.key}
+              value={summary.byStatus[s.key]}
+              label={t(locale, s.label)}
+              selected={filter === s.key}
+              onClick={() => setFilter(filter === s.key ? "all" : s.key)}
+            />
+          ))}
         </div>
       </section>
 
@@ -170,7 +152,7 @@ export function TrialsClient({
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-2xl border border-hairline bg-surface px-4 py-8 text-center text-sm text-muted">
+        <p className={cn(adminCard, "px-4 py-8 text-center text-sm text-muted")}>
           {t(locale, "admin.trials_none")}
         </p>
       ) : (
@@ -190,8 +172,8 @@ export function TrialsClient({
 function DailyChart({ locale, daily }: { locale: Locale; daily: TrialSummary["daily"] }) {
   if (daily.length === 0) return null;
   return (
-    <section className="flex flex-col gap-1 rounded-2xl border border-hairline bg-surface p-4">
-      <h2 className="font-display text-sm font-bold">{t(locale, "admin.trials_daily")}</h2>
+    <section className="flex flex-col gap-1 rounded-[28px] border border-hairline bg-surface p-5">
+      <h2 className="text-sm font-bold text-muted">{t(locale, "admin.trials_daily")}</h2>
       <DayBars
         daily={daily}
         caption={t(locale, "admin.trials_daily")}
@@ -208,12 +190,14 @@ function TrialCard({ locale, row }: { locale: Locale; row: TrialRow }) {
   const link = waLink(row);
 
   return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-hairline bg-surface p-4 sm:flex-row sm:items-center sm:gap-4">
+    <div className={cn(adminCard, "flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4")}>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+      <Avatar name={row.name ?? row.email} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-bold">
           {row.name ?? row.email ?? (row.phone ? formatPhone(row.phone) : row.id.slice(0, 8))}
         </div>
-        {row.email && (
+        {row.email && row.name && (
           <div className="truncate text-xs text-muted" dir="ltr">
             {row.email}
           </div>
@@ -224,10 +208,11 @@ function TrialCard({ locale, row }: { locale: Locale; row: TrialRow }) {
           </div>
         )}
       </div>
+      </div>
 
       <div className="flex items-center justify-between gap-3 sm:justify-end">
         <div className="text-end">
-          <div className="text-sm tabular-nums" dir="ltr">
+          <div className="whitespace-nowrap text-sm tabular-nums" dir="ltr">
             {row.createdAt ? stampFmt.format(new Date(row.createdAt)) : "—"}
           </div>
           <div className="text-[11px] text-muted">
@@ -237,7 +222,7 @@ function TrialCard({ locale, row }: { locale: Locale; row: TrialRow }) {
           </div>
         </div>
 
-        <span className={cn("shrink-0 rounded-full border px-3 py-1 text-[11px] font-bold", status.tone)}>
+        <span className={cn("shrink-0 rounded-full px-3 py-1 text-[11px] font-bold", status.tone)}>
           {t(locale, status.label)}
         </span>
 
@@ -258,10 +243,8 @@ function TrialCard({ locale, row }: { locale: Locale; row: TrialRow }) {
               }
             }}
             className={cn(
-              "shrink-0 rounded-full border p-1.5 transition-colors",
-              row.contactedAt
-                ? "border-hairline text-muted hover:border-white/20"
-                : "border-accent/40 text-accent hover:bg-accent/10",
+              "press grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors",
+              row.contactedAt ? "bg-surface2 text-muted" : "bg-accent/15 text-accent",
             )}
           >
             {row.contactedAt ? <CheckCheck className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}

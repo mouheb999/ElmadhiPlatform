@@ -1,6 +1,7 @@
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { AdminUsersClient } from "./users-client";
+import { AdminHeader } from "@/components/admin/kit";
 
 export const dynamic = "force-dynamic";
 
@@ -12,12 +13,7 @@ export default async function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          {t(locale, "admin.users_title")}
-        </h1>
-        <p className="text-muted">{t(locale, "admin.users_sub")}</p>
-      </div>
+      <AdminHeader title={t(locale, "admin.users_title")} sub={t(locale, "admin.users_sub")} />
       <AdminUsersClient locale={locale} />
     </div>
   );
