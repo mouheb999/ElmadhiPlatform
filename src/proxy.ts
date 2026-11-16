@@ -198,7 +198,7 @@ export async function proxy(request: NextRequest) {
     profile = data;
 
     // An account from before the trial existed, coming back. It gets the same
-    // three days a new sign-up does, starting now — see migration 061. The
+    // three days a new sign-up does, starting now — see migration 062. The
     // function refuses anyone who has already had a window or ever paid, so
     // this is one extra call, once, for those accounts and nobody else.
     if (

@@ -1,4 +1,4 @@
--- 061_welcome_back_trial.sql
+-- 062_welcome_back_trial.sql
 -- Three free days for the accounts that signed up before the trial existed.
 --
 -- Migration 058 gives the trial at sign-up, so the 1,200-odd accounts created
